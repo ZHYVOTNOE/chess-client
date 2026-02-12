@@ -1,0 +1,45 @@
+{
+  "welcome_login": "Sign in",
+  "welcome_register": "Sign up",
+
+  "register_title": "Sign Up",
+  "register_email": "Email",
+  "register_password": "Password",
+  "register_confirm_password": "Confirm Password",
+  "register_button": "Sign Up",
+  "register_have_account": "Already have an account? Sign In",
+  "error_email_required": "Enter email",
+  "error_email_invalid": "Invalid email",
+  "error_password_required": "Enter password",
+  "error_password_short": "Password must be at least 8 characters",
+  "error_password_mismatch": "Passwords do not match",
+
+  "verify_title": "Verification",
+  "verify_sent_to": "Code sent to",
+  "verify_resend": "Resend code",
+  "verify_resend_in": "Resend in",
+
+  "login_title": "Sign In",
+  "login_email": "Email",
+  "login_password": "Password",
+  "login_button": "Sign In",
+  "login_forgot_password": "Forgot password?",
+  "login_no_account": "Don't have an account? Sign Up",
+
+  "forgot_title": "Reset Password",
+  "forgot_description": "Enter your email and we'll send you a link to reset your password",
+  "forgot_email": "Email",
+  "forgot_button": "Send Link",
+  "forgot_back_to_login": "Back to Sign In",
+  "forgot_success_title": "Email Sent!",
+  "forgot_success_message": "Check your email and follow the instructions to reset your password",
+
+  "nav_home": "Home",
+  "nav_game": "Game",
+  "nav_learn": "Learn",
+  "nav_profile": "Profile",
+  "logout_title": "Sign Out",
+  "logout_confirm": "Sign out of your account?",
+  "logout": "Sign Out",
+  "cancel": "Cancel"
+}

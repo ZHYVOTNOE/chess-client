@@ -1,0 +1,45 @@
+{
+  "welcome_login": "Войти",
+  "welcome_register": "Зарегистрироваться",
+
+  "register_title": "Регистрация",
+  "register_email": "Email",
+  "register_password": "Пароль",
+  "register_confirm_password": "Подтвердите пароль",
+  "register_button": "Зарегистрироваться",
+  "register_have_account": "Уже есть аккаунт? Войти",
+  "error_email_required": "Введите email",
+  "error_email_invalid": "Некорректный email",
+  "error_password_required": "Введите пароль",
+  "error_password_short": "Пароль минимум 8 символов",
+  "error_password_mismatch": "Пароли не совпадают",
+
+  "verify_title": "Подтверждение",
+  "verify_sent_to": "Код отправлен на",
+  "verify_resend": "Отправить повторно",
+  "verify_resend_in": "Повторная отправка через",
+
+  "login_title": "Вход",
+  "login_email": "Email",
+  "login_password": "Пароль",
+  "login_button": "Войти",
+  "login_forgot_password": "Забыли пароль?",
+  "login_no_account": "Нет аккаунта? Зарегистрироваться",
+
+  "forgot_title": "Восстановление пароля",
+  "forgot_description": "Введите email, и мы отправим ссылку для сброса пароля",
+  "forgot_email": "Email",
+  "forgot_button": "Отправить ссылку",
+  "forgot_back_to_login": "Вернуться ко входу",
+  "forgot_success_title": "Письмо отправлено!",
+  "forgot_success_message": "Проверьте вашу почту и следуйте инструкциям для сброса пароля",
+
+  "nav_home": "Главная",
+  "nav_game": "Игра",
+  "nav_learn": "Учеба",
+  "nav_profile": "Профиль",
+  "logout_title": "Выход",
+  "logout_confirm": "Выйти из аккаунта?",
+  "logout": "Выйти",
+  "cancel": "Отмена"
+}
