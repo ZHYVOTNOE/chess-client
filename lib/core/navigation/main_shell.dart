@@ -42,8 +42,8 @@ class MainShell extends StatelessWidget {
             label: locale.get('nav_profile'),
           ),
           NavigationDestination(
-            icon: const Icon(Icons.person_outlined),
-            selectedIcon: const Icon(Icons.person),
+            icon: const Icon(Icons.more_horiz_outlined),
+            selectedIcon: const Icon(Icons.more_horiz),
             label: locale.get('nav_more'),
           ),
         ],

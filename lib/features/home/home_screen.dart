@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -69,6 +70,7 @@ class _EventCarousel extends StatefulWidget {
 class _EventCarouselState extends State<_EventCarousel> {
   final PageController _controller = PageController();
   int _currentPage = 0;
+  Timer? _autoPlayTimer;
 
   // TODO: загружать с сервера
   final List<_DailyEvent> _events = [
@@ -93,9 +95,42 @@ class _EventCarouselState extends State<_EventCarousel> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _startAutoPlay();
+  }
+
+  @override
   void dispose() {
+    _autoPlayTimer?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _startAutoPlay() {
+    _autoPlayTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) return;
+
+      final nextPage = (_currentPage + 1) % _events.length;
+
+      _controller.animateToPage(
+        nextPage,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentPage = index;
+    });
+  }
+
+  // Остановка автопрокрутки при ручном свайпе
+  void _onUserInteraction() {
+    _autoPlayTimer?.cancel();
+    _startAutoPlay();
   }
 
   @override
@@ -103,11 +138,20 @@ class _EventCarouselState extends State<_EventCarousel> {
     return Column(
       children: [
         Expanded(
-          child: PageView.builder(
-            controller: _controller,
-            onPageChanged: (index) => setState(() => _currentPage = index),
-            itemCount: _events.length,
-            itemBuilder: (context, index) => _EventCard(event: _events[index]),
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (notification) {
+              if (notification is ScrollStartNotification &&
+                  notification.dragDetails != null) {
+                _onUserInteraction();
+              }
+              return true;
+            },
+            child: PageView.builder(
+              controller: _controller,
+              onPageChanged: _onPageChanged,
+              itemCount: _events.length,
+              itemBuilder: (context, index) => _EventCard(event: _events[index]),
+            ),
           ),
         ),
         const SizedBox(height: 16),

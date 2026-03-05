@@ -3,8 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/locale_provider.dart';
 
-class LearnHubScreen extends StatelessWidget {
-  const LearnHubScreen({super.key});
+class GameHubScreen extends StatelessWidget {
+  const GameHubScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,54 +15,56 @@ class LearnHubScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Верхний ряд: Задачи + Дебюты
             Expanded(
               child: Row(
                 children: [
+                  // Быстрая игра
                   Expanded(
-                    child: _LearnCard(
-                      icon: Icons.extension,
-                      title: locale.get('learn_puzzles'),
-                      subtitle: locale.get('learn_puzzles_desc'),
-                      color: Colors.green,
-                      onTap: () => context.push('/learn/puzzles'),
+                    child: _GameModeCard(
+                      icon: Icons.bolt,
+                      title: locale.get('game_quick'),
+                      subtitle: locale.get('game_quick_subtitle'),
+                      color: Colors.orange,
+                      onTap: () => context.push('/game/quick'),
                     ),
                   ),
                   const SizedBox(width: 16),
+                  // Турниры
                   Expanded(
-                    child: _LearnCard(
-                      icon: Icons.open_in_full,
-                      title: locale.get('learn_openings'),
-                      subtitle: locale.get('learn_openings_desc'),
-                      color: Colors.blue,
-                      onTap: () => context.push('/learn/openings'),
+                    child: _GameModeCard(
+                      icon: Icons.emoji_events,
+                      title: locale.get('game_tournament'),
+                      subtitle: locale.get('game_tournament_subtitle'),
+                      color: Colors.purple,
+                      onTap: () => context.push('/game/tournament'),
                     ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            // Нижний ряд: Стратегия + Эндшпили
             Expanded(
               child: Row(
                 children: [
+                  // Игра с другом
                   Expanded(
-                    child: _LearnCard(
-                      icon: Icons.psychology,
-                      title: locale.get('learn_strategy'),
-                      subtitle: locale.get('learn_strategy_desc'),
-                      color: Colors.orange,
-                      onTap: () => context.push('/learn/strategy'),
+                    child: _GameModeCard(
+                      icon: Icons.people,
+                      title: locale.get('game_friend'),
+                      subtitle: locale.get('game_friend_subtitle'),
+                      color: Colors.blue,
+                      onTap: () => context.push('/game/friend'),
                     ),
                   ),
                   const SizedBox(width: 16),
+                  // Игра с ботом
                   Expanded(
-                    child: _LearnCard(
-                      icon: Icons.flag,
-                      title: locale.get('learn_endgames'),
-                      subtitle: locale.get('learn_endgames_desc'),
-                      color: Colors.purple,
-                      onTap: () => context.push('/learn/endgames'),
+                    child: _GameModeCard(
+                      icon: Icons.smart_toy,
+                      title: locale.get('game_bot'),
+                      subtitle: locale.get('game_bot_subtitle'),
+                      color: Colors.green,
+                      onTap: () => context.push('/game/bot'),
                     ),
                   ),
                 ],
@@ -75,14 +77,14 @@ class LearnHubScreen extends StatelessWidget {
   }
 }
 
-class _LearnCard extends StatelessWidget {
+class _GameModeCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
   final Color color;
   final VoidCallback onTap;
 
-  const _LearnCard({
+  const _GameModeCard({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -102,7 +104,10 @@ class _LearnCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [color, color.withOpacity(0.7)],
+              colors: [
+                color,
+                color.withOpacity(0.7),
+              ],
             ),
           ),
           child: Padding(
@@ -110,8 +115,12 @@ class _LearnCard extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 48, color: Colors.white),
-                const SizedBox(height: 16),
+                Icon(
+                  icon,
+                  size: 48,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 12),
                 Text(
                   title,
                   style: const TextStyle(
@@ -121,12 +130,12 @@ class _LearnCard extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withOpacity(0.8),
                   ),
                   textAlign: TextAlign.center,
                 ),

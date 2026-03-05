@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = false;
     });
 
-    context.push('/home');
+    context.go('/home');
   }
 
   @override
