@@ -42,10 +42,6 @@ class GameEngine extends ChangeNotifier {
 
   bool _isFlipped = false;
 
-  // ─────────────────────────────
-  // PREMOVE (FIXED)
-  // ─────────────────────────────
-
   Move? _premove;
   Move? get premove => _premove;
 
@@ -64,7 +60,7 @@ class GameEngine extends ChangeNotifier {
   }
 
   // ─────────────────────────────
-  // SNAPSHOT
+  // SNAPSHOT (FIXED FLIP HERE)
   // ─────────────────────────────
 
   GameSnapshot get snapshot {
@@ -74,14 +70,21 @@ class GameEngine extends ChangeNotifier {
       );
     }
 
+    final perspective = _getPerspective();
+
     return GameSnapshot(
-      squaresState: _game!.squaresState(config.humanPlayer.value),
+      squaresState: _game!.squaresState(perspective),
       isGameOver: _game!.gameOver || _manualResult != null,
       isBotThinking: _botThinking,
       result: _manualResult ?? _game!.result?.readable,
       whiteTime: _whiteTime,
       blackTime: _blackTime,
     );
+  }
+
+  int _getPerspective() {
+    final base = config.humanPlayer.value;
+    return _isFlipped ? 1 - base : base;
   }
 
   bool get isFlipped => _isFlipped;
@@ -92,7 +95,7 @@ class GameEngine extends ChangeNotifier {
   }
 
   // ─────────────────────────────
-  // MOVE LOGIC (unchanged except premove safety)
+  // MOVE LOGIC
   // ─────────────────────────────
 
   Future<void> makeMove(Move move) async {
@@ -110,7 +113,6 @@ class GameEngine extends ChangeNotifier {
 
       _afterMove(prevTurn);
 
-      // ❗ IMPORTANT: clear premove after it is consumed
       clearPremove();
 
       if (_game!.gameOver) {
@@ -140,7 +142,7 @@ class GameEngine extends ChangeNotifier {
   }
 
   // ─────────────────────────────
-  // BOT (unchanged)
+  // BOT
   // ─────────────────────────────
 
   bool get _isBotTurn =>
@@ -190,7 +192,7 @@ class GameEngine extends ChangeNotifier {
   }
 
   // ─────────────────────────────
-  // TIME CONTROL (unchanged)
+  // TIME CONTROL
   // ─────────────────────────────
 
   void _afterMove(int playerWhoMoved) {
