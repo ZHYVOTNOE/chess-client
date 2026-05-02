@@ -11,6 +11,10 @@ class LearnHubScreen extends StatelessWidget {
     final locale = context.watch<LocaleProvider>();
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(locale.get('learn_title')),
+        centerTitle: true,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

@@ -1,6 +1,9 @@
+import 'package:client/features/play/presentation/board_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/providers/game_provider.dart';
 import '../../../../core/providers/locale_provider.dart';
 
 class QuickMatchScreen extends StatefulWidget {
@@ -46,6 +49,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>();
+    final gameProvider = context.read<GameProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -96,7 +100,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
 
   Widget _buildCategoryTabs() {
     final categories = [
-      {'code': 'bullet', 'name': 'Bullet', 'icon': Icons.flash_on},
+      {'code': 'bullet', 'name': 'Bullet', 'icon': MdiIcons.bullet},
       {'code': 'blitz', 'name': 'Blitz', 'icon': Icons.bolt},
       {'code': 'rapid', 'name': 'Rapid', 'icon': Icons.timer},
       {'code': 'custom', 'name': 'Custom', 'icon': Icons.tune},
@@ -312,11 +316,12 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
       height: 56,
       child: ElevatedButton(
         onPressed: () {
-          final timeCode = _showCustom
+          /*final timeCode = _showCustom
               ? '${_customMinutes}:${_customSeconds.toString().padLeft(2, '0')}|$_customIncrement'
               : _selectedTime;
 
-          _showSearchingDialog(context, locale, timeCode);
+          _showSearchingDialog(context, locale, timeCode);*/
+          context.push('/game/play');
         },
         style: ElevatedButton.styleFrom(
           shape: RoundedRectangleBorder(

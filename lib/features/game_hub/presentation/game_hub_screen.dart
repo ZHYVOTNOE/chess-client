@@ -1,3 +1,4 @@
+import 'package:client/core/providers/game_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -9,8 +10,13 @@ class GameHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>();
+    final gameProvider = context.read<GameProvider>();
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(locale.get('game_title')),
+        centerTitle: true,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -25,7 +31,12 @@ class GameHubScreen extends StatelessWidget {
                       title: locale.get('game_quick'),
                       subtitle: locale.get('game_quick_subtitle'),
                       color: Colors.orange,
-                      onTap: () => context.push('/game/quick'),
+                      onTap: () {
+                        gameProvider.setVsRandom(value: true);
+                        gameProvider.setVsFriend(value: false);
+                        gameProvider.setVsComputer(value: false);
+                        context.push('/game/setup/random');
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -53,7 +64,12 @@ class GameHubScreen extends StatelessWidget {
                       title: locale.get('game_friend'),
                       subtitle: locale.get('game_friend_subtitle'),
                       color: Colors.blue,
-                      onTap: () => context.push('/game/friend'),
+                      onTap: () {
+                        gameProvider.setVsRandom(value: false);
+                        gameProvider.setVsFriend(value: true);
+                        gameProvider.setVsComputer(value: false);
+                        context.push('/game/setup/friend');
+                      },
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -64,7 +80,12 @@ class GameHubScreen extends StatelessWidget {
                       title: locale.get('game_bot'),
                       subtitle: locale.get('game_bot_subtitle'),
                       color: Colors.green,
-                      onTap: () => context.push('/game/bot'),
+                      onTap: () {
+                        gameProvider.setVsRandom(value: false);
+                        gameProvider.setVsFriend(value: false);
+                        gameProvider.setVsComputer(value: true);
+                        context.push('/game/setup/computer');
+                      },
                     ),
                   ),
                 ],

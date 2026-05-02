@@ -1,5 +1,3 @@
-import 'package:client/features/game_hub/presentation/play_bot/play_bot_screen.dart';
-import 'package:client/features/game_hub/presentation/play_friend/play_friend_screens.dart';
 import 'package:client/features/game_hub/presentation/tournament/create_daily_tournament_screen.dart';
 import 'package:client/features/game_hub/presentation/tournament/create_live_tournament_screen.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +8,7 @@ import '../../features/auth/presentation/login/login_screen.dart';
 import '../../features/auth/presentation/registration/registration_screen.dart';
 import '../../features/auth/presentation/forgot_password/forgot_password_screen.dart';
 import '../../features/game_hub/presentation/game_hub_screen.dart';
-import '../../features/game_hub/presentation/quick_match/quick_match_screen.dart';
+import '../../features/play/presentation/setup_game_screen.dart';
 import '../../features/game_hub/presentation/tournament/join_daily_tournament_screen.dart';
 import '../../features/game_hub/presentation/tournament/join_live_tournament_screen.dart';
 import '../../features/game_hub/presentation/tournament/tournament_screen.dart';
@@ -19,6 +17,8 @@ import '../../features/learn/presentation/learn_hub_screen.dart';
 import '../../features/learn/presentation/openings/openings_screen.dart';
 import '../../features/learn/presentation/puzzles/puzzles_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
+import '../../features/play/presentation/board_screen.dart';
+import '../../features/play/presentation/widgets/game_config.dart';
 import '../../features/profile/profile_screen.dart';
 import 'main_shell.dart';
 
@@ -55,7 +55,6 @@ final GoRouter appRouter = GoRouter(
         return const ForgotPasswordScreen();
       },
     ),
-
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
         return MainShell(
@@ -80,7 +79,15 @@ final GoRouter appRouter = GoRouter(
                 // Быстрая игра
                 GoRoute(
                   path: 'quick',
-                  builder: (context, state) => const QuickMatchScreen(),
+                  builder: (context, state) => const SetupGameScreen(initialMode: 'random'),
+                ),
+                GoRoute(
+                  path: 'setup/:mode',
+                  name: 'game-setup',
+                  builder: (context, state) {
+                    final mode = state.pathParameters['mode'];
+                    return SetupGameScreen(initialMode: mode);
+                  },
                 ),
                 GoRoute(
                   path: 'tournament',
@@ -107,12 +114,19 @@ final GoRouter appRouter = GoRouter(
                 // Игра с другом
                 GoRoute(
                   path: 'friend',
-                  builder: (context, state) => const PlayFriendScreen(),
+                  builder: (context, state) => const SetupGameScreen(initialMode: 'friend'),
                 ),
                 // Игра с ботом
                 GoRoute(
                   path: 'bot',
-                  builder: (context, state) => const PlayBotScreen(),
+                  builder: (context, state) => const SetupGameScreen(initialMode: 'computer'),
+                ),
+                GoRoute(
+                  path: 'play',
+                  builder: (context, state) {
+                    final config = state.extra as GameConfig;
+                    return BoardScreen(config: config);
+                  },
                 ),
               ],
             ),
