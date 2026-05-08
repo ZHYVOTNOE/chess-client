@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:client/features/play/presentation/widgets/game_config.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:squares/squares.dart';
+import '../../../core/providers/user_provider.dart';
 import '../domain/game_engine.dart';
 
 class BoardScreen extends StatelessWidget {
@@ -31,6 +34,9 @@ class _BoardView extends StatelessWidget {
     final isWhite = engine.config.humanPlayer.isWhite;
     final topTime = isWhite ? snapshot.blackTime : snapshot.whiteTime;
     final bottomTime = isWhite ? snapshot.whiteTime : snapshot.blackTime;
+
+    final nickname = context.select<UserProvider, String>((u) => u.nickname);
+    final avatar = context.select<UserProvider, File?>((u) => u.avatar);
 
     return Scaffold(
       appBar: AppBar(
@@ -76,10 +82,11 @@ class _BoardView extends StatelessWidget {
           ),
 
           _PlayerCard(
-            name: 'User',
+            name: nickname,
             rating: 2600,
             time: bottomTime,
             isThinking: false,
+            avatar: avatar,
           ),
 
           if (snapshot.result != null)
@@ -110,12 +117,14 @@ class _PlayerCard extends StatelessWidget {
   final int? rating;
   final Duration time;
   final bool isThinking;
+  final File? avatar;
 
   const _PlayerCard({
     required this.name,
     this.rating,
     required this.time,
     required this.isThinking,
+    this.avatar,
   });
 
   @override
@@ -126,7 +135,10 @@ class _PlayerCard extends StatelessWidget {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Colors.grey.shade300,
-        child: Icon(Icons.person, color: Colors.grey.shade600),
+        backgroundImage: avatar != null ? FileImage(avatar!) : null,
+        child: avatar == null
+            ? Icon(Icons.person, color: Colors.grey.shade600)
+            : null,
       ),
       title: Text(name),
       subtitle: rating != null ? Text('Rating: $rating') : null,

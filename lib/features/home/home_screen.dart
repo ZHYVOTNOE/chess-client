@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/locale_provider.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import '../auth/domain/auth_provider.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -47,9 +47,13 @@ class HomeScreen extends StatelessWidget {
             child: Text(locale.get('cancel')),
           ),
           FilledButton(
-            onPressed: () {
-              // TODO: очистить токен, перейти на welcome
-              context.go('/');
+            onPressed: () async {
+              final auth = context.read<AuthProvider>();
+              await auth.logout();
+              if (context.mounted) {
+                Navigator.pop(context);
+                context.go('/welcome');
+              }
             },
             child: Text(locale.get('logout')),
           ),

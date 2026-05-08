@@ -45,5 +45,20 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Нужно разрешение для доступа к камере, чтобы сделать фото профиля</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Нужно разрешение для доступа к галерее, чтобы выбрать фото профиля</string>
+	<key>CFBundleURLTypes</key>
+    <array>
+    	<dict>
+    		<key>CFBundleTypeRole</key>
+    		<string>Editor</string>
+    		<key>CFBundleURLSchemes</key>
+    		<array>
+    			<string>com.googleusercontent.apps.885540861286-arvgrdr34hohuckbm38atg940shm7pcj</string>
+    		</array>
+    	</dict>
+    </array>
 </dict>
 </plist>

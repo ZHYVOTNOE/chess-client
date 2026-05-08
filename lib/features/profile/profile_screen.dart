@@ -1,27 +1,158 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../core/providers/user_provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool isEditing = false;
+  final TextEditingController nicknameController =
+  TextEditingController(text: 'nickname');
+  final _formKey = GlobalKey<FormState>();
+  final RegExp nicknameRegex = RegExp(r'^[a-zA-Z0-9_]+$');
+  final ImagePicker _picker = ImagePicker();
+  File? _tempAvatar;
+
+  void _showImageSourceActionSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (_) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Make photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo),
+                title: const Text('Pick from gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    if (source == ImageSource.camera) {
+      final status = await Permission.camera.request();
+      if (!status.isGranted) return;
+    } else {
+      final status = await Permission.photos.request();
+      if (!status.isGranted) return;
+    }
+
+    final XFile? pickedFile = await _picker.pickImage(
+      source: source,
+      imageQuality: 85,
+    );
+
+    if (pickedFile != null) {
+      final file = File(pickedFile.path);
+
+      setState(() {
+        _tempAvatar = file;
+      });
+    }
+  }
+
+  bool _initialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (!_initialized) {
+      final user = context.read<UserProvider>();
+
+      nicknameController.text = user.nickname;
+      _tempAvatar = user.avatar;
+
+      _initialized = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    nicknameController.dispose();
+    super.dispose();
+  }
+
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>();
+    final user = context.watch<UserProvider>();
+
+    if (!isEditing && nicknameController.text != user.nickname) {
+      nicknameController.text = user.nickname;
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(locale.get('profile_title')),
         centerTitle: true,
         actions: [
+          if (isEditing)
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                final user = context.read<UserProvider>();
+                setState(() {
+                  isEditing = false;
+                  _tempAvatar = user.avatar;
+                  nicknameController.text = user.nickname;
+                });
+              },
+            ),
           IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {}, // TODO: редактирование
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {}, // TODO: настройки
+            icon: Icon(isEditing ? Icons.check : Icons.edit),
+            onPressed: () {
+              if (isEditing) {
+                if (_formKey.currentState!.validate()) {
+                  final userProvider = context.read<UserProvider>();
+
+                  userProvider.setNickname(
+                    nicknameController.text.trim(),
+                  );
+
+                  userProvider.setAvatar(_tempAvatar!);
+
+                  setState(() {
+                    isEditing = false;
+                    _tempAvatar = userProvider.avatar;
+                  });
+                }
+              } else {
+                final user = context.read<UserProvider>();
+
+                setState(() {
+                  isEditing = true;
+                  _tempAvatar = user.avatar;
+                  nicknameController.text = user.nickname;
+                });
+              }
+            },
           ),
         ],
       ),
@@ -29,7 +160,10 @@ class ProfileScreen extends StatelessWidget {
         child: Column(
           children: [
             // Шапка профиля
-            _buildProfileHeader(),
+            Form(
+              key: _formKey,
+              child: _buildProfileHeader(isEditing, nicknameController),
+            ),
             const SizedBox(height: 16),
 
             // Рейтинги
@@ -48,42 +182,78 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(bool isEditing, TextEditingController controller) {
+    final user = context.watch<UserProvider>();
     return Card(
-      margin: const EdgeInsets.all(16),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             Stack(
               children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.grey.shade300,
-                  child: const Icon(Icons.person, size: 50),
+                GestureDetector(
+                  onTap: isEditing ? _showImageSourceActionSheet : null,
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.grey.shade300,
+                    backgroundImage: _tempAvatar != null ? FileImage(_tempAvatar!) : null,
+                    child: _tempAvatar == null
+                        ? const Icon(Icons.person, size: 50)
+                        : null,
+                  ),
                 ),
                 Positioned(
                   bottom: 0,
                   right: 0,
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.green,
-                    child: const Icon(Icons.check, size: 16, color: Colors.white),
+                  child: GestureDetector(
+                    onTap: isEditing ? _showImageSourceActionSheet : null,
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.blue,
+                      child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            const Text(
-              'GrandMaster_2024', // nickname
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+
+            TextFormField(
+              controller: controller,
+              enabled: isEditing,
+              textAlign: TextAlign.center,
+              autofocus: isEditing,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: 'Enter nickname',
+              ),
+              validator: (value) {
+                if (!isEditing) return null;
+
+                final text = value?.trim() ?? '';
+
+                if (text.isEmpty) {
+                  return 'Никнейм не может быть пустым';
+                }
+
+                if (text.length < 3) {
+                  return 'Минимум 3 символа';
+                }
+
+                if (!nicknameRegex.hasMatch(text)) {
+                  return 'Только буквы, цифры и "_"';
+                }
+
+                return null;
+              },
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Иван Петров', // имя фамилия
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-            ),
+
             const SizedBox(height: 8),
+
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
@@ -107,7 +277,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildRatingsSection(LocaleProvider locale) {
     final ratings = [
-      {'mode': 'bullet', 'rating': 1850, 'games': 234, 'icon': Icons.flash_on},
+      {'mode': 'bullet', 'rating': 1850, 'games': 234, 'icon': MdiIcons.bullet},
       {'mode': 'blitz', 'rating': 1920, 'games': 567, 'icon': Icons.bolt},
       {'mode': 'rapid', 'rating': 2050, 'games': 123, 'icon': Icons.timer},
       {'mode': 'daily', 'rating': 1980, 'games': 89, 'icon': Icons.schedule},

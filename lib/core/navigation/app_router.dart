@@ -1,12 +1,13 @@
+import 'package:client/features/auth/presentation/screens/auth_gate.dart';
+import 'package:client/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:client/features/game_hub/presentation/tournament/create_daily_tournament_screen.dart';
 import 'package:client/features/game_hub/presentation/tournament/create_live_tournament_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/auth/presentation/registration/verification_screen.dart';
-import '../../features/auth/presentation/welcome/welcome_screen.dart';
-import '../../features/auth/presentation/login/login_screen.dart';
-import '../../features/auth/presentation/registration/registration_screen.dart';
-import '../../features/auth/presentation/forgot_password/forgot_password_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/registration_screen.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/game_hub/presentation/game_hub_screen.dart';
 import '../../features/play/presentation/setup_game_screen.dart';
 import '../../features/game_hub/presentation/tournament/join_daily_tournament_screen.dart';
@@ -23,9 +24,32 @@ import '../../features/profile/profile_screen.dart';
 import 'main_shell.dart';
 
 final GoRouter appRouter = GoRouter(
+  redirect: (context, state) {
+    final session = Supabase.instance.client.auth.currentSession;
+    final isAuthRoute = state.matchedLocation == '/welcome' ||
+                        state.matchedLocation == '/login' ||
+                        state.matchedLocation == '/registration' ||
+                        state.matchedLocation == '/forgot-password';
+    
+    if (session == null && !isAuthRoute && state.matchedLocation != '/') {
+      return '/welcome';
+    }
+    
+    if (session != null && isAuthRoute) {
+      return '/home';
+    }
+    
+    return null;
+  },
   routes: <RouteBase>[
     GoRoute(
       path: '/',
+      builder: (BuildContext context, GoRouterState state) {
+        return const AuthGate();
+      },
+    ),
+    GoRoute(
+      path: '/welcome',
       builder: (BuildContext context, GoRouterState state) {
         return const WelcomeScreen();
       },
@@ -40,13 +64,6 @@ final GoRouter appRouter = GoRouter(
       path: '/registration',
       builder: (BuildContext context, GoRouterState state) {
         return const RegistrationScreen();
-      },
-    ),
-    GoRoute(
-      path: '/verify',
-      builder: (context, state) {
-        final email = state.extra as String? ?? '';
-        return VerificationScreen(email: email);
       },
     ),
     GoRoute(
