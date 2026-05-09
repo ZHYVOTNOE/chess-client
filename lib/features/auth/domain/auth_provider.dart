@@ -56,4 +56,8 @@ class AuthProvider extends ChangeNotifier {
   Future<void> forgotPassword(String email) async {
     await _repository.forgotPassword(email);
   }
+
+  Future<void> loginWithGoogle() async {
+    await _repository.loginWithGoogle();
+  }
 }

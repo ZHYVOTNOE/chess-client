@@ -10,33 +10,67 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
+  late final Stream<AuthState> _authStream;
+
+  bool _handledInitialAuth = false;
+
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+
+    _authStream =
+        Supabase.instance.client.auth.onAuthStateChange;
   }
 
-  void _checkAuth() {
-    final client = Supabase.instance.client;
-    final session = client.auth.currentSession;
+  void _handleNavigation(BuildContext context) {
+    final session =
+        Supabase.instance.client.auth.currentSession;
 
-    if (session != null) {
-      Future.microtask(() {
-        if (mounted) {
-          context.go('/home');
-        }
-      });
-    } else {
-      Future.microtask(() {
-        if (mounted) {
-          context.go('/welcome');
-        }
-      });
+    final currentLocation =
+        GoRouterState.of(context).matchedLocation;
+
+    if (session != null &&
+        currentLocation != '/home') {
+      context.go('/home');
+      return;
+    }
+
+    if (session == null &&
+        currentLocation != '/welcome') {
+      context.go('/welcome');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox();
+    return StreamBuilder<AuthState>(
+      stream: _authStream,
+      builder: (context, snapshot) {
+        if (!_handledInitialAuth) {
+          if (snapshot.connectionState ==
+              ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
+          _handledInitialAuth = true;
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+
+          _handleNavigation(context);
+        });
+
+        return const Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+      },
+    );
   }
 }

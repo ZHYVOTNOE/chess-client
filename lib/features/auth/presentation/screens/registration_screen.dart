@@ -247,6 +247,27 @@ class _RegistrationScreenState
 
               const SizedBox(height: 16),
 
+              ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    final auth = context.read<AuthProvider>();
+
+                    await auth.loginWithGoogle();
+                  } catch (e) {
+                    setState(() {
+                      _errorMessage = e.toString();
+                    });
+                  }
+                },
+                icon: Image.asset(
+                  'assets/pictures/google.png',
+                  height: 24,
+                ),
+                label: const Text('Google'),
+              ),
+
+              const SizedBox(height: 16),
+
               TextButton(
                 onPressed: () {
                   context.replace('/login');

@@ -32,4 +32,8 @@ class AuthRepository {
   Future<void> logout() async {
     await remote.signOut();
   }
+
+  Future<void> loginWithGoogle() async {
+    await remote.signInWithGoogle();
+  }
 }
