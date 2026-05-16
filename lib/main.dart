@@ -18,7 +18,6 @@ void main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
-  final supabase = Supabase.instance.client;
   final localeProvider = LocaleProvider();
   await localeProvider.load('en');
 

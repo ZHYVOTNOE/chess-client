@@ -31,6 +31,8 @@ class _BoardView extends StatelessWidget {
     final snapshot = engine.snapshot;
     final state = snapshot.squaresState;
 
+    final boardAspectRatio = state.size.aspectRatio;
+
     final isWhite = engine.config.humanPlayer.isWhite;
     final topTime = isWhite ? snapshot.blackTime : snapshot.whiteTime;
     final bottomTime = isWhite ? snapshot.whiteTime : snapshot.blackTime;
@@ -56,28 +58,27 @@ class _BoardView extends StatelessWidget {
             isThinking: snapshot.isBotThinking,
           ),
 
-          AspectRatio(
-            aspectRatio: 1,
-            child: BoardController(
-              state: state.board,
-              playState:
-              snapshot.isGameOver ? PlayState.finished : state.state,
-              size: state.size,
-              pieceSet: PieceSet.merida(),
-              theme: BoardTheme.brown,
-              moves: state.moves,
-
-              onMove: engine.makeMove,
-
-              // ✅ FIX: premove only stored, NOT executed
-              onPremove: engine.setPremove,
-
-              markerTheme: MarkerTheme(
-                empty: MarkerTheme.dot,
-                piece: MarkerTheme.corners(),
+          Flexible(
+            fit: FlexFit.loose,
+            child: Center(
+              child: AspectRatio(
+                aspectRatio: boardAspectRatio,
+                child: BoardController(
+                  state: state.board,
+                  playState: snapshot.isGameOver ? PlayState.finished : state.state,
+                  size: state.size,
+                  pieceSet: PieceSet.merida(),
+                  theme: BoardTheme.brown,
+                  moves: state.moves,
+                  onMove: engine.makeMove,
+                  onPremove: engine.setPremove,
+                  markerTheme: MarkerTheme(
+                    empty: MarkerTheme.dot,
+                    piece: MarkerTheme.corners(),
+                  ),
+                  promotionBehaviour: PromotionBehaviour.autoPremove,
+                ),
               ),
-
-              promotionBehaviour: PromotionBehaviour.autoPremove,
             ),
           ),
 
