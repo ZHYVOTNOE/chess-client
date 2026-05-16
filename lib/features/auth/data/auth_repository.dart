@@ -1,4 +1,5 @@
 import 'package:client/features/auth/data/auth_remote_datasource.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRepository {
   final AuthRemoteDataSource remote;
@@ -15,14 +16,11 @@ class AuthRepository {
     );
   }
 
-  Future<void> register({
+  Future<AuthResponse?> register({
     required String email,
     required String password,
   }) async {
-    await remote.signUp(
-      email: email,
-      password: password,
-    );
+    return await remote.signUp(email: email, password: password);
   }
 
   Future<void> forgotPassword(String email) async {

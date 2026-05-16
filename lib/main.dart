@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'core/navigation/app_router.dart';
+import 'core/navigation/auth_refresh_listenable.dart';
 import 'core/providers/game_provider.dart';
 import 'core/providers/locale_provider.dart';
 import 'core/providers/user_provider.dart';
@@ -21,31 +22,32 @@ void main() async {
   final localeProvider = LocaleProvider();
   await localeProvider.load('en');
 
+  final authProvider = AuthProvider();
+  final authRefreshListenable = AuthRefreshListenable(authProvider);
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: localeProvider),
+        ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => GameProvider()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
-      child: const MyApp(),
+      child: MyApp(authRefreshListenable: authRefreshListenable),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthRefreshListenable authRefreshListenable;
+
+  const MyApp({super.key, required this.authRefreshListenable});
 
   @override
   Widget build(BuildContext context) {
-    /*return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
-    );*/
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      routerConfig: appRouter,
+      routerConfig: appRouter(authRefreshListenable),
     );
   }
 }

@@ -22,7 +22,7 @@ class AuthRemoteDataSource {
     return await client.auth.signUp(
       email: email,
       password: password,
-      emailRedirectTo: 'com.example.client://login-callback/',
+      emailRedirectTo: 'com.example.client://login-callback',
     );
   }
 
@@ -33,7 +33,7 @@ class AuthRemoteDataSource {
   Future<void> resetPassword(String email) async {
     await client.auth.resetPasswordForEmail(
       email,
-      redirectTo: 'com.example.client://login-callback/',
+      redirectTo: 'com.example.client://login-callback',
     );
   }
 
@@ -45,7 +45,7 @@ class AuthRemoteDataSource {
   Future<void> signInWithGoogle() async {
     await client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: 'com.example.client://login-callback/',
+      redirectTo: 'com.example.client://login-callback',
     );
   }
 }

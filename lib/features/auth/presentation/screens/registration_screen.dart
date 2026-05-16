@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/providers/locale_provider.dart';
 import '../../domain/auth_provider.dart';
@@ -46,35 +45,44 @@ class _RegistrationScreenState
     super.dispose();
   }
 
+  // В методе _register():
   Future<void> _register() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    // ... валидация ...
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final auth = context.read<AuthProvider>();
+    final success = await auth.register(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
 
-    try {
-      final auth = context.read<AuthProvider>();
-
-      await auth.register(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      if (mounted) {
+    if (mounted) {
+      if (auth.error == 'confirm_email') {
+        // 🔥 Показываем диалог вместо редиректа
+        await showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('📧 Подтвердите почту'),
+            content: Text(
+              'Ссылка отправлена на ${_emailController.text}.\n\n'
+                  'Проверьте папку "Спам" и перейдите по ссылке.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.go('/welcome'); // ← только здесь редирект
+                },
+                child: const Text('Понял'),
+              ),
+            ],
+          ),
+        );
+      } else if (success) {
+        // Если подтверждение не нужно — редирект на /home
         context.go('/home');
+      } else {
+        setState(() => _errorMessage = auth.error ?? 'Ошибка регистрации');
       }
-    } on AuthException catch (e) {
-      setState(() {
-        _errorMessage = e.message;
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 

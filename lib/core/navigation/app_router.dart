@@ -4,7 +4,9 @@ import 'package:client/features/game_hub/presentation/tournament/create_daily_to
 import 'package:client/features/game_hub/presentation/tournament/create_live_tournament_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../features/auth/domain/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/registration_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
@@ -21,24 +23,57 @@ import '../../features/more/presentation/more_screen.dart';
 import '../../features/play/presentation/board_screen.dart';
 import '../../features/play/presentation/widgets/game_config.dart';
 import '../../features/profile/profile_screen.dart';
+import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
 
-final GoRouter appRouter = GoRouter(
+GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
+  // 🔥 КРИТИЧНО: пересчитывать redirect при изменении AuthProvider
+  refreshListenable: authRefreshListenable,
+
   redirect: (context, state) {
-    final session = Supabase.instance.client.auth.currentSession;
-    final isAuthRoute = state.matchedLocation == '/welcome' ||
-                        state.matchedLocation == '/login' ||
-                        state.matchedLocation == '/registration' ||
-                        state.matchedLocation == '/forgot-password';
-    
-    if (session == null && !isAuthRoute && state.matchedLocation != '/') {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final directSession = Supabase.instance.client.auth.currentSession;
+
+    // 🔥 Объединяем оба источника истины
+    final isAuthenticated = auth.isAuthenticated || directSession != null;
+
+    // 🔥 Логирование для отладки
+    print('🔐 [Redirect] location=${state.matchedLocation}, '
+        'isLoading=${auth.isLoading}, '
+        'auth.isAuthenticated=${auth.isAuthenticated}, '
+        'directSession=${directSession != null}, '
+        'final isAuthenticated=$isAuthenticated');
+
+    // 🔥 Пока загружается И нет прямой сессии — показываем лоадер
+    if (auth.isLoading && directSession == null) {
+      print('🔐 [Redirect] Still loading, returning null');
+      return null;
+    }
+
+    final location = state.matchedLocation;
+    final isAuthRoute = [
+      '/welcome', '/login', '/registration', '/forgot-password',
+    ].contains(location);
+
+    // 🔥 Явно обрабатываем корень
+    if (location == '/') {
+      print('🔐 [Redirect] Root path → ${isAuthenticated ? "/home" : "/welcome"}');
+      return isAuthenticated ? '/home' : '/welcome';
+    }
+
+    // 🔥 НЕ авторизован + защищённый экран → /welcome
+    if (!isAuthenticated && !isAuthRoute) {
+      print('🔐 [Redirect] Not auth + protected → /welcome');
       return '/welcome';
     }
-    
-    if (session != null && isAuthRoute) {
+
+    // 🔥 Авторизован + экран аутентификации → /home
+    if (isAuthenticated && isAuthRoute) {
+      print('🔐 [Redirect] Auth + auth route → /home');
       return '/home';
     }
-    
+
+    print('🔐 [Redirect] All good, returning null');
     return null;
   },
   routes: <RouteBase>[

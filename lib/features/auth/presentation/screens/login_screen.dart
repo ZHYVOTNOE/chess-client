@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/providers/locale_provider.dart';
 import '../../domain/auth_provider.dart';
@@ -35,34 +34,25 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    try {
-      final auth = context.read<AuthProvider>();
+    final auth = context.read<AuthProvider>();
+    final success = await auth.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
 
-      await auth.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      if (mounted) {
-        context.go('/home');
+    if (mounted) {
+      if (success) {
+        FocusScope.of(context).unfocus();
+      } else {
+        setState(() => _errorMessage = auth.error ?? 'Ошибка входа');
       }
-    } on AuthException catch (e) {
-      setState(() {
-        _errorMessage = e.message;
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 

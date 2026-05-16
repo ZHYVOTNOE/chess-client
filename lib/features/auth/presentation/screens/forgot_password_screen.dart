@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/providers/locale_provider.dart';
 import '../../domain/auth_provider.dart';
@@ -32,38 +31,21 @@ class _ForgotPasswordScreenState
   }
 
   Future<void> _sendResetLink() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    try {
-      final auth = context.read<AuthProvider>();
+    final auth = context.read<AuthProvider>();
+    final success = await auth.forgotPassword(_emailController.text.trim());  // 🔥 Проверяем результат
 
-      await auth.forgotPassword(
-        _emailController.text.trim(),
-      );
-
-      if (mounted) {
-        setState(() {
-          _isSuccess = true;
-        });
-      }
-    } on AuthException catch (e) {
-      if (mounted) {
-        setState(() {
-          _errorMessage = e.message;
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+    if (mounted) {
+      if (success) {
+        setState(() => _isSuccess = true);
+      } else {
+        setState(() => _errorMessage = auth.error ?? 'Ошибка отправки');
       }
     }
   }
