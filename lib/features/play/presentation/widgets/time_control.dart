@@ -33,4 +33,6 @@ class TimeControl {
 
   Duration get initial => Duration(minutes: minutes, seconds: seconds);
   Duration get incrementDuration => Duration(seconds: increment);
+
+  bool get isEnabled => enabled;
 }

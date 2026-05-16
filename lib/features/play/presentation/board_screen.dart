@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:squares/squares.dart';
 import '../../../core/providers/user_provider.dart';
 import '../domain/game_engine.dart';
+import '';
 
 class BoardScreen extends StatelessWidget {
   final GameConfig config;
@@ -33,6 +34,8 @@ class _BoardView extends StatelessWidget {
 
     final boardAspectRatio = state.size.aspectRatio;
 
+    final hasTimeControl = engine.config.timeControl.isEnabled;
+
     final isWhite = engine.config.humanPlayer.isWhite;
     final topTime = isWhite ? snapshot.blackTime : snapshot.whiteTime;
     final bottomTime = isWhite ? snapshot.whiteTime : snapshot.blackTime;
@@ -56,6 +59,7 @@ class _BoardView extends StatelessWidget {
             rating: engine.config.isVsBot ? 2800 : null,
             time: topTime,
             isThinking: snapshot.isBotThinking,
+            showTime: hasTimeControl,
           ),
 
           Flexible(
@@ -88,6 +92,7 @@ class _BoardView extends StatelessWidget {
             time: bottomTime,
             isThinking: false,
             avatar: avatar,
+            showTime: hasTimeControl,
           ),
 
           if (snapshot.result != null)
@@ -119,6 +124,7 @@ class _PlayerCard extends StatelessWidget {
   final Duration time;
   final bool isThinking;
   final File? avatar;
+  final bool showTime; // ← новый параметр
 
   const _PlayerCard({
     required this.name,
@@ -126,6 +132,7 @@ class _PlayerCard extends StatelessWidget {
     required this.time,
     required this.isThinking,
     this.avatar,
+    this.showTime = true, // по умолчанию показываем время
   });
 
   @override
@@ -149,7 +156,10 @@ class _PlayerCard extends StatelessWidget {
         height: 20,
         child: CircularProgressIndicator(strokeWidth: 2),
       )
-          : Text('$m:$s', style: const TextStyle(fontFamily: 'monospace')),
+          : showTime
+          ? Text('$m:${s.toString().padLeft(2, '0')}',
+          style: const TextStyle(fontFamily: 'monospace'))
+          : null, // ← если showTime = false, не показываем ничего
     );
   }
 }
