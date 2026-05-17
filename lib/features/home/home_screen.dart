@@ -17,45 +17,12 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(locale.get('home_title')),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _showLogoutDialog(context, locale),
-          ),
-        ],
       ),
       body: Column(
         children: [
           // Слайдшоу событий — растягиваем на доступное пространство
           Expanded(
             child: _EventCarousel(locale: locale),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context, LocaleProvider locale) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(locale.get('logout_title')),
-        content: Text(locale.get('logout_confirm')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(locale.get('cancel')),
-          ),
-          FilledButton(
-            onPressed: () async {
-              final auth = context.read<AuthProvider>();
-              await auth.logout();
-              if (context.mounted) {
-                Navigator.pop(context);
-                context.go('/welcome');
-              }
-            },
-            child: Text(locale.get('logout')),
           ),
         ],
       ),

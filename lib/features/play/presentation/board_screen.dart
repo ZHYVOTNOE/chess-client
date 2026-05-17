@@ -41,8 +41,7 @@ class _BoardView extends StatelessWidget {
     final bottomTime = isWhite ? snapshot.whiteTime : snapshot.blackTime;
 
     final nickname = context.select<UserProvider, String>((u) => u.nickname);
-    final avatar = context.select<UserProvider, File?>((u) => u.avatar);
-
+    final avatar = context.select<UserProvider, File?>((u) => u.avatarFile);
     return Scaffold(
       appBar: AppBar(
         title: Text(engine.config.variant.name),

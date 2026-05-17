@@ -9,6 +9,8 @@ import 'core/providers/user_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/domain/auth_provider.dart';
+import 'features/profile/profile_di.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +20,8 @@ void main() async {
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
+
+  initProfile();
 
   final localeProvider = LocaleProvider();
   await localeProvider.load('en');

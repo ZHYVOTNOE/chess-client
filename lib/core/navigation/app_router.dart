@@ -22,7 +22,8 @@ import '../../features/learn/presentation/puzzles/puzzles_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
 import '../../features/play/presentation/board_screen.dart';
 import '../../features/play/presentation/widgets/game_config.dart';
-import '../../features/profile/profile_screen.dart';
+import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../providers/user_provider.dart';
 import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
 
@@ -212,9 +213,22 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
         ),
         StatefulShellBranch(
           routes: [
+            // lib/core/navigation/app_router.dart
             GoRoute(
               path: '/profile',
-              builder: (context, state) => const ProfileScreen(),
+              builder: (context, state) {
+                final userId = state.extra as String?
+                    ?? context.read<UserProvider>().userId;
+
+                if (userId == null || userId.isEmpty) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+
+                }
+
+                return ProfileScreen();
+              },
             ),
           ],
         ),

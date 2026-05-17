@@ -22,7 +22,7 @@ class MoreScreen extends StatelessWidget {
       {'icon': Icons.military_tech, 'title': 'more_achievements', 'route': '/more/achievements'},
       {'icon': Icons.explore, 'title': 'more_quests', 'route': '/more/quests', 'badge': 5},
       {'icon': Icons.help_outline, 'title': 'more_help', 'route': '/more/help'},
-      {'icon': Icons.info_outline, 'title': 'more_about', 'route': '/more/about'},
+      {'icon': Icons.query_stats, 'title': 'more_stats', 'route': '/more/stats'},
     ];
 
     return Scaffold(
