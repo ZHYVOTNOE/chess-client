@@ -1,27 +1,73 @@
+// lib/features/auth/presentation/screens/auth_gate.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../domain/auth_provider.dart';
+import '../../../../core/providers/user_provider.dart';
+import 'welcome_screen.dart';
 
-class AuthGate extends StatelessWidget {
+class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+  State<AuthGate> createState() => _AuthGateState();
+}
 
-    // 🔥 Просто показываем лоадер — навигация в redirect GoRouter
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(auth.isLoading ? 'Загрузка...' : 'Проверка сессии...'),
-          ],
+class _AuthGateState extends State<AuthGate> {
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    // 🔥 Ждём загрузки профиля (если пользователь авторизован)
+    final userProvider = context.read<UserProvider>();
+    if (userProvider.userId != null) {
+      await userProvider.loadProfile();
+    }
+
+    // 🔥 Здесь можно добавить другие инициализации:
+    // - Загрузка настроек
+    // - Кэширование рейтингов
+
+    if (mounted) {
+      setState(() => _isInitialized = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 🔥 Пока инициализация — показываем сплэш
+    if (!_isInitialized) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Загрузка профиля...'),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
+
+    // 🔥 После инициализации — редирект по статусу авторизации
+    final isAuthenticated = context.watch<UserProvider>().userId != null;
+
+    if (isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && context.mounted) {
+          context.replace('/home');
+        }
+      });
+      return const SizedBox.shrink();
+    }
+
+    return const WelcomeScreen();
   }
 }

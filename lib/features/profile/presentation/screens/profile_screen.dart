@@ -136,16 +136,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // lib/features/profile/presentation/screens/profile_screen.dart
 
   // 🔥 Модальное окно для редактирования никнейма — ИСПРАВЛЕННАЯ ВЕРСИЯ
+  // 🔥 Модальное окно для редактирования никнейма — ФИНАЛЬНАЯ ВЕРСИЯ
   Future<void> _showNicknameEditDialog(String currentNickname) async {
     if (!mounted) return;
 
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        final dialogController = TextEditingController(text: currentNickname);
-        final formKey = GlobalKey<FormState>();
+    // 🔥 Создаём контроллер для диалога
+    final dialogController = TextEditingController(text: currentNickname);
+    final formKey = GlobalKey<FormState>();
 
-        return AlertDialog(
+    try {
+      final result = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
           title: const Text('✏️ Изменить никнейм'),
           content: Form(
             key: formKey,
@@ -175,20 +177,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  // 🔥 Возвращаем только валидное значение
                   Navigator.pop(ctx, dialogController.text.trim());
                 }
               },
               child: const Text('Подтвердить'),
             ),
           ],
-        );
-      },
-    );
+        ),
+      );
 
-    // 🔥 Мгновенное локальное обновление UI (до отправки на сервер)
-    if (result != null && result.isNotEmpty && mounted) {
-      setState(() => _nicknameController.text = result);
+      // 🔥 Обрабатываем результат
+      if (result != null && result.isNotEmpty && mounted) {
+        setState(() => _nicknameController.text = result);
+      }
+    } finally {
+      // 🔥 Гарантированно уничтожаем контроллер после закрытия диалога
+      dialogController.dispose();
     }
   }
 

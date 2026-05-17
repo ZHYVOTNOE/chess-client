@@ -1,4 +1,5 @@
 // lib/core/providers/user_provider.dart
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -282,4 +283,23 @@ class UserProvider extends ChangeNotifier {
   }
 
   bool get hasUnsavedChanges => _localNickname != null || _localAvatar != null;
+
+
+  Timer? _refreshTimer;
+
+  void startBackgroundRefresh() {
+    // Обновляем профиль каждые 5 минут
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      if (userId != null) {
+        loadProfile(); // ← Тихая перезагрузка в фоне
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
 }

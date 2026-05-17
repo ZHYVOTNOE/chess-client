@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
@@ -27,14 +29,18 @@ void main() async {
   await localeProvider.load('en');
 
   final authProvider = AuthProvider();
+  final userProvider = UserProvider();
   final authRefreshListenable = AuthRefreshListenable(authProvider);
+
+  userProvider.startBackgroundRefresh();
+  unawaited(userProvider.loadProfile());
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: localeProvider),
         ChangeNotifierProvider.value(value: authProvider),
-        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider.value(value: userProvider),
         ChangeNotifierProvider(create: (_) => GameProvider()),
       ],
       child: MyApp(authRefreshListenable: authRefreshListenable),
