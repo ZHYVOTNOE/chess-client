@@ -32,7 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    // 🔥 Создаём контроллер здесь, а не в поле класса
     _nicknameController = TextEditingController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -47,7 +46,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.didChangeDependencies();
     if (!_initialized && mounted) {
       final user = context.read<UserProvider>();
-      // 🔥 Безопасное обновление текста только если виджет активен
       if (_nicknameController.text != user.nickname) {
         _nicknameController.text = user.nickname;
       }
@@ -58,12 +56,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   void dispose() {
-    // 🔥 Только здесь удаляем контроллер
     _nicknameController.dispose();
     super.dispose();
   }
 
-  // 🔥 Показ выбора: камера или галерея
+  /// 🔥 Показ выбора: камера или галерея
   void _showImageSourceActionSheet() {
     if (!mounted) return;
     showModalBottomSheet(
@@ -93,7 +90,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🔥 Запрос разрешений и выбор изображения
+  /// 🔥 Запрос разрешений и выбор изображения
   Future<void> _pickImage(ImageSource source) async {
     if (!mounted) return;
 
@@ -132,41 +129,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // 🔥 Модальное окно для редактирования никнейма
-  // lib/features/profile/presentation/screens/profile_screen.dart
-
-  // 🔥 Модальное окно для редактирования никнейма — ИСПРАВЛЕННАЯ ВЕРСИЯ
-  // 🔥 Модальное окно для редактирования никнейма — ФИНАЛЬНАЯ ВЕРСИЯ
+  /// 🔥 Диалог редактирования никнейма (локальное обновление + сервер)
+  /// 🔥 Диалог редактирования никнейма — ИСПРАВЛЕННАЯ ВЕРСИЯ
+  /// 🔥 Диалог редактирования никнейма — ИСПРАВЛЕННАЯ ВЕРСИЯ
   Future<void> _showNicknameEditDialog(String currentNickname) async {
     if (!mounted) return;
 
-    // 🔥 Создаём контроллер для диалога
     final dialogController = TextEditingController(text: currentNickname);
-    final formKey = GlobalKey<FormState>();
 
     try {
       final result = await showDialog<String>(
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('✏️ Изменить никнейм'),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: dialogController,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Введите новый никнейм',
-                helperText: '3-20 символов: буквы, цифры, _',
-                border: OutlineInputBorder(),
-              ),
-              validator: (value) {
-                final text = value?.trim() ?? '';
-                if (text.isEmpty) return 'Никнейм не может быть пустым';
-                if (text.length < 3) return 'Минимум 3 символа';
-                if (text.length > 20) return 'Максимум 20 символов';
-                if (!_nicknameRegex.hasMatch(text)) return 'Только буквы, цифры и "_"';
-                return null;
-              },
+          content: TextField(
+            controller: dialogController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'Введите новый никнейм',
+              helperText: '3-20 символов: буквы, цифры, _',
+              border: OutlineInputBorder(),
             ),
           ),
           actions: [
@@ -176,9 +158,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  Navigator.pop(ctx, dialogController.text.trim());
+                final trimmed = dialogController.text.trim();
+                if (trimmed.isEmpty || trimmed.length < 3 || trimmed.length > 20 || !_nicknameRegex.hasMatch(trimmed)) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('❌ Некорректный никнейм')),
+                  );
+                  return;
                 }
+                Navigator.pop(ctx, trimmed);
               },
               child: const Text('Подтвердить'),
             ),
@@ -186,17 +173,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       );
 
-      // 🔥 Обрабатываем результат
       if (result != null && result.isNotEmpty && mounted) {
         setState(() => _nicknameController.text = result);
       }
     } finally {
-      // 🔥 Гарантированно уничтожаем контроллер после закрытия диалога
-      dialogController.dispose();
+      // 🔥 КРИТИЧНО: отложенный dispose через addPostFrameCallback
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        dialogController.dispose();
+      });
     }
   }
 
-  // 🔥 Сохранение профиля
+  /// 🔥 Сохранение профиля (отправка на сервер)
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate() || !mounted) return;
 
@@ -236,8 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // 🔥 Выход из аккаунта
-  // 🔥 В методе _showLogoutConfirmation():
+  /// 🔥 Выход из аккаунта
   void _showLogoutConfirmation() {
     if (!mounted) return;
 
@@ -257,7 +244,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
 
-              // 🔥 ИСПОЛЬЗУЕМ СУЩЕСТВУЮЩИЙ AuthProvider ИЗ КОНТЕКСТА
               final authProvider = context.read<AuthProvider>();
               await authProvider.logout();
 
@@ -283,10 +269,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final locale = context.watch<LocaleProvider>();
     final user = context.watch<UserProvider>();
 
-    // 🔥 Синхронизация только если не редактируем и виджет активен
-    if (!isEditing && mounted && _nicknameController.text != user.nickname) {
-      _nicknameController.text = user.nickname;
-    }
+    // 🔥 Синхронизация контроллера происходит ТОЛЬКО в setState / initState / didChangeDependencies
+    // НЕ внутри build() — это предотвращает ошибки "used after being disposed"
 
     return Scaffold(
       appBar: AppBar(
@@ -298,10 +282,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             IconButton(
               icon: const Icon(Icons.close),
               onPressed: () {
+                if (!mounted) return;
                 final user = context.read<UserProvider>();
                 setState(() {
                   isEditing = false;
-                  // Сбрасываем всё к последнему сохранённому состоянию
                   _nicknameController.text = user.nickname;
                   _tempAvatar = user.avatarFile;
                 });
@@ -312,10 +296,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           IconButton(
             icon: Icon(isEditing ? Icons.check : Icons.edit),
             onPressed: () {
+              if (!mounted) return;
               if (isEditing) {
-                _saveProfile(); // 🔥 Вызывает сохранение на сервер
+                _saveProfile();
               } else {
-                setState(() => isEditing = true);
+                setState(() {
+                  isEditing = true;
+                  _nicknameController.text = user.nickname;
+                  _tempAvatar = user.avatarFile;
+                });
               }
             },
           ),
@@ -328,18 +317,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             _buildRatingsSection(locale),
             const SizedBox(height: 16),
-            _buildRadarChart(locale), // 🔥 ВОССТАНОВЛЕНО
+            _buildRadarChart(locale),
             const SizedBox(height: 16),
-            _buildGameHistory(locale), // 🔥 ВОССТАНОВЛЕНО
+            _buildGameHistory(locale),
             const SizedBox(height: 16),
-            _buildLogoutSection(locale), // 🔥 ВОССТАНОВЛЕНО
+            _buildLogoutSection(locale),
           ],
         ),
       ),
     );
   }
 
-  // 🔥 Шапка профиля
+  /// 🔥 Шапка профиля
   Widget _buildProfileHeader(LocaleProvider locale) {
     final user = context.watch<UserProvider>();
 
@@ -355,17 +344,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.grey.shade300,
-                    // 🔥 Если есть локальный файл — показываем его сразу
                     backgroundImage: _tempAvatar != null
                         ? FileImage(_tempAvatar!)
-                    // 🔥 Если есть ссылка из профиля — NetworkImage
                         : (user.avatarUrl != null && user.avatarUrl!.isNotEmpty)
                         ? NetworkImage(user.avatarUrl!) as ImageProvider
                         : null,
                     child: (_tempAvatar == null && user.avatarUrl == null)
                         ? const Icon(Icons.person, size: 50, color: Colors.grey)
                         : null,
-                  )
+                  ),
                 ),
                 if (isEditing)
                   Positioned(
@@ -423,7 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🔥 Рейтинги (горизонтальные)
+  /// 🔥 Рейтинги (горизонтальные)
   Widget _buildRatingsSection(LocaleProvider locale) {
     final user = context.watch<UserProvider>();
 
@@ -493,9 +480,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🔥 Радар-чарт (восстановлено)
+  /// 🔥 Радар-чарт (заглушка)
   Widget _buildRadarChart(LocaleProvider locale) {
-    // 🔥 Заглушка данных — замени на реальные из UserProvider
     final data = [0.8, 0.7, 0.6, 0.75, 0.85, 0.9];
     final titles = [
       locale.get('stat_tactics') ?? 'Тактика',
@@ -544,9 +530,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🔥 История игр (восстановлено)
+  /// 🔥 История игр (заглушка)
   Widget _buildGameHistory(LocaleProvider locale) {
-    // 🔥 Заглушка — замени на загрузку из Supabase
     final games = [
       {'result': 'win', 'opponent': 'Player1', 'rating': 1800, 'mode': 'blitz', 'moves': 34},
       {'result': 'loss', 'opponent': 'Player2', 'rating': 1950, 'mode': 'bullet', 'moves': 21},
@@ -580,7 +565,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // 🔥 Кнопка выхода (восстановлено)
+  /// 🔥 Кнопка выхода
   Widget _buildLogoutSection(LocaleProvider locale) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -611,7 +596,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// 🔥 Вспомогательный виджет для истории (в том же файле)
+/// 🔥 Вспомогательный виджет для истории игр
 class _GameHistoryTile extends StatelessWidget {
   final Map<String, dynamic> game;
   const _GameHistoryTile({required this.game});

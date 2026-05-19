@@ -23,6 +23,7 @@ import '../../features/more/presentation/more_screen.dart';
 import '../../features/play/presentation/board_screen.dart';
 import '../../features/play/presentation/widgets/game_config.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../providers/user_provider.dart';
 import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
@@ -237,6 +238,12 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
             GoRoute(
               path: '/more',
               builder: (context, state) => const MoreScreen(),
+              routes: [
+                GoRoute(
+                  path: 'settings',
+                  builder: (context, state) => const SettingsScreen(),
+                ),
+              ],
             ),
           ],
         ),

@@ -7,11 +7,13 @@ import 'core/navigation/app_router.dart';
 import 'core/navigation/auth_refresh_listenable.dart';
 import 'core/providers/game_provider.dart';
 import 'core/providers/locale_provider.dart';
+import 'core/providers/settings_provider.dart';
 import 'core/providers/user_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'features/auth/domain/auth_provider.dart';
 import 'features/profile/profile_di.dart';
+import 'features/settings/data/repositories/settings_repository.dart';
 
 
 void main() async {
@@ -30,10 +32,19 @@ void main() async {
 
   final authProvider = AuthProvider();
   final userProvider = UserProvider();
+
+  final settingsRepo = SettingsRepository(Supabase.instance.client);
+  final settingsProvider = SettingsProvider(settingsRepo);
+
   final authRefreshListenable = AuthRefreshListenable(authProvider);
 
   userProvider.startBackgroundRefresh();
   unawaited(userProvider.loadProfile());
+
+  final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+  if (currentUserId != null) {
+    unawaited(settingsProvider.loadSettings(currentUserId));
+  }
 
   runApp(
     MultiProvider(
@@ -41,6 +52,7 @@ void main() async {
         ChangeNotifierProvider.value(value: localeProvider),
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider.value(value: userProvider),
+        ChangeNotifierProvider.value(value: settingsProvider),
         ChangeNotifierProvider(create: (_) => GameProvider()),
       ],
       child: MyApp(authRefreshListenable: authRefreshListenable),
