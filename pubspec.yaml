@@ -96,9 +96,10 @@ flutter:
     - assets/pictures/
     - assets/lang/
     - assets/pieces/merida/
-    - assets/pieces/staunton/
+    - assets/pieces/staunty/
     - assets/pieces/alpha/
     - assets/pieces/pixel/
+    - assets/pieces/letter/
     - .env
 
   # The following line ensures that the Material Icons font is

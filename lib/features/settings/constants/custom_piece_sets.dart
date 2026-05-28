@@ -1,8 +1,8 @@
 class PieceSetEntry {
-  final String id;           // 'merida', 'staunton', etc.
-  final String label;        // 'Merida', 'Staunton' — для UI
-  final String license;      // 'CC0', 'CC BY-SA 4.0', etc.
-  final String sourceUrl;    // ссылка на оригинал (для атрибуции)
+  final String id;
+  final String label;
+  final String license;
+  final String sourceUrl;
 
   const PieceSetEntry({
     required this.id,
@@ -12,17 +12,15 @@ class PieceSetEntry {
   });
 }
 
-/// Все доступные наборы фигур (на основе Lichess + твои)
 class CustomPieceSets {
-  // 🔥 CC0 1.0 (Public Domain) — можно использовать без ограничений
   static const merida = PieceSetEntry(
     id: 'merida',
     label: 'Merida',
     license: 'CC0 1.0',
   );
 
-  static const staunton = PieceSetEntry(
-    id: 'staunton',
+  static const staunty = PieceSetEntry(
+    id: 'staunty',
     label: 'Staunton',
     license: 'CC0 1.0',
   );
@@ -39,42 +37,27 @@ class CustomPieceSets {
     license: 'CC0 1.0',
   );
 
-  // 🔥 CC BY-SA 4.0 — можно использовать, но нужно указать автора
-  static const cardinal = PieceSetEntry(
-    id: 'cardinal',
-    label: 'Cardinal',
-    license: 'CC BY-SA 4.0',
-    sourceUrl: 'https://github.com/lichess-org/lila/tree/master/public/piece/cardinal',
+  static const letter = PieceSetEntry(
+    id: 'letter',
+    label: 'Буквы',
+    license: 'CC0 1.0',
   );
 
-  static const leipzig = PieceSetEntry(
-    id: 'leipzig',
-    label: 'Leipzig',
-    license: 'CC BY-SA 4.0',
-    sourceUrl: 'https://github.com/lichess-org/lila/tree/master/public/piece/leipzig',
-  );
-
-  // 🔥 Полный список (можно расширять)
   static const List<PieceSetEntry> all = [
-    // CC0 — безопасные для старта
     merida,
-    staunton,
+    staunty,
     alpha,
     pixel,
-
-    // CC BY-SA — добавляй, когда будешь готов к атрибуции
-    // cardinal,
-    // leipzig,
-    // chess7,
-    // ... и другие
+    letter,
   ];
 
-  /// Получить набор по ID
   static PieceSetEntry? getById(String id) {
-    return all.firstWhere((entry) => entry.id == id, orElse: () => merida);
+    return all.firstWhere(
+          (entry) => entry.id == id,
+      orElse: () => merida,
+    );
   }
 
-  /// Проверить, требует ли набор атрибуции
   static bool requiresAttribution(String id) {
     final entry = getById(id);
     return entry?.license.contains('BY') ?? false;
