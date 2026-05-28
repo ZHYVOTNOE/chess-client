@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:squares/squares.dart';
+import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/user_provider.dart';
+import '../../../core/utils/piece_set_loader.dart';
+import '../../settings/constants/custom_board_themes.dart';
 import '../domain/game_engine.dart';
-import '';
 
 class BoardScreen extends StatelessWidget {
   final GameConfig config;
@@ -42,6 +44,13 @@ class _BoardView extends StatelessWidget {
 
     final nickname = context.select<UserProvider, String>((u) => u.nickname);
     final avatar = context.select<UserProvider, File?>((u) => u.avatarFile);
+
+    final settings = context.watch<SettingsProvider>();
+    final boardTheme = CustomBoardThemes.all
+        .firstWhere((entry) => entry.id == settings.settings?.boardTheme,
+        orElse: () => CustomBoardThemes.all[0])
+        .theme;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(engine.config.variant.name),
@@ -70,8 +79,8 @@ class _BoardView extends StatelessWidget {
                   state: state.board,
                   playState: snapshot.isGameOver ? PlayState.finished : state.state,
                   size: state.size,
-                  pieceSet: PieceSet.merida(),
-                  theme: BoardTheme.brown,
+                  pieceSet: PieceSetLoader.load(settings.settings?.pieceSet ?? 'merida'),
+                  theme: boardTheme,
                   moves: state.moves,
                   onMove: engine.makeMove,
                   onPremove: engine.setPremove,

@@ -51,6 +51,7 @@ dependencies:
   path: ^1.9.1
   flutter_native_splash: ^2.4.7
   cupertino_icons: ^1.0.8
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
@@ -94,6 +95,10 @@ flutter:
   assets:
     - assets/pictures/
     - assets/lang/
+    - assets/pieces/merida/
+    - assets/pieces/staunton/
+    - assets/pieces/alpha/
+    - assets/pieces/pixel/
     - .env
 
   # The following line ensures that the Material Icons font is
