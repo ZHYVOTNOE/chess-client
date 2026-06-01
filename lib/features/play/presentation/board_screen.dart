@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:squares/squares.dart';
+import 'package:squares/squares.dart' hide BoardController;
+
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/user_provider.dart';
 import '../../../core/utils/piece_set_loader.dart';
 import '../../settings/constants/custom_board_themes.dart';
 import '../domain/game_engine.dart';
+import 'widgets/board_controller.dart';
 
 class BoardScreen extends StatelessWidget {
   final GameConfig config;
@@ -35,9 +37,7 @@ class _BoardView extends StatelessWidget {
     final state = snapshot.squaresState;
 
     final boardAspectRatio = state.size.aspectRatio;
-
     final hasTimeControl = engine.config.timeControl.isEnabled;
-
     final isWhite = engine.config.humanPlayer.isWhite;
     final topTime = isWhite ? snapshot.blackTime : snapshot.whiteTime;
     final bottomTime = isWhite ? snapshot.whiteTime : snapshot.blackTime;
@@ -75,20 +75,29 @@ class _BoardView extends StatelessWidget {
             child: Center(
               child: AspectRatio(
                 aspectRatio: boardAspectRatio,
-                child: BoardController(
-                  state: state.board,
-                  playState: snapshot.isGameOver ? PlayState.finished : state.state,
-                  size: state.size,
-                  pieceSet: PieceSetLoader.load(settings.settings?.pieceSet ?? 'merida'),
-                  theme: boardTheme,
-                  moves: state.moves,
-                  onMove: engine.makeMove,
-                  onPremove: engine.setPremove,
-                  markerTheme: MarkerTheme(
-                    empty: MarkerTheme.dot,
-                    piece: MarkerTheme.corners(),
-                  ),
-                  promotionBehaviour: PromotionBehaviour.autoPremove,
+                // 🔥 Пересборка при изменении очереди премувов
+                child: ValueListenableBuilder<List<Move>>(
+                  valueListenable: ValueNotifier(engine.premoveQueue),
+                  builder: (context, premoves, child) {
+                    return BoardController(
+                      key: ValueKey('board-${premoves.length}-${DateTime.now().millisecondsSinceEpoch ~/ 1000}'),
+                      state: state.board,
+                      playState: snapshot.isGameOver ? PlayState.finished : state.state,
+                      size: state.size,
+                      pieceSet: PieceSetLoader.load(settings.settings?.pieceSet ?? 'merida'),
+                      theme: boardTheme,
+                      moves: state.moves,
+                      onMove: engine.makeMove,
+                      onAddPremove: engine.addPremove,
+                      onClearPremove: engine.clearPremove,
+                      premoves: premoves,
+                      markerTheme: MarkerTheme(
+                        empty: MarkerTheme.dot,
+                        piece: MarkerTheme.corners(),
+                      ),
+                      promotionBehaviour: PromotionBehaviour.autoPremove,
+                    );
+                  },
                 ),
               ),
             ),
@@ -108,10 +117,7 @@ class _BoardView extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Text(
                 snapshot.result!,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
 
@@ -132,15 +138,11 @@ class _PlayerCard extends StatelessWidget {
   final Duration time;
   final bool isThinking;
   final File? avatar;
-  final bool showTime; // ← новый параметр
+  final bool showTime;
 
   const _PlayerCard({
-    required this.name,
-    this.rating,
-    required this.time,
-    required this.isThinking,
-    this.avatar,
-    this.showTime = true, // по умолчанию показываем время
+    required this.name, this.rating, required this.time,
+    required this.isThinking, this.avatar, this.showTime = true,
   });
 
   @override
@@ -152,22 +154,15 @@ class _PlayerCard extends StatelessWidget {
       leading: CircleAvatar(
         backgroundColor: Colors.grey.shade300,
         backgroundImage: avatar != null ? FileImage(avatar!) : null,
-        child: avatar == null
-            ? Icon(Icons.person, color: Colors.grey.shade600)
-            : null,
+        child: avatar == null ? Icon(Icons.person, color: Colors.grey.shade600) : null,
       ),
       title: Text(name),
       subtitle: rating != null ? Text('Rating: $rating') : null,
       trailing: isThinking
-          ? const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2),
-      )
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
           : showTime
-          ? Text('$m:${s.toString().padLeft(2, '0')}',
-          style: const TextStyle(fontFamily: 'monospace'))
-          : null, // ← если showTime = false, не показываем ничего
+          ? Text('$m:${s.toString().padLeft(2, '0')}', style: const TextStyle(fontFamily: 'monospace'))
+          : null,
     );
   }
 }
@@ -177,29 +172,16 @@ class _GameControls extends StatelessWidget {
   final VoidCallback onResign;
   final VoidCallback onDrawOffer;
 
-  const _GameControls({
-    required this.onFlip,
-    required this.onResign,
-    required this.onDrawOffer,
-  });
+  const _GameControls({required this.onFlip, required this.onResign, required this.onDrawOffer});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        IconButton(
-          onPressed: onDrawOffer,
-          icon: const Text('½', style: TextStyle(fontSize: 22)),
-        ),
-        IconButton(
-          onPressed: onFlip,
-          icon: Icon(MdiIcons.rotate3DVariant),
-        ),
-        IconButton(
-          onPressed: onResign,
-          icon: Icon(MdiIcons.flag),
-        ),
+        IconButton(onPressed: onDrawOffer, icon: const Text('½', style: TextStyle(fontSize: 22))),
+        IconButton(onPressed: onFlip, icon: Icon(MdiIcons.rotate3DVariant)),
+        IconButton(onPressed: onResign, icon: Icon(MdiIcons.flag)),
       ],
     );
   }

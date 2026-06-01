@@ -39,29 +39,30 @@ class GameEngine extends ChangeNotifier {
   Duration _blackTime = Duration.zero;
 
   String? _manualResult;
-
   bool _isFlipped = false;
 
-  Move? _premove;
-  Move? get premove => _premove;
+  // 🔥 ОЧЕРЕДЬ ПРЕМУВОВ (как на Chess.com)
+  final List<Move> _premoveQueue = [];
+  List<Move> get premoveQueue => List.unmodifiable(_premoveQueue);
 
-  void setPremove(Move? move) {
-    _premove = move;
-    notifyListeners();
+  void addPremove(Move move) {
+    debugPrint('🎯 [Premove] Added: ${move.from}→${move.to}, queue: ${_premoveQueue.length + 1}');
+    _premoveQueue.add(move);
+    notifyListeners(); // 🔥 Обновляем UI
   }
 
   void clearPremove() {
-    _premove = null;
-    notifyListeners();
+    debugPrint('🚫 [Engine] clearPremove called, queue: ${_premoveQueue.length}');
+    if (_premoveQueue.isNotEmpty) {
+      _premoveQueue.clear();
+      debugPrint('✅ [Engine] Queue cleared');
+      notifyListeners(); // 🔥 Обновляем UI
+    }
   }
 
   GameEngine(this.config) {
     _start();
   }
-
-  // ─────────────────────────────
-  // SNAPSHOT (FIXED FLIP HERE)
-  // ─────────────────────────────
 
   GameSnapshot get snapshot {
     if (_game == null) {
@@ -94,10 +95,6 @@ class GameEngine extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─────────────────────────────
-  // MOVE LOGIC
-  // ─────────────────────────────
-
   Future<void> makeMove(Move move) async {
     if (_isMakingMove) return;
     if (_game == null || _botThinking || _game!.gameOver) return;
@@ -107,13 +104,11 @@ class GameEngine extends ChangeNotifier {
 
     try {
       final prevTurn = _game!.turn;
-
       final success = _game!.makeSquaresMove(move);
       if (!success) return;
 
       _afterMove(prevTurn);
-
-      clearPremove();
+      clearPremove(); // Обычный ход сбрасывает очередь
 
       if (_game!.gameOver) {
         _stopTimer();
@@ -133,20 +128,12 @@ class GameEngine extends ChangeNotifier {
 
   void resign() {
     if (_game == null || _game!.gameOver) return;
-
     _stopTimer();
-    _manualResult =
-    '${config.humanPlayer.opposite.code} wins by resignation';
-
+    _manualResult = '${config.humanPlayer.opposite.code} wins by resignation';
     notifyListeners();
   }
 
-  // ─────────────────────────────
-  // BOT
-  // ─────────────────────────────
-
-  bool get _isBotTurn =>
-      config.isVsBot && _game!.turn != config.humanPlayer.value;
+  bool get _isBotTurn => config.isVsBot && _game!.turn != config.humanPlayer.value;
 
   Future<void> _botMove() async {
     if (_game == null || _game!.gameOver || !_isBotTurn) return;
@@ -187,24 +174,53 @@ class GameEngine extends ChangeNotifier {
 
     _afterMove(prevTurn);
 
+    // 🔥 ПОСЛЕ ХОДА БОТА ИСПОЛНЯЕМ СЛЕДУЮЩИЙ ПРЕМУВ ИЗ ОЧЕРЕДИ
+    _executeNextPremove();
+
     _botThinking = false;
     notifyListeners();
   }
 
-  // ─────────────────────────────
-  // TIME CONTROL
-  // ─────────────────────────────
+  // 🔥 Исполняет следующий легальный премув из очереди (рекурсивно)
+  void _executeNextPremove() {
+    debugPrint('🔄 [Premove] Checking queue: ${_premoveQueue.length} items');
+
+    while (_premoveQueue.isNotEmpty &&
+        _game != null &&
+        !_game!.gameOver &&
+        _game!.turn == config.humanPlayer.value) {
+
+      final premove = _premoveQueue.first;
+      debugPrint('🔍 [Premove] Testing: ${premove.from}→${premove.to}');
+
+      final testGame = bishop.Game(variant: config.variant, fen: _game!.fen);
+
+      if (testGame.makeSquaresMove(premove)) {
+        debugPrint('✅ [Premove] Executed');
+        _game!.makeSquaresMove(premove);
+        _afterMove(config.humanPlayer.value);
+        _premoveQueue.removeAt(0);
+        notifyListeners();
+
+        // Если после нашего хода снова ход бота -> запускаем его
+        if (_isBotTurn) {
+          debugPrint('🤖 [Premove] Bot turn, calling _botMove');
+          _botMove();
+          return; // Выходим, бот сам вызовет _executeNextPremove после своего хода
+        }
+      } else {
+        debugPrint('❌ [Premove] Illegal, removing');
+        _premoveQueue.removeAt(0);
+        notifyListeners();
+      }
+    }
+  }
 
   void _afterMove(int playerWhoMoved) {
     if (!config.hasTimeControl) return;
-
     final inc = config.timeControl.incrementDuration;
-
-    if (playerWhoMoved == 0) {
-      _whiteTime += inc;
-    } else {
-      _blackTime += inc;
-    }
+    if (playerWhoMoved == 0) _whiteTime += inc;
+    else _blackTime += inc;
   }
 
   void _startTimer() {
@@ -215,25 +231,18 @@ class GameEngine extends ChangeNotifier {
       }
 
       if (_game!.turn == 0) {
-        _whiteTime = _whiteTime > Duration.zero
-            ? _whiteTime - const Duration(seconds: 1)
-            : Duration.zero;
-
+        _whiteTime = _whiteTime > Duration.zero ? _whiteTime - const Duration(seconds: 1) : Duration.zero;
         if (_whiteTime == Duration.zero) {
           _manualResult = 'Black wins on time';
           _stopTimer();
         }
       } else {
-        _blackTime = _blackTime > Duration.zero
-            ? _blackTime - const Duration(seconds: 1)
-            : Duration.zero;
-
+        _blackTime = _blackTime > Duration.zero ? _blackTime - const Duration(seconds: 1) : Duration.zero;
         if (_blackTime == Duration.zero) {
           _manualResult = 'White wins on time';
           _stopTimer();
         }
       }
-
       notifyListeners();
     });
   }
@@ -244,47 +253,26 @@ class GameEngine extends ChangeNotifier {
   }
 
   void _start() {
-    _game = bishop.Game(
-      variant: config.variant,
-      fen: config.fen,
-    );
-
+    _game = bishop.Game(variant: config.variant, fen: config.fen);
     if (config.hasTimeControl) {
       _whiteTime = config.timeControl.initial;
       _blackTime = config.timeControl.initial;
       _startTimer();
     }
-
     notifyListeners();
-
-    if (!config.humanPlayer.isWhite && _isBotTurn) {
-      _botMove();
-    }
+    if (!config.humanPlayer.isWhite && _isBotTurn) _botMove();
   }
 }
-
-// ─────────────────────────────
-// ENGINE ISOLATE
-// ─────────────────────────────
 
 class _EngineJob {
   final String fen;
   final bishop.Variant variant;
   final EngineConfig config;
-
-  _EngineJob({
-    required this.fen,
-    required this.variant,
-    required this.config,
-  });
+  _EngineJob({required this.fen, required this.variant, required this.config});
 }
 
 Future<bishop.EngineResult> _searchEngine(_EngineJob job) async {
-  final game = bishop.Game(
-    variant: job.variant,
-    fen: job.fen,
-  );
-
+  final game = bishop.Game(variant: job.variant, fen: job.fen);
   return await bishop.Engine(game: game).search(
     timeLimit: job.config.timeLimitMs,
     timeBuffer: job.config.timeBufferMs,
