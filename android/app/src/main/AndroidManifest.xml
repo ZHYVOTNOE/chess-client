@@ -8,6 +8,12 @@
 
     <!-- Галерея (до Android 13) -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <!-- Разрешение на получение примерного местоположения (по Wi-Fi и сотам) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    
+    <!-- Разрешение на получение точного местоположения (GPS) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
     <application
         android:label="Caissa kingdom"
         android:name="${applicationName}"

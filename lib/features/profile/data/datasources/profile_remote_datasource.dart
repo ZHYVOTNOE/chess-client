@@ -15,7 +15,7 @@ class ProfileRemoteDatasource {
     final response = await client
         .from('profiles')
         .select()
-        .eq('user_id', userId)
+        .eq('id', userId)
         .single();
     return ProfileModel.fromJson(response);
   }
@@ -24,7 +24,47 @@ class ProfileRemoteDatasource {
     await client
         .from('profiles')
         .update({'nickname': nickname})
-        .eq('user_id', userId);
+        .eq('id', userId);
+  }
+
+  Future<void> updateFullName(String userId, String? fullName) async {
+    await client
+        .from('profiles')
+        .update({'full_name': fullName})
+        .eq('id', userId);
+  }
+
+  Future<void> updateBio(String userId, String? bio) async {
+    await client
+        .from('profiles')
+        .update({'bio': bio})
+        .eq('id', userId);
+  }
+
+  Future<void> updateCountryCode(String userId, String? countryCode) async {
+    await client
+        .from('profiles')
+        .update({'country_code': countryCode})
+        .eq('id', userId);
+  }
+
+  Future<ProfileModel> updateProfile(String userId, Map<String, dynamic> data) async {
+    // 🔥 Only update editable fields (exclude protected: title, display_id, created_at)
+    final editableData = <String, dynamic>{};
+    if (data.containsKey('nickname')) editableData['nickname'] = data['nickname'];
+    if (data.containsKey('avatar_url')) editableData['avatar_url'] = data['avatar_url'];
+    if (data.containsKey('full_name')) editableData['full_name'] = data['full_name'];
+    if (data.containsKey('bio')) editableData['bio'] = data['bio'];
+    if (data.containsKey('country_code')) editableData['country_code'] = data['country_code'];
+    
+    final response = await client
+        .from('profiles')
+        .update(editableData)
+        .eq('id', userId)
+        .select()
+        .single();
+    
+    return ProfileModel.fromJson(response);
   }
 
   Future<String> uploadAvatar(String userId, File file) async {
@@ -41,6 +81,6 @@ class ProfileRemoteDatasource {
     await client
         .from('profiles')
         .update({'avatar_url': avatarUrl})
-        .eq('user_id', userId);
+        .eq('id', userId);
   }
 }

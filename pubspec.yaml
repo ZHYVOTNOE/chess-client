@@ -52,6 +52,9 @@ dependencies:
   flutter_native_splash: ^2.4.7
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.3.0
+  geolocator: ^12.0.0
+  geocoding: ^3.0.0
+  country_picker: ^2.0.26
 
 dev_dependencies:
   flutter_test:

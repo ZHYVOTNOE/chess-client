@@ -1,17 +1,19 @@
-// lib/features/profile/presentation/screens/profile_screen.dart
-import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../../core/providers/locale_provider.dart';
-import '../../../../../core/providers/user_provider.dart';
+import '../../../../../core/services/presence_service.dart';
 import '../../../auth/domain/auth_provider.dart';
+import '../cubits/profile_cubit.dart';
+import '../cubits/profile_state.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,208 +22,101 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  bool isEditing = false;
-  late TextEditingController _nicknameController;
-  final _formKey = GlobalKey<FormState>();
-  final RegExp _nicknameRegex = RegExp(r'^[a-zA-Z0-9_]{3,20}$');
+class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
   final ImagePicker _picker = ImagePicker();
-  File? _tempAvatar;
-  bool _initialized = false;
+  Timer? _uiRefreshTimer;
+  Timer? _presenceTimer;
+  final PresenceService _presenceService = PresenceService();
 
   @override
   void initState() {
     super.initState();
-    _nicknameController = TextEditingController();
-
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<UserProvider>().loadProfile();
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) {
+          context.read<ProfileCubit>().loadProfile(userId);
+          _startPresenceTimer(userId);
+          _startUiRefreshTimer();
+        }
       }
     });
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_initialized && mounted) {
-      final user = context.read<UserProvider>();
-      if (_nicknameController.text != user.nickname) {
-        _nicknameController.text = user.nickname;
-      }
-      _tempAvatar = user.avatarFile;
-      _initialized = true;
-    }
-  }
-
-  @override
   void dispose() {
-    _nicknameController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _uiRefreshTimer?.cancel();
+    _presenceTimer?.cancel();
+    _presenceService.dispose();
     super.dispose();
   }
 
-  /// 🔥 Показ выбора: камера или галерея
-  void _showImageSourceActionSheet() {
-    if (!mounted) return;
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Сделать фото'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Выбрать из галереи'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
 
-  /// 🔥 Запрос разрешений и выбор изображения
-  Future<void> _pickImage(ImageSource source) async {
-    if (!mounted) return;
-
-    final permission = source == ImageSource.camera
-        ? Permission.camera
-        : Permission.photos;
-
-    final status = await permission.request();
-    if (!status.isGranted) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ Доступ к медиафайлам запрещён'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: source,
-        imageQuality: 85,
-      );
-
-      if (pickedFile != null && mounted) {
-        setState(() => _tempAvatar = File(pickedFile.path));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка выбора фото: $e')),
-        );
-      }
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _startPresenceTimer(userId);
+        _startUiRefreshTimer();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        _presenceService.stopHeartbeat();
+        _uiRefreshTimer?.cancel();
+        break;
+      case AppLifecycleState.hidden:
+        break;
     }
   }
 
-  /// 🔥 Диалог редактирования никнейма (локальное обновление + сервер)
-  /// 🔥 Диалог редактирования никнейма — ИСПРАВЛЕННАЯ ВЕРСИЯ
-  /// 🔥 Диалог редактирования никнейма — ИСПРАВЛЕННАЯ ВЕРСИЯ
-  Future<void> _showNicknameEditDialog(String currentNickname) async {
-    if (!mounted) return;
-
-    final dialogController = TextEditingController(text: currentNickname);
-
-    try {
-      final result = await showDialog<String>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('✏️ Изменить никнейм'),
-          content: TextField(
-            controller: dialogController,
-            autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'Введите новый никнейм',
-              helperText: '3-20 символов: буквы, цифры, _',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Отмена'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final trimmed = dialogController.text.trim();
-                if (trimmed.isEmpty || trimmed.length < 3 || trimmed.length > 20 || !_nicknameRegex.hasMatch(trimmed)) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('❌ Некорректный никнейм')),
-                  );
-                  return;
-                }
-                Navigator.pop(ctx, trimmed);
-              },
-              child: const Text('Подтвердить'),
-            ),
-          ],
-        ),
-      );
-
-      if (result != null && result.isNotEmpty && mounted) {
-        setState(() => _nicknameController.text = result);
-      }
-    } finally {
-      // 🔥 КРИТИЧНО: отложенный dispose через addPostFrameCallback
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        dialogController.dispose();
-      });
-    }
+  void _startPresenceTimer(String userId) {
+    _presenceService.startHeartbeat(userId);
   }
 
-  /// 🔥 Сохранение профиля (отправка на сервер)
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate() || !mounted) return;
-
-    final newNickname = _nicknameController.text.trim();
-    final userProvider = context.read<UserProvider>();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Сохранение...'), duration: Duration(seconds: 2)),
-    );
-
-    try {
-      // 1. Отправляем никнейм
-      await userProvider.setNickname(newNickname);
-
-      // 2. Если меняли аватар, отправляем его
-      if (_tempAvatar != null) {
-        await userProvider.setAvatar(_tempAvatar!);
-      }
-
+  void _startUiRefreshTimer() {
+    _uiRefreshTimer?.cancel();
+    _uiRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Профиль обновлён'), backgroundColor: Colors.green),
-        );
-        setState(() {
-          isEditing = false;
-          _tempAvatar = userProvider.avatarFile;
-        });
+        setState(() {});
       }
-    } catch (e) {
-      if (mounted) {
-        // 🔥 Откат никнейма при ошибке сети/сервера
-        setState(() => _nicknameController.text = userProvider.nickname);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Ошибка сохранения: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
+    });
+  }
+
+  bool _isOnline(DateTime? lastSeenAt) {
+    if (lastSeenAt == null) return false;
+    return DateTime.now().difference(lastSeenAt).inMinutes < 3;
+  }
+
+  String _getCountryFlag(String? countryCode) {
+    if (countryCode == null || countryCode.isEmpty) return '';
+    // Convert ISO code to flag emoji
+    final code = countryCode.toUpperCase();
+    if (code.length != 2) return '';
+    final firstLetter = code.codeUnitAt(0) - 0x41 + 0x1F1E6;
+    final secondLetter = code.codeUnitAt(1) - 0x41 + 0x1F1E6;
+    return String.fromCharCode(firstLetter) + String.fromCharCode(secondLetter);
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return '';
+    return '${date.day}.${date.month}.${date.year}';
+  }
+
+  String _formatLastSeen(DateTime? lastSeen) {
+    if (lastSeen == null) return 'Никогда';
+    final now = DateTime.now();
+    final difference = now.difference(lastSeen);
+    
+    if (difference.inMinutes < 1) return 'Сейчас';
+    if (difference.inMinutes < 60) return '${difference.inMinutes} мин назад';
+    if (difference.inHours < 24) return '${difference.inHours} ч назад';
+    if (difference.inDays < 7) return '${difference.inDays} д назад';
+    return _formatDate(lastSeen);
   }
 
   /// 🔥 Выход из аккаунта
@@ -267,71 +162,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return const SizedBox.shrink();
 
     final locale = context.watch<LocaleProvider>();
-    final user = context.watch<UserProvider>();
-
-    // 🔥 Синхронизация контроллера происходит ТОЛЬКО в setState / initState / didChangeDependencies
-    // НЕ внутри build() — это предотвращает ошибки "used after being disposed"
 
     return Scaffold(
       appBar: AppBar(
         title: Text(locale.get('profile_title') ?? 'Профиль'),
         centerTitle: true,
         actions: [
-          // ❌ КРЕСТИК = ОТМЕНА ИЗМЕНЕНИЙ
-          if (isEditing)
-            IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () {
-                if (!mounted) return;
-                final user = context.read<UserProvider>();
-                setState(() {
-                  isEditing = false;
-                  _nicknameController.text = user.nickname;
-                  _tempAvatar = user.avatarFile;
-                });
-              },
-            ),
-
-          // ✅ ГАЛОЧКА (или карандаш) = ВКЛЮЧЕНИЕ РЕДАКТИРОВАНИЯ / СОХРАНЕНИЕ
           IconButton(
-            icon: Icon(isEditing ? Icons.check : Icons.edit),
+            icon: const Icon(Icons.edit),
             onPressed: () {
-              if (!mounted) return;
-              if (isEditing) {
-                _saveProfile();
-              } else {
-                setState(() {
-                  isEditing = true;
-                  _nicknameController.text = user.nickname;
-                  _tempAvatar = user.avatarFile;
-                });
+              final currentState = context.read<ProfileCubit>().state;
+              if (mounted && (currentState is ProfileLoaded || currentState is ProfileUpdated)) {
+                final profile = currentState is ProfileLoaded
+                    ? currentState.profile
+                    : (currentState as ProfileUpdated).profile;
+                context.push('/profile/edit', extra: profile);
               }
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Form(key: _formKey, child: _buildProfileHeader(locale)),
-            const SizedBox(height: 16),
-            _buildRatingsSection(locale),
-            const SizedBox(height: 16),
-            _buildRadarChart(locale),
-            const SizedBox(height: 16),
-            _buildGameHistory(locale),
-            const SizedBox(height: 16),
-            _buildLogoutSection(locale),
-          ],
-        ),
+      body: BlocBuilder<ProfileCubit, ProfileState>(
+        builder: (context, state) {
+          if (state is ProfileLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is ProfileError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('Ошибка: ${state.message}'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      final userId = Supabase.instance.client.auth.currentUser?.id;
+                      if (userId != null) {
+                        context.read<ProfileCubit>().loadProfile(userId);
+                      }
+                    },
+                    child: const Text('Повторить'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (state is ProfileLoaded || state is ProfileUpdated) {
+            final profile = state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile;
+
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildProfileHeader(locale, profile),
+                  const SizedBox(height: 16),
+                  _buildRatingsSection(locale),
+                  const SizedBox(height: 16),
+                  _buildRadarChart(locale),
+                  const SizedBox(height: 16),
+                  _buildGameHistory(locale),
+                  const SizedBox(height: 16),
+                  _buildLogoutSection(locale),
+                ],
+              ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
       ),
     );
   }
 
   /// 🔥 Шапка профиля
-  Widget _buildProfileHeader(LocaleProvider locale) {
-    final user = context.watch<UserProvider>();
-
+  Widget _buildProfileHeader(LocaleProvider locale, dynamic profile) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -339,31 +244,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Stack(
               children: [
-                GestureDetector(
-                  onTap: isEditing ? _showImageSourceActionSheet : null,
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.grey.shade300,
-                    backgroundImage: _tempAvatar != null
-                        ? FileImage(_tempAvatar!)
-                        : (user.avatarUrl != null && user.avatarUrl!.isNotEmpty)
-                        ? NetworkImage(user.avatarUrl!) as ImageProvider
-                        : null,
-                    child: (_tempAvatar == null && user.avatarUrl == null)
-                        ? const Icon(Icons.person, size: 50, color: Colors.grey)
-                        : null,
-                  ),
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.grey.shade300,
+                  backgroundImage: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
+                      ? NetworkImage(profile.avatarUrl!)
+                      : null,
+                  child: (profile.avatarUrl == null || profile.avatarUrl!.isEmpty)
+                      ? const Icon(Icons.person, size: 50, color: Colors.white)
+                      : null,
                 ),
-                if (isEditing)
+                // Переносим логику индикатора сюда
+                if (_isOnline(profile.lastSeenAt))
                   Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: _showImageSourceActionSheet,
-                      child: CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Theme.of(context).primaryColor,
-                        child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                    bottom: 2,
+                    right: 2,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3), // Белая обводка
                       ),
                     ),
                   ),
@@ -373,46 +275,141 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                // Title (LEFT) - only if not null
+                if (profile.title != null && profile.title!.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.diamond, size: 16, color: Colors.blue),
+                        const SizedBox(width: 4),
+                        Text(
+                          profile.title!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                // Nickname (CENTER)
                 Text(
-                  _nicknameController.text,
+                  profile.nickname,
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                if (isEditing)
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () => _showNicknameEditDialog(_nicknameController.text),
-                    tooltip: 'Изменить никнейм',
+                // Flag (RIGHT)
+                if (profile.countryCode != null && profile.countryCode!.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    _getCountryFlag(profile.countryCode),
+                    style: const TextStyle(fontSize: 24),
                   ),
+                ],
               ],
             ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                'ID: ${user.formattedUserId}',
+            if (profile.fullName != null && profile.fullName!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                profile.fullName!,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 16,
                   color: Colors.grey.shade700,
-                  fontFamily: 'monospace',
                 ),
               ),
+            ],
+            const SizedBox(height: 16),
+            Column(
+              children: [
+                if (profile.displayId != null)
+                  _buildInfoRow('Game ID', profile.displayId.toString()),
+                _buildInfoRow('Рег. дата', _formatDate(profile.joinedAt)),
+                //_buildInfoRow('Был в сети', _formatLastSeen(profile.lastSeenAt)),
+              ],
             ),
+            if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'О себе',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      profile.bio!,
+                      style: const TextStyle(fontSize: 14),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 🔥 Рейтинги (горизонтальные)
   Widget _buildRatingsSection(LocaleProvider locale) {
-    final user = context.watch<UserProvider>();
+    // Placeholder ratings - will be fetched from database later
+    final ratings = {
+      'bullet': 1500,
+      'blitz': 1500,
+      'rapid': 1500,
+      'puzzles': 1500,
+    };
 
     final ratingModes = [
       {'key': 'bullet', 'name': 'Пуля', 'icon': MdiIcons.bullet},
@@ -437,7 +434,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: ratingModes.map((mode) {
-                  final rating = user.getRating(mode['key'] as String) ?? 1500;
+                  final rating = ratings[mode['key'] as String] ?? 1500;
                   return Container(
                     width: 90,
                     margin: const EdgeInsets.only(right: 12),

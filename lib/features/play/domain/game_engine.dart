@@ -5,8 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:squares/squares.dart';
 import 'package:square_bishop/square_bishop.dart';
 
-import '../presentation/widgets/engine_config.dart';
-import '../presentation/widgets/game_config.dart';
+import 'entities/engine_config.dart';
+import 'entities/game_config.dart';
+
 
 class GameSnapshot {
   final SquaresState squaresState;

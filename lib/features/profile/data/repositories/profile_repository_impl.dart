@@ -23,4 +23,22 @@ class ProfileRepositoryImpl implements ProfileRepository {
     final url = await remote.uploadAvatar(userId, file);
     await remote.updateAvatarUrl(userId, url);
   }
+
+  @override
+  Future<void> updateFullName(String userId, String? fullName) =>
+      remote.updateFullName(userId, fullName);
+
+  @override
+  Future<void> updateBio(String userId, String? bio) =>
+      remote.updateBio(userId, bio);
+
+  @override
+  Future<void> updateCountryCode(String userId, String? countryCode) =>
+      remote.updateCountryCode(userId, countryCode);
+
+  @override
+  Future<UserProfile> updateProfile(String userId, Map<String, dynamic> data) async {
+    final model = await remote.updateProfile(userId, data);
+    return model.toEntity();
+  }
 }

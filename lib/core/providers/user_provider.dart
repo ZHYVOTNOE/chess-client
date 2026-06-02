@@ -13,7 +13,7 @@ class UserProvider extends ChangeNotifier {
   Map<String, Map<String, int>> _ratings = {}; // {mode: {variant: rating}}
 
   // 🔥 Геттеры
-  String? get userId => _profile?.userId ?? Supabase.instance.client.auth.currentUser?.id;
+  String? get userId => _profile?.id ?? Supabase.instance.client.auth.currentUser?.id;
 
   String get nickname => _localNickname ?? _profile?.nickname ?? _defaultNickname;
 
@@ -63,17 +63,13 @@ class UserProvider extends ChangeNotifier {
       final response = await Supabase.instance.client
           .from('profiles')
           .select()
-          .eq('user_id', currentUserId)
+          .eq('id', currentUserId)
           .maybeSingle();
 
       if (response != null) {
         _profile = UserProfileImpl(
           // 🔥 id — числовой из БД (1071675721)
           id: response['id']?.toString() ?? '',
-
-          // userId — UUID из Auth (a1b2c3d4-...) — оставляем для внутренних нужд
-          userId: response['user_id']?.toString() ?? Supabase.instance.client.auth.currentUser?.id ?? '',
-
           nickname: response['nickname'] ?? _defaultNickname,
           avatarUrl: response['avatar_url'],
           joinedAt: response['created_at'] != null
@@ -96,7 +92,6 @@ class UserProvider extends ChangeNotifier {
         // 🔥 Профиль не найден — создаём дефолтный
         _profile = UserProfileImpl(
           id: '',
-          userId: currentUserId,
           nickname: _defaultNickname,
           avatarUrl: null,
           joinedAt: DateTime.now(),
@@ -141,7 +136,7 @@ class UserProvider extends ChangeNotifier {
       final response = await Supabase.instance.client
           .from('profiles')
           .update({'nickname': value})
-          .eq('user_id', currentUserId)
+          .eq('id', currentUserId)
           .select() // 🔥 Возвращаем обновлённую запись
           .maybeSingle();
 
@@ -151,7 +146,6 @@ class UserProvider extends ChangeNotifier {
       if (response != null) {
         _profile = UserProfileImpl(
           id: response['id']?.toString() ?? _profile?.id ?? '',
-          userId: response['user_id']?.toString() ?? currentUserId,
           nickname: response['nickname'] ?? value, // 🔥 Берём из ответа!
           avatarUrl: response['avatar_url'] ?? _profile?.avatarUrl,
           joinedAt: response['created_at'] != null
@@ -240,7 +234,7 @@ class UserProvider extends ChangeNotifier {
         final response = await Supabase.instance.client
             .from('profiles')
             .update({'avatar_url': publicUrl})
-            .eq('user_id', currentUserId)
+            .eq('id', currentUserId)
             .select()
             .maybeSingle();
 

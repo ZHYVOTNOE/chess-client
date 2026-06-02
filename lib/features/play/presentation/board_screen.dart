@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:client/features/play/presentation/widgets/game_config.dart';
+import 'package:client/features/play/domain/entities/game_config.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';

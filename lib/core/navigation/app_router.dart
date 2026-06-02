@@ -3,6 +3,7 @@ import 'package:client/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:client/features/game_hub/presentation/tournament/create_daily_tournament_screen.dart';
 import 'package:client/features/game_hub/presentation/tournament/create_live_tournament_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -11,7 +12,6 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/registration_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/game_hub/presentation/game_hub_screen.dart';
-import '../../features/play/presentation/setup_game_screen.dart';
 import '../../features/game_hub/presentation/tournament/join_daily_tournament_screen.dart';
 import '../../features/game_hub/presentation/tournament/join_live_tournament_screen.dart';
 import '../../features/game_hub/presentation/tournament/tournament_screen.dart';
@@ -20,13 +20,17 @@ import '../../features/learn/presentation/learn_hub_screen.dart';
 import '../../features/learn/presentation/openings/openings_screen.dart';
 import '../../features/learn/presentation/puzzles/puzzles_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
+import '../../features/play/domain/entities/game_config.dart';
 import '../../features/play/presentation/board_screen.dart';
-import '../../features/play/presentation/widgets/game_config.dart';
+import '../../features/play/presentation/setup_game_screen.dart';
+import '../../features/profile/domain/entities/profile_user.dart';
+import '../../features/profile/presentation/cubits/profile_cubit.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
+import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../providers/user_provider.dart';
 import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
+import '../../features/profile/profile_di.dart';
 
 GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
   // 🔥 КРИТИЧНО: пересчитывать redirect при изменении AuthProvider
@@ -218,18 +222,22 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
             GoRoute(
               path: '/profile',
               builder: (context, state) {
-                final userId = state.extra as String?
-                    ?? context.read<UserProvider>().userId;
-
-                if (userId == null || userId.isEmpty) {
-                  return const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  );
-
-                }
-
-                return ProfileScreen();
+                return BlocProvider(
+                  create: (_) => sl<ProfileCubit>(),
+                  child: const ProfileScreen(),
+                );
               },
+              routes: [
+                GoRoute(
+                  path: 'edit',
+                  builder: (context, state) {
+                return BlocProvider(
+                  create: (_) => sl<ProfileCubit>(),
+                  child: EditProfileScreen(initialProfile: state.extra as UserProfile),
+                );
+                  },
+                ),
+              ],
             ),
           ],
         ),

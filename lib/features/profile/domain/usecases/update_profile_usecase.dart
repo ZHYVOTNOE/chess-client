@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import '../entities/profile_user.dart';
 import '../repositories/profile_repository.dart';
 
 class UpdateNickname {
@@ -32,5 +33,23 @@ class UpdateAvatar {
       throw FormatException('Image must be less than 5MB');
     }
     await repository.updateAvatar(userId, imageFile);
+  }
+}
+
+class UpdateProfile {
+  final ProfileRepository repository;
+
+  UpdateProfile(this.repository);
+
+  Future<UserProfile> call(String userId, Map<String, dynamic> data) async {
+    // Validate bio length if present
+    if (data.containsKey('bio') && data['bio'] != null) {
+      final bio = data['bio'] as String;
+      if (bio.length > 255) {
+        throw FormatException('Bio must be 255 characters or less');
+      }
+    }
+    
+    return await repository.updateProfile(userId, data);
   }
 }
