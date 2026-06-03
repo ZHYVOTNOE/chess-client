@@ -1,18 +1,17 @@
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart' as path;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/profile_model.dart';
 
 class ProfileRemoteDatasource {
-  final SupabaseClient client;
+  final SupabaseClient _supabase;
 
-  // 🔥 Делаем client public для использования в репозитории
-  SupabaseClient get supabase => client;
-
-  ProfileRemoteDatasource(this.client);
+  // 🔥 ИСПРАВЛЕНО: убрана опечатка 'z'
+  ProfileRemoteDatasource(this._supabase);
 
   Future<ProfileModel> getProfile(String userId) async {
-    final response = await client
+    final response = await _supabase
         .from('profiles')
         .select()
         .eq('id', userId)
@@ -21,66 +20,90 @@ class ProfileRemoteDatasource {
   }
 
   Future<void> updateNickname(String userId, String nickname) async {
-    await client
+    await _supabase
         .from('profiles')
         .update({'nickname': nickname})
         .eq('id', userId);
   }
 
   Future<void> updateFullName(String userId, String? fullName) async {
-    await client
+    await _supabase
         .from('profiles')
         .update({'full_name': fullName})
         .eq('id', userId);
   }
 
   Future<void> updateBio(String userId, String? bio) async {
-    await client
+    await _supabase
         .from('profiles')
         .update({'bio': bio})
         .eq('id', userId);
   }
 
   Future<void> updateCountryCode(String userId, String? countryCode) async {
-    await client
+    await _supabase
         .from('profiles')
         .update({'country_code': countryCode})
         .eq('id', userId);
   }
 
   Future<ProfileModel> updateProfile(String userId, Map<String, dynamic> data) async {
-    // 🔥 Only update editable fields (exclude protected: title, display_id, created_at)
     final editableData = <String, dynamic>{};
     if (data.containsKey('nickname')) editableData['nickname'] = data['nickname'];
     if (data.containsKey('avatar_url')) editableData['avatar_url'] = data['avatar_url'];
     if (data.containsKey('full_name')) editableData['full_name'] = data['full_name'];
     if (data.containsKey('bio')) editableData['bio'] = data['bio'];
     if (data.containsKey('country_code')) editableData['country_code'] = data['country_code'];
-    
-    final response = await client
+
+    final response = await _supabase
         .from('profiles')
         .update(editableData)
         .eq('id', userId)
         .select()
         .single();
-    
+
     return ProfileModel.fromJson(response);
   }
 
   Future<String> uploadAvatar(String userId, File file) async {
-    final ext = path.extension(file.path);
-    final fileName = 'avatars/$userId$ext';
-    await client.storage
-        .from('avatars')
-        .upload(fileName, file, fileOptions: FileOptions(upsert: true));
-    return client.storage.from('avatars').getPublicUrl(fileName);
+    try {
+      // 🔥 ИСПРАВЛЕНО: используем path.extension для надежного определения расширения
+      final ext = path.extension(file.path).toLowerCase();
+      if (ext.isEmpty) {
+        throw Exception('Файл не имеет расширения');
+      }
+
+      final fileName = 'avatar$ext'; // avatar.png, avatar.jpg и т.д.
+      final filePath = '$userId/$fileName';
+
+      // Загружаем в Storage с upsert: true
+      await _supabase.storage
+          .from('avatars')
+          .upload(filePath, file, fileOptions: const FileOptions(upsert: true));
+
+      // Получаем Public URL
+      final publicUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
+
+      // Добавляем таймстемп для обхода кеша Flutter
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final urlWithCacheBust = '$publicUrl?v=$timestamp';
+
+      debugPrint('📸 Avatar uploaded: $urlWithCacheBust');
+
+      return urlWithCacheBust;
+    } catch (e) {
+      debugPrint('❌ Avatar upload error: $e');
+      throw Exception('Ошибка загрузки аватара: $e');
+    }
   }
 
-  // 🔥 Добавляем отдельный метод для обновления URL аватара
+  // 🔥 ИСПРАВЛЕНО: client → _supabase
   Future<void> updateAvatarUrl(String userId, String avatarUrl) async {
-    await client
+    debugPrint('📝 Updating avatar_url in profiles table for user $userId: $avatarUrl');
+    await _supabase
         .from('profiles')
         .update({'avatar_url': avatarUrl})
         .eq('id', userId);
+    debugPrint('✅ Avatar URL updated successfully in profiles table');
   }
 }

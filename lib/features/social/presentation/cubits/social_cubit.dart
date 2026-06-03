@@ -27,7 +27,15 @@ class SocialCubit extends Cubit<SocialState> {
 
     // Listen to friend requests stream
     _friendRepository.friendRequestsStream(userId).listen((requests) {
-      emit(state.copyWith(friendRequests: requests));
+      emit(state.copyWith(
+        friendRequests: requests,
+        pendingRequestsCount: requests.length,
+      ));
+    });
+
+    // Listen to sent requests stream
+    _friendRepository.sentRequestsStream(userId).listen((requests) {
+      emit(state.copyWith(sentRequests: requests));
     });
 
     // Listen to game invites stream
@@ -70,6 +78,17 @@ class SocialCubit extends Cubit<SocialState> {
   Future<void> acceptFriendRequest(String requestId) async {
     try {
       await _friendRepository.acceptFriendRequest(requestId);
+      // Force refresh to ensure UI updates immediately
+      final userId = _getCurrentUserId();
+      if (userId != null) {
+        final friends = await _friendRepository.getFriends(userId);
+        final requests = await _friendRepository.getPendingRequests(userId);
+        emit(state.copyWith(
+          friends: friends,
+          friendRequests: requests,
+          pendingRequestsCount: requests.length,
+        ));
+      }
     } catch (e) {
       emit(state.copyWith(error: e.toString()));
     }
@@ -78,6 +97,29 @@ class SocialCubit extends Cubit<SocialState> {
   Future<void> declineFriendRequest(String requestId) async {
     try {
       await _friendRepository.declineFriendRequest(requestId);
+      // Force refresh to ensure UI updates immediately
+      final userId = _getCurrentUserId();
+      if (userId != null) {
+        final requests = await _friendRepository.getPendingRequests(userId);
+        emit(state.copyWith(
+          friendRequests: requests,
+          pendingRequestsCount: requests.length,
+        ));
+      }
+    } catch (e) {
+      emit(state.copyWith(error: e.toString()));
+    }
+  }
+
+  Future<void> cancelSentRequest(String requestId) async {
+    try {
+      await _friendRepository.cancelSentRequest(requestId);
+      // Force refresh to ensure UI updates immediately
+      final userId = _getCurrentUserId();
+      if (userId != null) {
+        final sentRequests = await _friendRepository.getSentRequests(userId);
+        emit(state.copyWith(sentRequests: sentRequests));
+      }
     } catch (e) {
       emit(state.copyWith(error: e.toString()));
     }

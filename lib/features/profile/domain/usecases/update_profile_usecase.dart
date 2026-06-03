@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:path/path.dart' as path;
 
 import '../entities/profile_user.dart';
 import '../repositories/profile_repository.dart';
@@ -21,17 +22,22 @@ class UpdateNickname {
 
 class UpdateAvatar {
   final ProfileRepository repository;
+
   UpdateAvatar(this.repository);
 
   Future<void> call(String userId, File imageFile) async {
-    if (!imageFile.path.endsWith('.jpg') &&
-        !imageFile.path.endsWith('.jpeg') &&
-        !imageFile.path.endsWith('.png')) {
-      throw FormatException('Only JPG and PNG images are allowed');
+    // 🔥 ИСПРАВЛЕНО: используем path.extension для надежной проверки
+    final ext = path.extension(imageFile.path).toLowerCase();
+    final allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+
+    if (!allowedExtensions.contains(ext)) {
+      throw FormatException('Only JPG, PNG and WebP images are allowed (got: $ext)');
     }
+
     if (await imageFile.length() > 5 * 1024 * 1024) {
       throw FormatException('Image must be less than 5MB');
     }
+
     await repository.updateAvatar(userId, imageFile);
   }
 }
@@ -42,14 +48,13 @@ class UpdateProfile {
   UpdateProfile(this.repository);
 
   Future<UserProfile> call(String userId, Map<String, dynamic> data) async {
-    // Validate bio length if present
     if (data.containsKey('bio') && data['bio'] != null) {
       final bio = data['bio'] as String;
       if (bio.length > 255) {
         throw FormatException('Bio must be 255 characters or less');
       }
     }
-    
+
     return await repository.updateProfile(userId, data);
   }
 }

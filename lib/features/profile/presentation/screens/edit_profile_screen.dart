@@ -130,13 +130,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final cubit = context.read<ProfileCubit>();
 
     try {
-      // Update avatar if changed first
+      // 1. Сначала обновляем аватар (если он изменился)
       if (_tempAvatar != null) {
         await cubit.changeAvatar(userId, _tempAvatar!);
       }
 
-      // Update all fields at once using bulk update
-      final updatedProfile = widget.initialProfile.copyWith(
+      // 2. 🔥 БЕРЕМ АКТУАЛЬНЫЙ ПРОФИЛЬ ИЗ КУБИТА, а не из initialProfile!
+      // Это нужно, чтобы не затереть новый avatar_url старым из initialProfile
+      final currentState = cubit.state;
+      final actualProfile = (currentState is ProfileLoaded || currentState is ProfileUpdated)
+          ? (currentState is ProfileLoaded ? currentState.profile : (currentState as ProfileUpdated).profile)
+          : widget.initialProfile;
+
+      // 3. Обновляем остальные поля
+      final updatedProfile = actualProfile.copyWith(
         nickname: _nicknameController.text.trim(),
         fullName: _fullNameController.text.trim().isEmpty ? null : _fullNameController.text.trim(),
         bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
@@ -149,15 +156,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Профиль обновлён'), backgroundColor: Colors.green),
         );
+        await cubit.loadProfile(userId);
+
         context.pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('❌ Ошибка сохранения: $e'),
-              backgroundColor: Colors.red
-          ),
+          SnackBar(content: Text('❌ Ошибка сохранения: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -243,6 +249,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         GestureDetector(
                           onTap: _showImageSourceActionSheet,
                           child: CircleAvatar(
+                            key: ValueKey('edit_avatar_${_tempAvatar?.path ??
+                                ((state is ProfileLoaded || state is ProfileUpdated)
+                                    ? (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl
+                                    : widget.initialProfile.avatarUrl)}'),
                             radius: 50,
                             backgroundColor: Colors.grey.shade300,
                             backgroundImage: _tempAvatar != null
@@ -252,12 +262,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                        (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isNotEmpty
                                         ? NetworkImage((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!) as ImageProvider
                                         : null)
-                                    : null,
+                                    : (widget.initialProfile.avatarUrl != null && widget.initialProfile.avatarUrl!.isNotEmpty
+                                        ? NetworkImage(widget.initialProfile.avatarUrl!) as ImageProvider
+                                        : null),
                             child: (_tempAvatar == null && 
                                 ((state is! ProfileLoaded && state is! ProfileUpdated) || 
                                  ((state is ProfileLoaded || state is ProfileUpdated) && 
                                   ((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl == null || 
-                                   (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isEmpty))))
+                                   (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isEmpty))) &&
+                                (widget.initialProfile.avatarUrl == null || widget.initialProfile.avatarUrl!.isEmpty))
                                 ? const Icon(Icons.person, size: 50, color: Colors.grey)
                                 : null,
                           ),

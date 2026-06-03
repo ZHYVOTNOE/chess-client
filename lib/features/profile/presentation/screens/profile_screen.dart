@@ -15,7 +15,14 @@ import '../cubits/profile_cubit.dart';
 import '../cubits/profile_state.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final String? userId;
+  final bool isReadOnly;
+
+  const ProfileScreen({
+    super.key,
+    this.userId,
+    this.isReadOnly = false,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -27,29 +34,32 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   Timer? _presenceTimer;
   final PresenceService _presenceService = PresenceService();
 
+  // 🔥 Флаг первичной загрузки, чтобы не дёргать loadProfile несколько раз
+  bool _hasLoadedOnce = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        final userId = Supabase.instance.client.auth.currentUser?.id;
-        if (userId != null) {
-          context.read<ProfileCubit>().loadProfile(userId);
-          _startPresenceTimer(userId);
-          _startUiRefreshTimer();
-        }
-      }
-    });
+    // 🔥 НЕ загружаем профиль здесь — ждём didChangeDependencies
   }
 
+  // 🔥 Загружаем профиль при ПЕРВОМ показе экрана
   @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _uiRefreshTimer?.cancel();
-    _presenceTimer?.cancel();
-    _presenceService.dispose();
-    super.dispose();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_hasLoadedOnce) {
+      _hasLoadedOnce = true;
+      _loadProfile();
+    }
+  }
+
+  // 🔥 КЛЮЧЕВОЙ МЕТОД: вызывается при возврате с EditProfileScreen
+  @override
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    print('🔄 [ProfileScreen] didUpdateWidget - reloading profile');
+    _loadProfile();
   }
 
   @override
@@ -59,6 +69,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
     switch (state) {
       case AppLifecycleState.resumed:
+        print('🔄 [ProfileScreen] App resumed - reloading profile');
+        _loadProfile();
         _startPresenceTimer(userId);
         _startUiRefreshTimer();
         break;
@@ -70,6 +82,19 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
         break;
       case AppLifecycleState.hidden:
         break;
+    }
+  }
+
+  void _loadProfile() {
+    final userId = widget.userId ?? Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      print('🔄 [ProfileScreen] Loading profile for $userId');
+      context.read<ProfileCubit>().loadProfile(userId);
+
+      if (!widget.isReadOnly) {
+        _startPresenceTimer(userId);
+        _startUiRefreshTimer();
+      }
     }
   }
 
@@ -86,6 +111,15 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     });
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _uiRefreshTimer?.cancel();
+    _presenceTimer?.cancel();
+    _presenceService.dispose();
+    super.dispose();
+  }
+
   bool _isOnline(DateTime? lastSeenAt) {
     if (lastSeenAt == null) return false;
     return DateTime.now().difference(lastSeenAt).inMinutes < 3;
@@ -93,7 +127,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
   String _getCountryFlag(String? countryCode) {
     if (countryCode == null || countryCode.isEmpty) return '';
-    // Convert ISO code to flag emoji
     final code = countryCode.toUpperCase();
     if (code.length != 2) return '';
     final firstLetter = code.codeUnitAt(0) - 0x41 + 0x1F1E6;
@@ -110,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     if (lastSeen == null) return 'Никогда';
     final now = DateTime.now();
     final difference = now.difference(lastSeen);
-    
+
     if (difference.inMinutes < 1) return 'Сейчас';
     if (difference.inMinutes < 60) return '${difference.inMinutes} мин назад';
     if (difference.inHours < 24) return '${difference.inHours} ч назад';
@@ -162,15 +195,20 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
     final locale = context.watch<LocaleProvider>();
 
+    // 🔥 ВАЖНО: watch за кубитом, чтобы автоматически перерисовываться при изменениях
+    final profileCubit = context.watch<ProfileCubit>();
+
     return Scaffold(
       appBar: AppBar(
         title: Text(locale.get('profile_title') ?? 'Профиль'),
         centerTitle: true,
-        actions: [
+        actions: widget.isReadOnly
+            ? []
+            : [
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              final currentState = context.read<ProfileCubit>().state;
+              final currentState = profileCubit.state;
               if (mounted && (currentState is ProfileLoaded || currentState is ProfileUpdated)) {
                 final profile = currentState is ProfileLoaded
                     ? currentState.profile
@@ -195,12 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   Text('Ошибка: ${state.message}'),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: () {
-                      final userId = Supabase.instance.client.auth.currentUser?.id;
-                      if (userId != null) {
-                        context.read<ProfileCubit>().loadProfile(userId);
-                      }
-                    },
+                    onPressed: () => _loadProfile(),
                     child: const Text('Повторить'),
                   ),
                 ],
@@ -209,7 +242,11 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           }
 
           if (state is ProfileLoaded || state is ProfileUpdated) {
-            final profile = state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile;
+            final profile = state is ProfileLoaded
+                ? state.profile
+                : (state as ProfileUpdated).profile;
+
+            print('🔍 [ProfileScreen] Building with avatarUrl: ${profile.avatarUrl}');
 
             return SingleChildScrollView(
               child: Column(
@@ -221,8 +258,10 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   _buildRadarChart(locale),
                   const SizedBox(height: 16),
                   _buildGameHistory(locale),
-                  const SizedBox(height: 16),
-                  _buildLogoutSection(locale),
+                  if (!widget.isReadOnly) ...[
+                    const SizedBox(height: 16),
+                    _buildLogoutSection(locale),
+                  ],
                 ],
               ),
             );
@@ -244,6 +283,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
             Stack(
               children: [
                 CircleAvatar(
+                  // 🔥 КРИТИЧНО: key заставляет Flutter пересоздать виджет при смене URL
+                  key: ValueKey(profile.avatarUrl),
                   radius: 50,
                   backgroundColor: Colors.grey.shade300,
                   backgroundImage: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
@@ -253,7 +294,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                       ? const Icon(Icons.person, size: 50, color: Colors.white)
                       : null,
                 ),
-                // Переносим логику индикатора сюда
                 if (_isOnline(profile.lastSeenAt))
                   Positioned(
                     bottom: 2,
@@ -264,7 +304,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                       decoration: BoxDecoration(
                         color: Colors.green,
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 3), // Белая обводка
+                        border: Border.all(color: Colors.white, width: 3),
                       ),
                     ),
                   ),
@@ -274,7 +314,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Title (LEFT) - only if not null
                 if (profile.title != null && profile.title!.isNotEmpty) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -300,7 +339,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   ),
                   const SizedBox(width: 8),
                 ],
-                // Nickname (CENTER)
                 Text(
                   profile.nickname,
                   style: const TextStyle(
@@ -308,7 +346,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                // Flag (RIGHT)
                 if (profile.countryCode != null && profile.countryCode!.isNotEmpty) ...[
                   const SizedBox(width: 8),
                   Text(
@@ -334,7 +371,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 if (profile.displayId != null)
                   _buildInfoRow('Game ID', profile.displayId.toString()),
                 _buildInfoRow('Рег. дата', _formatDate(profile.joinedAt)),
-                //_buildInfoRow('Был в сети', _formatLastSeen(profile.lastSeenAt)),
               ],
             ),
             if (profile.bio != null && profile.bio!.isNotEmpty) ...[
@@ -402,7 +438,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
   /// 🔥 Рейтинги (горизонтальные)
   Widget _buildRatingsSection(LocaleProvider locale) {
-    // Placeholder ratings - will be fetched from database later
     final ratings = {
       'bullet': 1500,
       'blitz': 1500,

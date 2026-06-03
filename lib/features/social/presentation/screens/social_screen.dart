@@ -68,7 +68,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
             children: [
               _buildFriendsList(state.friends),
               _buildSearchTab(state),
-              _buildRequestsList(state.friendRequests),
+              _buildRequestsList(state.friendRequests, state.sentRequests),
             ],
           ),
           floatingActionButton: _selectedTab == 0 && state.gameInvites.isNotEmpty
@@ -87,32 +87,85 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
       return const Center(child: Text('No friends yet'));
     }
 
-    return ListView.builder(
+    return ListView.separated(
       itemCount: friends.length,
+      separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final friend = friends[index];
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundImage: friend.friendAvatarUrl != null
-                ? NetworkImage(friend.friendAvatarUrl!)
-                : null,
-            child: friend.friendAvatarUrl == null ? Text(friend.friendNickname[0]) : null,
-          ),
-          title: Text(friend.friendNickname),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.play_arrow),
-                onPressed: () => _inviteToGame(friend),
-                tooltip: 'Invite to game',
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () => _removeFriend(friend),
-                tooltip: 'Remove friend',
-              ),
-            ],
+        return InkWell(
+          onTap: () => _viewProfile(friend),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  key: ValueKey('friend_${friend.friendId}_${friend.friendAvatarUrl}'),
+                  radius: 28,
+                  backgroundImage: friend.friendAvatarUrl != null
+                      ? NetworkImage(friend.friendAvatarUrl!)
+                      : null,
+                  child: friend.friendAvatarUrl == null 
+                      ? Text(
+                          friend.friendNickname.isNotEmpty ? friend.friendNickname[0].toUpperCase() : '?',
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        friend.friendNickname,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (friend.friendFullName != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          friend.friendFullName!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                      if (friend.friendBio != null && friend.friendBio!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          friend.friendBio!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.play_arrow),
+                      onPressed: () => _inviteToGame(friend),
+                      tooltip: 'Invite to game',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () => _removeFriend(friend),
+                      tooltip: 'Remove friend',
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -127,7 +180,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search users...',
+              hintText: 'Search users (ID or nickname)',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: state.isSearching
                   ? const Padding(
@@ -156,23 +209,74 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
               ? const Center(child: CircularProgressIndicator())
               : state.searchResults.isEmpty
               ? const Center(child: Text('No users found'))
-              : ListView.builder(
+              : ListView.separated(
             itemCount: state.searchResults.length,
+            separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final user = state.searchResults[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: user.friendAvatarUrl != null
-                      ? NetworkImage(user.friendAvatarUrl!)
-                      : null,
-                  child: user.friendAvatarUrl == null
-                      ? Text(user.friendNickname[0])
-                      : null,
-                ),
-                title: Text(user.friendNickname),
-                trailing: IconButton(
-                  icon: const Icon(Icons.person_add),
-                  onPressed: () => _sendFriendRequest(user),
+              return InkWell(
+                onTap: () => _viewProfile(user),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        key: ValueKey('search_${user.friendId}_${user.friendAvatarUrl}'),
+                        radius: 28,
+                        backgroundImage: user.friendAvatarUrl != null
+                            ? NetworkImage(user.friendAvatarUrl!)
+                            : null,
+                        child: user.friendAvatarUrl == null 
+                            ? Text(
+                                user.friendNickname.isNotEmpty ? user.friendNickname[0].toUpperCase() : '?',
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              )
+                            : null,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.friendNickname,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (user.friendFullName != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                user.friendFullName!,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                            if (user.friendBio != null && user.friendBio!.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                user.friendBio!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade500,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.person_add),
+                        onPressed: () => _sendFriendRequest(user),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -182,43 +286,199 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildRequestsList(List<Friend> requests) {
-    if (requests.isEmpty) {
+  Widget _buildRequestsList(List<Friend> incomingRequests, List<Friend> sentRequests) {
+    if (incomingRequests.isEmpty && sentRequests.isEmpty) {
       return const Center(child: Text('No pending requests'));
     }
 
-    return ListView.builder(
-      itemCount: requests.length,
-      itemBuilder: (context, index) {
-        final request = requests[index];
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundImage: request.friendAvatarUrl != null
-                ? NetworkImage(request.friendAvatarUrl!)
-                : null,
-            child: request.friendAvatarUrl == null
-                ? Text(request.friendNickname[0])
-                : null,
+    return ListView(
+      children: [
+        // Incoming Requests Section
+        if (incomingRequests.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Входящие запросы',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
-          title: Text(request.friendNickname),
-          subtitle: const Text('Wants to be your friend'),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.check, color: Colors.green),
-                onPressed: () => _acceptRequest(request),
-                tooltip: 'Accept',
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.red),
-                onPressed: () => _declineRequest(request),
-                tooltip: 'Decline',
-              ),
-            ],
+          ...List.generate(incomingRequests.length, (index) {
+            return Column(
+              children: [
+                _buildIncomingRequestTile(incomingRequests[index]),
+                if (index < incomingRequests.length - 1) const Divider(height: 1),
+              ],
+            );
+          }),
+          const Divider(height: 32),
+        ],
+        // Sent Requests Section
+        if (sentRequests.isNotEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Исходящие запросы',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ),
-        );
-      },
+          ...List.generate(sentRequests.length, (index) {
+            return Column(
+              children: [
+                _buildSentRequestTile(sentRequests[index]),
+                if (index < sentRequests.length - 1) const Divider(height: 1),
+              ],
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildIncomingRequestTile(Friend request) {
+    return InkWell(
+      onTap: () => _viewProfile(request),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              key: ValueKey('incoming_${request.friendId}_${request.friendAvatarUrl}'),
+              radius: 28,
+              backgroundImage: request.friendAvatarUrl != null
+                  ? NetworkImage(request.friendAvatarUrl!)
+                  : null,
+              child: request.friendAvatarUrl == null 
+                  ? Text(
+                      request.friendNickname.isNotEmpty ? request.friendNickname[0].toUpperCase() : '?',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    request.friendNickname,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (request.friendFullName != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      request.friendFullName!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                  if (request.friendBio != null && request.friendBio!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      request.friendBio!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.check, color: Colors.green),
+                  onPressed: () => _acceptFriendRequest(request),
+                  tooltip: 'Accept',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  onPressed: () => _declineFriendRequest(request),
+                  tooltip: 'Decline',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSentRequestTile(Friend request) {
+    return InkWell(
+      onTap: () => _viewProfile(request),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              key: ValueKey('sent_${request.friendId}_${request.friendAvatarUrl}'),
+              radius: 28,
+              backgroundImage: request.friendAvatarUrl != null
+                  ? NetworkImage(request.friendAvatarUrl!)
+                  : null,
+              child: request.friendAvatarUrl == null 
+                  ? Text(
+                      request.friendNickname.isNotEmpty ? request.friendNickname[0].toUpperCase() : '?',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    request.friendNickname,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (request.friendFullName != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      request.friendFullName!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                  if (request.friendBio != null && request.friendBio!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      request.friendBio!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.cancel, color: Colors.grey),
+              onPressed: () => _cancelSentRequest(request),
+              tooltip: 'Cancel',
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -380,12 +640,23 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  void _acceptRequest(Friend request) {
+  void _acceptFriendRequest(Friend request) {
     context.read<SocialCubit>().acceptFriendRequest(request.id);
   }
 
-  void _declineRequest(Friend request) {
+  void _declineFriendRequest(Friend request) {
     context.read<SocialCubit>().declineFriendRequest(request.id);
+  }
+
+  void _cancelSentRequest(Friend request) {
+    context.read<SocialCubit>().cancelSentRequest(request.id);
+  }
+
+  void _viewProfile(Friend friend) {
+    context.push('/profile', extra: {
+      'userId': friend.friendId,
+      'isReadOnly': true,
+    });
   }
 
   void _showInvitationDialog(BuildContext context, Map<String, dynamic> invite) {

@@ -278,9 +278,9 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
 
   Widget _buildRatingRangeSelector() {
     final ranges = [
-      {'code': '±100', 'label': '±100', 'desc': 'Точный поиск'},
-      {'code': '±200', 'label': '±200', 'desc': 'Рекомендуется'},
-      {'code': '±500', 'label': '±500', 'desc': 'Быстрый поиск'},
+      {'code': '±50', 'label': '±50', 'desc': 'Точный поиск'},
+      {'code': '±100', 'label': '±100', 'desc': 'Рекомендуется'},
+      {'code': '±200', 'label': '±200', 'desc': 'Быстрый поиск'},
       {'code': 'any', 'label': 'Любой', 'desc': 'Без ограничений'},
     ];
 

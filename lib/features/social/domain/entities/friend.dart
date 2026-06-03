@@ -9,6 +9,8 @@ class Friend {
   final String userId;
   final String friendId;
   final String friendNickname;
+  final String? friendFullName;
+  final String? friendBio;
   final String? friendAvatarUrl;
   final FriendStatus status;
   final DateTime createdAt;
@@ -21,6 +23,8 @@ class Friend {
     required this.userId,
     required this.friendId,
     required this.friendNickname,
+    this.friendFullName,
+    this.friendBio,
     this.friendAvatarUrl,
     required this.status,
     required this.createdAt,
@@ -43,6 +47,8 @@ class Friend {
     String? userId,
     String? friendId,
     String? friendNickname,
+    String? friendFullName,
+    String? friendBio,
     String? friendAvatarUrl,
     FriendStatus? status,
     DateTime? createdAt,
@@ -55,6 +61,8 @@ class Friend {
       userId: userId ?? this.userId,
       friendId: friendId ?? this.friendId,
       friendNickname: friendNickname ?? this.friendNickname,
+      friendFullName: friendFullName ?? this.friendFullName,
+      friendBio: friendBio ?? this.friendBio,
       friendAvatarUrl: friendAvatarUrl ?? this.friendAvatarUrl,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,

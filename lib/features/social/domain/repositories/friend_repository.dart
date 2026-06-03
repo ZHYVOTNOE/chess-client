@@ -19,12 +19,24 @@ abstract class FriendRepository {
   /// Remove a friend
   Future<void> removeFriend(String friendId);
 
-  /// Get pending friend requests
+  /// Get pending friend requests (incoming)
   Future<List<Friend>> getPendingRequests(String userId);
+
+  /// Get sent friend requests (outgoing)
+  Future<List<Friend>> getSentRequests(String userId);
+
+  /// Cancel a sent friend request
+  Future<void> cancelSentRequest(String requestId);
 
   /// Stream for friend requests (Realtime)
   Stream<List<Friend>> friendRequestsStream(String userId);
 
+  /// Stream for sent requests (Realtime)
+  Stream<List<Friend>> sentRequestsStream(String userId);
+
   /// Stream for friends list (Realtime)
   Stream<List<Friend>> friendsStream(String userId);
+
+  /// Invalidate profile cache for a specific user
+  void invalidateProfileCache(String userId);
 }

@@ -6,7 +6,7 @@ import '../../domain/repositories/friend_repository.dart';
 
 class FriendRepositoryImpl implements FriendRepository {
   final SupabaseClient _supabase;
-  final Map<String, Map<String, dynamic>> _profileCache = {};
+  final Map<String, _CachedProfile> _profileCache = {};
 
   FriendRepositoryImpl(this._supabase);
 
@@ -29,19 +29,33 @@ class FriendRepositoryImpl implements FriendRepository {
 
   @override
   Future<List<Friend>> searchUsers(String query) async {
+    // Check if query is a 10-digit ID (exact match)
+    final isNumericId = RegExp(r'^\d{10}$').hasMatch(query);
+    
     final response = await _supabase
         .from('profiles')
-        .select('id, nickname, avatar_url')
-        .ilike('nickname', '%$query%')
+        .select('id, nickname, full_name, avatar_url, bio, display_id')
+        .or(isNumericId 
+            ? 'display_id.eq.$query' 
+            : 'nickname.ilike.%$query%,full_name.ilike.%$query%')
         .limit(20);
 
     return response.map((data) {
       final isCurrentUser = data['id'] == _supabase.auth.currentUser?.id;
+      
+      // Fallback chain for display name
+      final displayName = data['nickname'] ?? 
+                         data['full_name'] ?? 
+                         data['display_id']?.toString() ?? 
+                         'Unknown';
+      
       return Friend(
         id: data['id'],
         userId: _supabase.auth.currentUser?.id ?? '',
         friendId: data['id'],
-        friendNickname: data['nickname'] ?? 'Unknown',
+        friendNickname: displayName,
+        friendFullName: data['full_name'],
+        friendBio: data['bio'],
         friendAvatarUrl: data['avatar_url'],
         status: isCurrentUser ? FriendStatus.accepted : FriendStatus.pending,
         createdAt: DateTime.now(),
@@ -64,6 +78,11 @@ class FriendRepositoryImpl implements FriendRepository {
         .from('friendships')
         .update({'status': 'accepted', 'updated_at': DateTime.now().toIso8601String()})
         .eq('id', requestId);
+  }
+
+  /// Invalidate profile cache for a specific user
+  void invalidateProfileCache(String userId) {
+    _profileCache.remove(userId);
   }
 
   @override
@@ -94,6 +113,28 @@ class FriendRepositoryImpl implements FriendRepository {
   }
 
   @override
+  Future<List<Friend>> getSentRequests(String userId) async {
+    final response = await _supabase
+        .from('friendships')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', ascending: false);
+
+    final friends = <Friend>[];
+    for (final data in response) {
+      final friend = await _mapToFriendWithProfile(data, userId);
+      friends.add(friend);
+    }
+    return friends;
+  }
+
+  @override
+  Future<void> cancelSentRequest(String requestId) async {
+    await _supabase.from('friendships').delete().eq('id', requestId);
+  }
+
+  @override
   Stream<List<Friend>> friendRequestsStream(String userId) {
     return _supabase
         .from('friendships')
@@ -101,6 +142,26 @@ class FriendRepositoryImpl implements FriendRepository {
         .order('created_at', ascending: false)
         .map((data) => data.where((item) =>
             item['friend_id'] == userId &&
+            item['status'] == 'pending'
+        ).toList())
+        .asyncMap((data) async {
+          final friends = <Friend>[];
+          for (final item in data) {
+            final friend = await _mapToFriendWithProfile(item, userId);
+            friends.add(friend);
+          }
+          return friends;
+        });
+  }
+
+  @override
+  Stream<List<Friend>> sentRequestsStream(String userId) {
+    return _supabase
+        .from('friendships')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((data) => data.where((item) =>
+            item['user_id'] == userId &&
             item['status'] == 'pending'
         ).toList())
         .asyncMap((data) async {
@@ -156,11 +217,19 @@ class FriendRepositoryImpl implements FriendRepository {
       isOnline = now.difference(lastSeen).inMinutes < 5;
     }
 
+    // Fallback chain for display name
+    final displayName = profile?['nickname'] ?? 
+                       profile?['full_name'] ?? 
+                       profile?['display_id']?.toString() ?? 
+                       'Unknown';
+
     return Friend(
       id: data['id'] as String,
       userId: data['user_id'] as String,
       friendId: friendId,
-      friendNickname: profile?['nickname'] ?? 'Unknown',
+      friendNickname: displayName,
+      friendFullName: profile?['full_name'],
+      friendBio: profile?['bio'],
       friendAvatarUrl: profile?['avatar_url'],
       status: _mapStatus(data['status'] as String),
       createdAt: DateTime.parse(data['created_at'] as String),
@@ -175,18 +244,22 @@ class FriendRepositoryImpl implements FriendRepository {
   Future<Friend> _mapToFriendWithProfile(Map<String, dynamic> data, String currentUserId) async {
     final friendId = data['friend_id'] as String;
 
-    // Try to get profile from cache first
-    Map<String, dynamic>? profile = _profileCache[friendId];
+    final cached = _profileCache[friendId];
+    final now = DateTime.now();
+    Map<String, dynamic>? profile;
 
-    // If not in cache or cache is old (> 5 minutes), fetch from server
-    if (profile == null) {
+    if (cached != null && now.difference(cached.fetchedAt).inMinutes < 5) {
+      profile = cached.data;
+    } else {
       try {
         final profileData = await _supabase
             .from('profiles')
-            .select('nickname, avatar_url, last_seen_at, ratings')
+            .select('nickname, full_name, bio, avatar_url, last_seen_at, ratings, display_id')
             .eq('id', friendId)
             .single();
-        _profileCache[friendId] = profileData;
+
+        // Сохраняем в кэш с текущим временем
+        _profileCache[friendId] = _CachedProfile(profileData, now);
         profile = profileData;
       } catch (e) {
         debugPrint('Failed to fetch profile for $friendId: $e');
@@ -211,11 +284,19 @@ class FriendRepositoryImpl implements FriendRepository {
       isOnline = now.difference(lastSeen).inMinutes < 5;
     }
 
+    // Fallback chain for display name: nickname → full_name → display_id → "Unknown"
+    final displayName = profile?['nickname'] ?? 
+                       profile?['full_name'] ?? 
+                       profile?['display_id']?.toString() ?? 
+                       'Unknown';
+
     return Friend(
       id: data['id'] as String,
       userId: data['user_id'] as String,
       friendId: friendId,
-      friendNickname: profile?['nickname'] ?? 'Unknown',
+      friendNickname: displayName,
+      friendFullName: profile?['full_name'],
+      friendBio: profile?['bio'],
       friendAvatarUrl: profile?['avatar_url'],
       status: _mapStatus(data['status'] as String),
       createdAt: DateTime.parse(data['created_at'] as String),
@@ -239,4 +320,11 @@ class FriendRepositoryImpl implements FriendRepository {
         return FriendStatus.pending;
     }
   }
+}
+
+
+class _CachedProfile {
+  final Map<String, dynamic> data;
+  final DateTime fetchedAt;
+  _CachedProfile(this.data, this.fetchedAt);
 }

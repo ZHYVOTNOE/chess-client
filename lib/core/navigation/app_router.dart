@@ -248,9 +248,12 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
             GoRoute(
               path: '/profile',
               builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>?;
+                final userId = extra?['userId'] as String?;
+                final isReadOnly = extra?['isReadOnly'] as bool? ?? false;
                 return BlocProvider(
                   create: (_) => sl<ProfileCubit>(),
-                  child: const ProfileScreen(),
+                  child: ProfileScreen(userId: userId, isReadOnly: isReadOnly),
                 );
               },
               routes: [
