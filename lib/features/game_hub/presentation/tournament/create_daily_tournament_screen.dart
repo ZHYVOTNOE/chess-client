@@ -220,7 +220,7 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
       children: [
         // Количество групп
         DropdownButtonFormField<int>(
-          value: _groupsCount ?? 4,
+          initialValue: _groupsCount ?? 4,
           decoration: const InputDecoration(
             labelText: 'Количество групп',
             prefixIcon: Icon(Icons.grid_view),
@@ -233,7 +233,7 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
         const SizedBox(height: 16),
         // Сколько проходит
         DropdownButtonFormField<int>(
-          value: _advancingCount ?? 2,
+          initialValue: _advancingCount ?? 2,
           decoration: const InputDecoration(
             labelText: 'Проходят из группы',
             prefixIcon: Icon(Icons.arrow_forward),
@@ -263,7 +263,7 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
           onTap: _pickDateTime,
         ),
         DropdownButtonFormField<String>(
-          value: _timeZone,
+          initialValue: _timeZone,
           decoration: const InputDecoration(
             labelText: 'Часовой пояс',
             prefixIcon: Icon(Icons.public),

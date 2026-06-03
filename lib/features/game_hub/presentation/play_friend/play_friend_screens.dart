@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/providers/locale_provider.dart';
+import '../../../social/data/repositories/friend_repository_impl.dart';
+import '../../../social/data/services/friend_service.dart';
+import '../../../social/domain/repositories/friend_repository.dart';
 
 class PlayFriendScreen extends StatefulWidget {
   const PlayFriendScreen({super.key});
@@ -15,6 +20,11 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
   bool _rated = true;
   String _chosenColor = 'random';
 
+  late final FriendRepository _friendRepository;
+  late final FriendService _friendService;
+  List<Map<String, dynamic>> _friends = [];
+  bool _isLoadingFriends = true;
+
   final List<Map<String, dynamic>> _timeControls = [
     {'code': '1|0', 'name': 'Bullet', 'minutes': 1, 'increment': 0},
     {'code': '3|0', 'name': 'Blitz', 'minutes': 3, 'increment': 0},
@@ -25,13 +35,40 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
     {'code': '30|0', 'name': 'Classical', 'minutes': 30, 'increment': 0},
   ];
 
-  // TODO: загрузка списка друзей с сервера
-  final List<Map<String, dynamic>> _friends = [
-    {'id': '1', 'name': 'Александр', 'rating': 1850, 'online': true},
-    {'id': '2', 'name': 'Мария', 'rating': 1920, 'online': false},
-    {'id': '3', 'name': 'Дмитрий', 'rating': 1780, 'online': true},
-    {'id': '4', 'name': 'Елена', 'rating': 2100, 'online': true},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _friendRepository = FriendRepositoryImpl(Supabase.instance.client);
+    _friendService = FriendService(_friendRepository, Supabase.instance.client);
+    _loadFriends();
+  }
+
+  Future<void> _loadFriends() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final friends = await _friendRepository.getFriends(userId);
+      setState(() {
+        _friends = friends.map((friend) => {
+          'id': friend.friendId,
+          'name': friend.friendNickname,
+          'rating': friend.rating ?? 1200,
+          'online': friend.isOnline,
+        }).toList();
+        _isLoadingFriends = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingFriends = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load friends: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +122,10 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
   }
 
   Widget _buildFriendSelector() {
+    if (_isLoadingFriends) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_friends.isEmpty) {
       return Card(
         child: Padding(
@@ -96,7 +137,7 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
               const Text('Нет друзей онлайн', style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 16),
               OutlinedButton(
-                onPressed: () {}, // TODO: поиск друзей
+                onPressed: () => context.push('/social'),
                 child: const Text('Найти друзей'),
               ),
             ],
@@ -289,26 +330,48 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
     );
   }
 
-  void _sendInvite() {
+  void _sendInvite() async {
     final friend = _friends.firstWhere((f) => f['id'] == _selectedFriend);
 
-    // TODO: API отправки приглашения
+    try {
+      // Parse time control
+      final timeParts = _selectedTime.split('|');
+      final minutes = int.parse(timeParts[0]);
+      final increment = int.parse(timeParts[1]);
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Приглашение отправлено'),
-        content: Text('Ожидаем ответа от ${friend['name']}...'),
-        actions: [
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: переход в ожидание или назад
-            },
-            child: const Text('ОК'),
+      final gameConfig = {
+        'variant': 'standard',
+        'timeControl': {
+          'initial': Duration(minutes: minutes).inSeconds,
+          'increment': Duration(seconds: increment).inSeconds,
+        },
+        'rated': _rated,
+        'color': _chosenColor,
+      };
+
+      await _friendService.sendGameInvite(_selectedFriend, gameConfig);
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Приглашение отправлено'),
+            content: Text('Ожидаем ответа от ${friend['name']}...'),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('ОК'),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send invite: $e')),
+        );
+      }
+    }
   }
 }

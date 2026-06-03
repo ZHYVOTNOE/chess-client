@@ -11,6 +11,7 @@ class UserProfileImpl implements UserProfile {
   @override final String? title;
   @override final DateTime? lastSeenAt;
   @override final int? displayId;
+  @override final Map<String, Rating>? ratings;
 
   UserProfileImpl({
     required this.id,
@@ -23,6 +24,7 @@ class UserProfileImpl implements UserProfile {
     this.title,
     this.lastSeenAt,
     this.displayId,
+    this.ratings,
   });
 
   @override
@@ -37,6 +39,7 @@ class UserProfileImpl implements UserProfile {
     String? title,
     DateTime? lastSeenAt,
     int? displayId,
+    Map<String, Rating>? ratings,
   }) => UserProfileImpl(
     id: id ?? this.id,
     nickname: nickname ?? this.nickname,
@@ -48,5 +51,35 @@ class UserProfileImpl implements UserProfile {
     title: title ?? this.title,
     lastSeenAt: lastSeenAt ?? this.lastSeenAt,
     displayId: displayId ?? this.displayId,
+    ratings: ratings ?? this.ratings,
   );
+}
+
+class RatingImpl implements Rating {
+  @override final String variant;
+  @override final String timeControl;
+  @override final double rating;
+  @override final double rd;
+  @override final double volatility;
+  @override final int gamesPlayed;
+  @override final int wins;
+  @override final int losses;
+  @override final int draws;
+  @override final DateTime? lastPlayedAt;
+
+  RatingImpl({
+    required this.variant,
+    required this.timeControl,
+    required this.rating,
+    required this.rd,
+    required this.volatility,
+    this.gamesPlayed = 0,
+    this.wins = 0,
+    this.losses = 0,
+    this.draws = 0,
+    this.lastPlayedAt,
+  });
+
+  @override
+  String get formatted => '${rating.toInt()} ± ${rd.toInt()}';
 }

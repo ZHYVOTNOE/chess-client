@@ -26,6 +26,7 @@ class GameConfig {
   final String? fen;
   final String? friendId;
   final bool rated;
+  final String? gameId;
 
   GameConfig._({
     required this.id,
@@ -37,6 +38,7 @@ class GameConfig {
     this.fen,
     this.friendId,
     this.rated = true,
+    this.gameId,
   });
 
   factory GameConfig.create({
@@ -48,6 +50,7 @@ class GameConfig {
     String? fen,
     String? friendId,
     bool? rated,
+    String? gameId,
   }) {
     final resolvedOpponent = opponentType ?? OpponentType.ai;
 
@@ -65,6 +68,7 @@ class GameConfig {
       fen: (fen?.isEmpty ?? true) ? null : fen,
       friendId: friendId,
       rated: rated ?? true,
+      gameId: gameId,
     );
   }
 
@@ -79,6 +83,7 @@ class GameConfig {
 
   bool get isVsBot => opponentType.isBot;
   bool get hasTimeControl => timeControl.enabled;
+  bool get isOnline => gameId != null;
 
   //GameConfig copyWith({...}) => ...;
 }

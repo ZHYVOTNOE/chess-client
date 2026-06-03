@@ -208,7 +208,7 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
         ),
         // Часовой пояс
         DropdownButtonFormField<String>(
-          value: _timeZone,
+          initialValue: _timeZone,
           decoration: const InputDecoration(
             labelText: 'Часовой пояс',
             prefixIcon: Icon(Icons.public),

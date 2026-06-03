@@ -35,28 +35,15 @@ class GameHubScreen extends StatelessWidget {
                         gameProvider.setVsRandom(value: true);
                         gameProvider.setVsFriend(value: false);
                         gameProvider.setVsComputer(value: false);
-                        context.push('/game/setup/random');
+                        context.push('/game/searching', extra: {
+                          'variant': 'standard',
+                          'timeControl': '3|0',
+                          'ratingRange': '±200',
+                        });
                       },
                     ),
                   ),
                   const SizedBox(width: 16),
-                  // Турниры
-                  Expanded(
-                    child: _GameModeCard(
-                      icon: Icons.emoji_events,
-                      title: locale.get('game_tournament'),
-                      subtitle: locale.get('game_tournament_subtitle'),
-                      color: Colors.purple,
-                      onTap: () => context.push('/game/tournament'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Row(
-                children: [
                   // Игра с другом
                   Expanded(
                     child: _GameModeCard(
@@ -72,7 +59,13 @@ class GameHubScreen extends StatelessWidget {
                       },
                     ),
                   ),
-                  const SizedBox(width: 16),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Row(
+                children: [
                   // Игра с ботом
                   Expanded(
                     child: _GameModeCard(
@@ -85,6 +78,22 @@ class GameHubScreen extends StatelessWidget {
                         gameProvider.setVsFriend(value: false);
                         gameProvider.setVsComputer(value: true);
                         context.push('/game/setup/computer');
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Локальная игра
+                  Expanded(
+                    child: _GameModeCard(
+                      icon: Icons.devices,
+                      title: 'Local Play',
+                      subtitle: 'Two players on one device',
+                      color: Colors.purple,
+                      onTap: () {
+                        gameProvider.setVsRandom(value: false);
+                        gameProvider.setVsFriend(value: false);
+                        gameProvider.setVsComputer(value: false);
+                        context.push('/game/setup/local');
                       },
                     ),
                   ),

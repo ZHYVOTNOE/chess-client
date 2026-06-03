@@ -1,7 +1,3 @@
-import 'package:client/features/play/presentation/widgets/engine_config.dart';
-import 'package:client/features/play/presentation/widgets/game_config.dart';
-import 'package:client/features/play/presentation/widgets/player_color.dart';
-import 'package:client/features/play/presentation/widgets/time_control.dart';
 import 'package:flutter/material.dart';
 import 'package:bishop/bishop.dart' as bishop;
 import 'package:go_router/go_router.dart';
@@ -11,6 +7,10 @@ import 'package:squares/squares.dart';
 
 import '../../../core/providers/game_provider.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../domain/entities/engine_config.dart';
+import '../domain/entities/game_config.dart';
+import '../domain/entities/player_color.dart';
+import '../domain/entities/time_control.dart';
 
 class SetupGameScreen extends StatefulWidget {
   const SetupGameScreen({
@@ -168,6 +168,13 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
             _buildSectionTitle('Сложность'),
             _buildBotLevelSelector(),
           ],
+          if (mode == _SetupMode.local) ...[
+            _buildSectionTitle('Контроль времени'),
+            _buildTimeSelector(),
+            const SizedBox(height: 16),
+            _buildSectionTitle('Выбор цвета'),
+            _buildColorSelector(),
+          ],
           const SizedBox(height: 24),
           SizedBox(
             height: 54,
@@ -198,6 +205,8 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
         return _SetupMode.friend;
       case 'computer':
         return _SetupMode.computer;
+      case 'local':
+        return _SetupMode.local;
       case 'random':
       default:
         return _SetupMode.random;
@@ -210,6 +219,8 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
         return locale.get('play_friend_title');
       case _SetupMode.computer:
         return locale.get('play_bot_title');
+      case _SetupMode.local:
+        return 'Local Play';
       case _SetupMode.random:
         return locale.get('quick_title');
     }
@@ -231,7 +242,7 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
 
   Widget _buildVariantDropdown() {
     return DropdownButtonFormField<int>(
-      value: _variant,
+      initialValue: _variant,
       items: _variantDropdownItems,
       onChanged: (value) => setState(() => _variant = value ?? _variant),
       decoration: const InputDecoration(
@@ -643,6 +654,7 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
       opponentType: switch (mode) {
         _SetupMode.computer => OpponentType.ai,
         _SetupMode.friend => OpponentType.human,
+        _SetupMode.local => OpponentType.human,
         _SetupMode.random => OpponentType.ai,
       },
       engineConfig: mode == _SetupMode.computer
@@ -661,4 +673,5 @@ enum _SetupMode {
   random,
   friend,
   computer,
+  local,
 }

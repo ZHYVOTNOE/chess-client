@@ -1,5 +1,4 @@
 import '../datasources/settings_remote_datasource.dart';
-import '../models/user_settings_model.dart';
 import '../../domain/entities/user_settings.dart';
 import '../../domain/repositories/settings_repository.dart';
 

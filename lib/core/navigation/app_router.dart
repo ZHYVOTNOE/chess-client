@@ -20,8 +20,10 @@ import '../../features/learn/presentation/learn_hub_screen.dart';
 import '../../features/learn/presentation/openings/openings_screen.dart';
 import '../../features/learn/presentation/puzzles/puzzles_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
-import '../../features/play/domain/entities/game_config.dart';
+import 'package:client/features/play/domain/entities/game_config.dart';
 import '../../features/play/presentation/board_screen.dart';
+import '../../features/play/presentation/cubits/matchmaking_cubit.dart';
+import '../../features/play/presentation/screens/searching_screen.dart';
 import '../../features/play/presentation/setup_game_screen.dart';
 import '../../features/profile/domain/entities/profile_user.dart';
 import '../../features/profile/presentation/cubits/profile_cubit.dart';
@@ -29,9 +31,12 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/cubits/settings_cubit.dart';
+import '../../features/social/presentation/cubits/social_cubit.dart';
+import '../../features/social/presentation/screens/social_screen.dart';
 import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
-import '../../features/profile/profile_di.dart';
+import '../../features/play/game_di.dart';
+import '../../features/social/social_di.dart' hide sl;
 
 GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
   // 🔥 КРИТИЧНО: пересчитывать redirect при изменении AuthProvider
@@ -177,8 +182,28 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                 ),
                 // Игра с ботом
                 GoRoute(
-                  path: 'bot',
+                  path: 'computer',
                   builder: (context, state) => const SetupGameScreen(initialMode: 'computer'),
+                ),
+                // Локальная игра
+                GoRoute(
+                  path: 'local',
+                  builder: (context, state) => const SetupGameScreen(initialMode: 'local'),
+                ),
+                // Поиск матча
+                GoRoute(
+                  path: 'searching',
+                  builder: (context, state) {
+                    final params = state.extra as Map<String, dynamic>;
+                    return BlocProvider(
+                      create: (_) => sl<MatchmakingCubit>(),
+                      child: SearchingScreen(
+                        variant: params['variant'] as String,
+                        timeControl: params['timeControl'] as String,
+                        ratingRange: params['ratingRange'] as String,
+                      ),
+                    );
+                  },
                 ),
                 GoRoute(
                   path: 'play',
@@ -254,6 +279,15 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                     return BlocProvider(
                       create: (_) => sl<SettingsCubit>(),
                       child: const SettingsScreen(),
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: 'friends',
+                  builder: (context, state) {
+                    return BlocProvider(
+                      create: (_) => sl<SocialCubit>(),
+                      child: const SocialScreen(),
                     );
                   },
                 ),

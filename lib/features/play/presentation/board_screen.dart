@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:client/features/play/domain/entities/game_config.dart';
+import 'package:client/features/play/domain/utils/board_orientation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -16,19 +17,41 @@ import 'widgets/board_controller.dart';
 
 class BoardScreen extends StatelessWidget {
   final GameConfig config;
-  const BoardScreen({super.key, required this.config});
+  final String? gameId; // For online games
+  final String? whiteId; // For online games
+  final String? blackId; // For online games
+
+  const BoardScreen({
+    super.key,
+    required this.config,
+    this.gameId,
+    this.whiteId,
+    this.blackId,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => GameEngine(config),
-      child: const _BoardView(),
+      child: _BoardView(
+        gameId: gameId,
+        whiteId: whiteId,
+        blackId: blackId,
+      ),
     );
   }
 }
 
 class _BoardView extends StatelessWidget {
-  const _BoardView();
+  final String? gameId;
+  final String? whiteId;
+  final String? blackId;
+
+  const _BoardView({
+    this.gameId,
+    this.whiteId,
+    this.blackId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +59,18 @@ class _BoardView extends StatelessWidget {
     final snapshot = engine.snapshot;
     final state = snapshot.squaresState;
 
+    // Determine board orientation based on player color
+    // For online games, use whiteId/blackId; for local/bot, use config.humanPlayer
+    final shouldFlip = engine.config.isOnline
+        ? BoardOrientation.shouldFlipBoard(
+            whiteId: whiteId,
+            blackId: blackId,
+          )
+        : engine.config.humanPlayer.value == 1; // 1 = black, so flip if playing as black
+
     final boardAspectRatio = state.size.aspectRatio;
     final hasTimeControl = engine.config.timeControl.isEnabled;
-    final isWhite = engine.config.humanPlayer.isWhite;
+    final isWhite = !shouldFlip;
     final topTime = isWhite ? snapshot.blackTime : snapshot.whiteTime;
     final bottomTime = isWhite ? snapshot.whiteTime : snapshot.blackTime;
 
@@ -75,27 +107,47 @@ class _BoardView extends StatelessWidget {
             child: Center(
               child: AspectRatio(
                 aspectRatio: boardAspectRatio,
-                // 🔥 Пересборка при изменении очереди премувов
-                child: ValueListenableBuilder<List<Move>>(
-                  valueListenable: ValueNotifier(engine.premoveQueue),
-                  builder: (context, premoves, child) {
-                    return BoardController(
-                      key: ValueKey('board-${premoves.length}-${DateTime.now().millisecondsSinceEpoch ~/ 1000}'),
-                      state: state.board,
-                      playState: snapshot.isGameOver ? PlayState.finished : state.state,
-                      size: state.size,
-                      pieceSet: PieceSetLoader.load(settings.settings?.pieceSet ?? 'merida'),
-                      theme: boardTheme,
-                      moves: state.moves,
-                      onMove: engine.makeMove,
-                      onAddPremove: engine.addPremove,
-                      onClearPremove: engine.clearPremove,
-                      premoves: premoves,
-                      markerTheme: MarkerTheme(
-                        empty: MarkerTheme.dot,
-                        piece: MarkerTheme.corners(),
-                      ),
-                      promotionBehaviour: PromotionBehaviour.autoPremove,
+                // 🔥 Пересборка при изменении премува
+                child: ValueListenableBuilder<Move?>(
+                  valueListenable: ValueNotifier(engine.premove),
+                  builder: (context, premove, child) {
+                    return Stack(
+                      children: [
+                        Transform.rotate(
+                          angle: shouldFlip ? 3.14159 : 0,
+                          child: BoardController(
+                            key: ValueKey('board-${snapshot.fen}-${premove?.toString()}'),
+                            state: state.board,
+                            playState: snapshot.isGameOver ? PlayState.finished : state.state,
+                            size: state.size,
+                            pieceSet: PieceSetLoader.load(settings.settings?.pieceSet ?? 'merida'),
+                            theme: boardTheme,
+                            moves: state.moves,
+                            onMove: engine.makeMove,
+                            onAddPremove: engine.addPremove,
+                            onClearPremove: engine.clearPremove,
+                            premoves: premove != null ? [premove] : [],
+                            markerTheme: MarkerTheme(
+                              empty: MarkerTheme.dot,
+                              piece: MarkerTheme.corners(),
+                            ),
+                            promotionBehaviour: PromotionBehaviour.autoPremove,
+                          ),
+                        ),
+                        // 🔥 Визуальный индикатор премува (Личесс-стиль)
+                        if (premove != null)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: CustomPaint(
+                                painter: _PremoveHighlightPainter(
+                                  premove: premove,
+                                  boardSize: state.size,
+                                  isFlipped: shouldFlip,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     );
                   },
                 ),
@@ -124,7 +176,7 @@ class _BoardView extends StatelessWidget {
           _GameControls(
             onFlip: engine.flipBoard,
             onResign: engine.resign,
-            onDrawOffer: () {},
+            onDrawOffer: engine.offerDraw,
           ),
         ],
       ),
@@ -184,5 +236,63 @@ class _GameControls extends StatelessWidget {
         IconButton(onPressed: onResign, icon: Icon(MdiIcons.flag)),
       ],
     );
+  }
+}
+
+class _PremoveHighlightPainter extends CustomPainter {
+  final Move premove;
+  final BoardSize boardSize;
+  final bool isFlipped;
+
+  _PremoveHighlightPainter({
+    required this.premove,
+    required this.boardSize,
+    required this.isFlipped,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.blue.withOpacity(0.3)
+      ..style = PaintingStyle.fill;
+
+    final squareSize = size.width / boardSize.h;
+
+    // Get square coordinates
+    final fromX = (premove.from % boardSize.h) * squareSize;
+    final fromY = (premove.from ~/ boardSize.h) * squareSize;
+    final toX = (premove.to % boardSize.h) * squareSize;
+    final toY = (premove.to ~/ boardSize.h) * squareSize;
+
+    // Draw highlight on from square
+    canvas.drawRect(
+      Rect.fromLTWH(fromX, fromY, squareSize, squareSize),
+      paint,
+    );
+
+    // Draw highlight on to square
+    canvas.drawRect(
+      Rect.fromLTWH(toX, toY, squareSize, squareSize),
+      paint,
+    );
+
+    // Draw arrow
+    final arrowPaint = Paint()
+      ..color = Colors.blue.withOpacity(0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    canvas.drawLine(
+      Offset(fromX + squareSize / 2, fromY + squareSize / 2),
+      Offset(toX + squareSize / 2, toY + squareSize / 2),
+      arrowPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_PremoveHighlightPainter oldDelegate) {
+    return oldDelegate.premove != premove ||
+        oldDelegate.boardSize != boardSize ||
+        oldDelegate.isFlipped != isFlipped;
   }
 }
