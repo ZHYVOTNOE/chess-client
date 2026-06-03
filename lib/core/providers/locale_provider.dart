@@ -15,4 +15,8 @@ class LocaleProvider extends ChangeNotifier {
     _strings = (json.decode(jsonString) as Map).cast<String, String>();
     notifyListeners();
   }
+
+  Future<void> setLocale(String lang) async {
+    await load(lang);
+  }
 }

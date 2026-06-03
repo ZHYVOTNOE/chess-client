@@ -1,6 +1,9 @@
 class UserSettingsModel {
   final String userId;
 
+  // Language
+  final String language;
+
   // Доска
   final String boardTheme;
   final bool showCoordinates;
@@ -21,6 +24,7 @@ class UserSettingsModel {
 
   const UserSettingsModel({
     required this.userId,
+    this.language = 'ru',
     this.boardTheme = 'classic',
     this.showCoordinates = true,
     this.highlightLastMove = true,
@@ -36,6 +40,7 @@ class UserSettingsModel {
   factory UserSettingsModel.fromJson(String userId, Map<String, dynamic> json) {
     return UserSettingsModel(
       userId: userId,
+      language: json['language'] ?? 'ru', // COALESCE with default for backward compatibility
       boardTheme: json['board_theme'] ?? 'classic',
       showCoordinates: json['show_coordinates'] ?? true,
       highlightLastMove: json['highlight_last_move'] ?? true,
@@ -50,6 +55,7 @@ class UserSettingsModel {
   }
 
   Map<String, dynamic> toJson() => {
+    'language': language,
     'board_theme': boardTheme,
     'show_coordinates': showCoordinates,
     'highlight_last_move': highlightLastMove,
@@ -63,6 +69,7 @@ class UserSettingsModel {
   };
 
   UserSettingsModel copyWith({
+    String? language,
     String? boardTheme,
     bool? showCoordinates,
     bool? highlightLastMove,
@@ -76,6 +83,7 @@ class UserSettingsModel {
   }) {
     return UserSettingsModel(
       userId: userId,
+      language: language ?? this.language,
       boardTheme: boardTheme ?? this.boardTheme,
       showCoordinates: showCoordinates ?? this.showCoordinates,
       highlightLastMove: highlightLastMove ?? this.highlightLastMove,

@@ -28,6 +28,7 @@ import '../../features/profile/presentation/cubits/profile_cubit.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/cubits/settings_cubit.dart';
 import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
 import '../../features/profile/profile_di.dart';
@@ -249,7 +250,12 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
               routes: [
                 GoRoute(
                   path: 'settings',
-                  builder: (context, state) => const SettingsScreen(),
+                  builder: (context, state) {
+                    return BlocProvider(
+                      create: (_) => sl<SettingsCubit>(),
+                      child: const SettingsScreen(),
+                    );
+                  },
                 ),
               ],
             ),
