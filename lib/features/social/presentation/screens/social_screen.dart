@@ -685,7 +685,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
 
                 // Get game data to determine player colors
                 try {
-                  final inviteData = invite as Map<String, dynamic>;
+                  final inviteData = invite;
                   final fromUserId = inviteData['from_user_id'] as String?;
                   final currentUserId = inviteData['to_user_id'] as String?;
 

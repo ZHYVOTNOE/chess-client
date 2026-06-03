@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 
-import '../../domain/entities/friend.dart';
 import '../../domain/repositories/friend_repository.dart';
 
 class FriendService {

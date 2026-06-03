@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/location_service.dart';
 import '../../domain/entities/profile_user.dart';
 import '../../domain/usecases/get_profile_usecase.dart';

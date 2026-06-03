@@ -36,7 +36,6 @@ import '../../features/social/presentation/screens/social_screen.dart';
 import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
 import '../../features/play/game_di.dart';
-import '../../features/social/social_di.dart' hide sl;
 
 GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
   // 🔥 КРИТИЧНО: пересчитывать redirect при изменении AuthProvider

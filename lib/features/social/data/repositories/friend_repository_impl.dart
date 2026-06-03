@@ -29,38 +29,58 @@ class FriendRepositoryImpl implements FriendRepository {
 
   @override
   Future<List<Friend>> searchUsers(String query) async {
-    // Check if query is a 10-digit ID (exact match)
-    final isNumericId = RegExp(r'^\d{10}$').hasMatch(query);
-    
-    final response = await _supabase
-        .from('profiles')
-        .select('id, nickname, full_name, avatar_url, bio, display_id')
-        .or(isNumericId 
-            ? 'display_id.eq.$query' 
-            : 'nickname.ilike.%$query%,full_name.ilike.%$query%')
-        .limit(20);
+    try {
+      // Get current user ID to exclude from search results
+      final currentUserId = _supabase.auth.currentUser?.id;
+      
+      print('DEBUG: Searching users. Current User ID: $currentUserId, Query: $query');
+      
+      // Check if query is a 10-digit ID (exact match)
+      final isNumericId = RegExp(r'^\d{10}$').hasMatch(query);
+      
+      final queryBuilder = _supabase
+          .from('profiles')
+          .select('id, nickname, full_name, avatar_url, bio, display_id');
+      
+      // Only exclude current user if they are logged in
+      if (currentUserId != null) {
+        queryBuilder.neq('id', currentUserId);
+      }
+      
+      final response = await queryBuilder
+          .or(isNumericId 
+              ? 'display_id.eq.$query' 
+              : 'nickname.ilike.%$query%,full_name.ilike.%$query%')
+          .limit(20);
 
-    return response.map((data) {
-      final isCurrentUser = data['id'] == _supabase.auth.currentUser?.id;
+      // Double-check: filter out current user at Dart level as well
+      final filteredResponse = response.where((item) => item['id'] != currentUserId).toList();
       
-      // Fallback chain for display name
-      final displayName = data['nickname'] ?? 
-                         data['full_name'] ?? 
-                         data['display_id']?.toString() ?? 
-                         'Unknown';
-      
-      return Friend(
-        id: data['id'],
-        userId: _supabase.auth.currentUser?.id ?? '',
-        friendId: data['id'],
-        friendNickname: displayName,
-        friendFullName: data['full_name'],
-        friendBio: data['bio'],
-        friendAvatarUrl: data['avatar_url'],
-        status: isCurrentUser ? FriendStatus.accepted : FriendStatus.pending,
-        createdAt: DateTime.now(),
-      );
-    }).toList();
+      print('DEBUG: Total results from DB: ${response.length}, After filter: ${filteredResponse.length}');
+
+      return filteredResponse.map((data) {
+        // Fallback chain for display name
+        final displayName = data['nickname'] ?? 
+                           data['full_name'] ?? 
+                           data['display_id']?.toString() ?? 
+                           'Unknown';
+        
+        return Friend(
+          id: data['id'],
+          userId: _supabase.auth.currentUser?.id ?? '',
+          friendId: data['id'],
+          friendNickname: displayName,
+          friendFullName: data['full_name'],
+          friendBio: data['bio'],
+          friendAvatarUrl: data['avatar_url'],
+          status: FriendStatus.pending,
+          createdAt: DateTime.now(),
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Error searching users: $e');
+      return [];
+    }
   }
 
   @override
