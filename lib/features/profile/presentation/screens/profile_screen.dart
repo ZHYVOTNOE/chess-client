@@ -31,20 +31,15 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
   final ImagePicker _picker = ImagePicker();
   Timer? _uiRefreshTimer;
-  Timer? _presenceTimer;
-  final PresenceService _presenceService = PresenceService();
 
-  // 🔥 Флаг первичной загрузки, чтобы не дёргать loadProfile несколько раз
   bool _hasLoadedOnce = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // 🔥 НЕ загружаем профиль здесь — ждём didChangeDependencies
   }
 
-  // 🔥 Загружаем профиль при ПЕРВОМ показе экрана
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -54,7 +49,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     }
   }
 
-  // 🔥 КЛЮЧЕВОЙ МЕТОД: вызывается при возврате с EditProfileScreen
   @override
   void didUpdateWidget(covariant ProfileScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -64,20 +58,15 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return;
-
     switch (state) {
       case AppLifecycleState.resumed:
         print('🔄 [ProfileScreen] App resumed - reloading profile');
         _loadProfile();
-        _startPresenceTimer(userId);
         _startUiRefreshTimer();
         break;
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
-        _presenceService.stopHeartbeat();
         _uiRefreshTimer?.cancel();
         break;
       case AppLifecycleState.hidden:
@@ -92,18 +81,14 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
       context.read<ProfileCubit>().loadProfile(userId);
 
       if (!widget.isReadOnly) {
-        _startPresenceTimer(userId);
         _startUiRefreshTimer();
       }
     }
   }
 
-  void _startPresenceTimer(String userId) {
-    _presenceService.startHeartbeat(userId);
-  }
-
   void _startUiRefreshTimer() {
     _uiRefreshTimer?.cancel();
+    // Обновляет UI, чтобы текст "был X мин назад" актуализировался
     _uiRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) {
         setState(() {});
@@ -115,14 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _uiRefreshTimer?.cancel();
-    _presenceTimer?.cancel();
-    _presenceService.dispose();
     super.dispose();
-  }
-
-  bool _isOnline(DateTime? lastSeenAt) {
-    if (lastSeenAt == null) return false;
-    return DateTime.now().difference(lastSeenAt).inMinutes < 3;
   }
 
   String _getCountryFlag(String? countryCode) {
@@ -139,19 +117,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     return '${date.day}.${date.month}.${date.year}';
   }
 
-  String _formatLastSeen(DateTime? lastSeen) {
-    if (lastSeen == null) return 'Никогда';
-    final now = DateTime.now();
-    final difference = now.difference(lastSeen);
-
-    if (difference.inMinutes < 1) return 'Сейчас';
-    if (difference.inMinutes < 60) return '${difference.inMinutes} мин назад';
-    if (difference.inHours < 24) return '${difference.inHours} ч назад';
-    if (difference.inDays < 7) return '${difference.inDays} д назад';
-    return _formatDate(lastSeen);
-  }
-
-  /// 🔥 Выход из аккаунта
   void _showLogoutConfirmation() {
     if (!mounted) return;
 
@@ -170,10 +135,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           FilledButton(
             onPressed: () async {
               Navigator.pop(ctx);
-
               final authProvider = context.read<AuthProvider>();
               await authProvider.logout();
-
               if (mounted && context.mounted) {
                 context.go('/welcome');
               }
@@ -194,8 +157,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     if (!mounted) return const SizedBox.shrink();
 
     final locale = context.watch<LocaleProvider>();
-
-    // 🔥 ВАЖНО: watch за кубитом, чтобы автоматически перерисовываться при изменениях
     final profileCubit = context.watch<ProfileCubit>();
 
     return Scaffold(
@@ -273,8 +234,14 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
-  /// 🔥 Шапка профиля
   Widget _buildProfileHeader(LocaleProvider locale, dynamic profile) {
+    // 👇 Определяем, чей это профиль
+    final isOwnProfile = !widget.isReadOnly;
+
+    // 👇 Вычисляем статус ТОЛЬКО для чужих профилей
+    final isOnline = isOwnProfile ? false : PresenceService.isOnline(profile.lastSeenAt);
+    final statusText = isOwnProfile ? '' : PresenceService.formatLastSeen(profile.lastSeenAt);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -283,7 +250,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
             Stack(
               children: [
                 CircleAvatar(
-                  // 🔥 КРИТИЧНО: key заставляет Flutter пересоздать виджет при смене URL
                   key: ValueKey(profile.avatarUrl),
                   radius: 50,
                   backgroundColor: Colors.grey.shade300,
@@ -294,7 +260,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                       ? const Icon(Icons.person, size: 50, color: Colors.white)
                       : null,
                 ),
-                if (_isOnline(profile.lastSeenAt))
+                // 👇 Индикатор онлайн ТОЛЬКО для чужих профилей
+                if (!isOwnProfile)
                   Positioned(
                     bottom: 2,
                     right: 2,
@@ -302,7 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                       width: 18,
                       height: 18,
                       decoration: BoxDecoration(
-                        color: Colors.green,
+                        color: isOnline ? Colors.green : Colors.grey,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 3),
                       ),
@@ -366,11 +333,28 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               ),
             ],
             const SizedBox(height: 16),
+            // 👇 Блок с Game ID, датой регистрации и статусом
             Column(
               children: [
                 if (profile.displayId != null)
                   _buildInfoRow('Game ID', profile.displayId.toString()),
                 _buildInfoRow('Рег. дата', _formatDate(profile.joinedAt)),
+                if (!isOwnProfile) ...[
+                  if (isOnline)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Text(
+                        statusText,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green,
+                        ),
+                      ),
+                    )
+                  else
+                    _buildInfoRow('В сети', statusText),
+                ],
               ],
             ),
             if (profile.bio != null && profile.bio!.isNotEmpty) ...[
@@ -411,7 +395,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -426,9 +410,10 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           ),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
+              color: valueColor, // 👈 НОВЫЙ ПАРАМЕТР: цвет значения
             ),
           ),
         ],
@@ -436,7 +421,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
-  /// 🔥 Рейтинги (горизонтальные)
   Widget _buildRatingsSection(LocaleProvider locale) {
     final ratings = {
       'bullet': 1500,
@@ -511,7 +495,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
-  /// 🔥 Радар-чарт (заглушка)
   Widget _buildRadarChart(LocaleProvider locale) {
     final data = [0.8, 0.7, 0.6, 0.75, 0.85, 0.9];
     final titles = [
@@ -561,7 +544,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
-  /// 🔥 История игр (заглушка)
   Widget _buildGameHistory(LocaleProvider locale) {
     final games = [
       {'result': 'win', 'opponent': 'Player1', 'rating': 1800, 'mode': 'blitz', 'moves': 34},
@@ -596,7 +578,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     );
   }
 
-  /// 🔥 Кнопка выхода
   Widget _buildLogoutSection(LocaleProvider locale) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -627,7 +608,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   }
 }
 
-/// 🔥 Вспомогательный виджет для истории игр
 class _GameHistoryTile extends StatelessWidget {
   final Map<String, dynamic> game;
   const _GameHistoryTile({required this.game});

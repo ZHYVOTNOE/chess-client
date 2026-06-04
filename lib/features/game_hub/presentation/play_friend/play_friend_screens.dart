@@ -65,7 +65,7 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
         _friends = friends.map((friend) => {
           'id': friend.friendId,
           'name': friend.friendNickname,
-          'online': friend.isOnline,
+          //'online': friend.isOnline,
         }).toList();
         _isLoadingFriends = false;
       });

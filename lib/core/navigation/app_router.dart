@@ -31,6 +31,7 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/cubits/settings_cubit.dart';
+import '../../features/social/domain/entities/friend.dart';
 import '../../features/social/presentation/cubits/social_cubit.dart';
 import '../../features/social/presentation/screens/social_screen.dart';
 import 'auth_refresh_listenable.dart';
@@ -177,7 +178,14 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                 // Игра с другом
                 GoRoute(
                   path: 'friend',
-                  builder: (context, state) => const SetupGameScreen(initialMode: 'friend'),
+                  builder: (context, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    final friend = extra?['friend'] as Friend?;
+                    return SetupGameScreen(
+                      initialMode: 'friend',
+                      initialFriendId: friend?.friendId,
+                    );
+                  },
                 ),
                 // Игра с ботом
                 GoRoute(

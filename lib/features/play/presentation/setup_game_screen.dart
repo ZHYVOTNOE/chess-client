@@ -8,6 +8,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/providers/game_provider.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../../core/services/presence_service.dart';
 import '../../social/data/repositories/friend_repository_impl.dart';
 import '../../social/domain/repositories/friend_repository.dart';
 import '../domain/entities/engine_config.dart';
@@ -19,9 +20,11 @@ class SetupGameScreen extends StatefulWidget {
   const SetupGameScreen({
     super.key,
     this.initialMode,
+    this.initialFriendId,
   });
 
   final String? initialMode;
+  final String? initialFriendId;
 
   @override
   State<SetupGameScreen> createState() => _SetupGameScreenState();
@@ -69,7 +72,6 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     ],
   };
 
-  // Реальный список друзей из БД
   List<Map<String, dynamic>> _friends = [];
   bool _isLoadingFriends = true;
   bool _showAllFriends = false;
@@ -116,6 +118,9 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
   void initState() {
     super.initState();
     _friendRepository = FriendRepositoryImpl(Supabase.instance.client);
+    if (widget.initialFriendId != null) {
+      _selectedFriend = widget.initialFriendId!;
+    }
     _loadFriends();
   }
 
@@ -131,10 +136,15 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
         _friends = friends.map((f) => {
           'id': f.friendId,
           'name': f.friendNickname,
-          'online': f.isOnline,
+          'lastSeenAt': f.lastSeenAt, // 👈 ДОБАВЛЕНО: маппим lastSeenAt
           'avatarUrl': f.friendAvatarUrl,
         }).toList()
-          ..sort((a, b) => (b['online'] as bool) ? 1 : -1);
+        // 👇 Сортируем по онлайн-статусу через PresenceService
+          ..sort((a, b) {
+            final aOnline = PresenceService.isOnline(a['lastSeenAt'] as DateTime?) ? 1 : 0;
+            final bOnline = PresenceService.isOnline(b['lastSeenAt'] as DateTime?) ? 1 : 0;
+            return bOnline - aOnline;
+          });
         _isLoadingFriends = false;
       });
     } catch (e) {
@@ -528,13 +538,16 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
       children: [
         ...displayed.map((friend) {
           final isSelected = _selectedFriend == friend['id'];
-          final isOnline = friend['online'] as bool;
+          // 👇 Теперь корректно читаем lastSeenAt из словаря
+          final lastSeenAt = friend['lastSeenAt'] as DateTime?;
+          final isOnline = PresenceService.isOnline(lastSeenAt);
+          final statusText = PresenceService.formatLastSeen(lastSeenAt);
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
             child: ListTile(
-                onTap: () => setState(() => _selectedFriend = isSelected ? '' : friend['id'] as String),
-                leading: Stack(
+              onTap: () => setState(() => _selectedFriend = isSelected ? '' : friend['id'] as String),
+              leading: Stack(
                 children: [
                   CircleAvatar(
                     backgroundColor: Colors.grey.shade300,
@@ -561,7 +574,13 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
                 ],
               ),
               title: Text(friend['name'] as String),
-              subtitle: Text(isOnline ? 'онлайн' : 'офлайн'),
+              subtitle: Text(
+                statusText,
+                style: TextStyle(
+                  color: isOnline ? Colors.green : Colors.grey.shade600,
+                  fontSize: 12,
+                ),
+              ),
               trailing: isSelected
                   ? const Icon(Icons.check_circle, color: Colors.green)
                   : null,

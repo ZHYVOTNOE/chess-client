@@ -11,12 +11,12 @@ class Friend {
   final String friendNickname;
   final String? friendFullName;
   final String? friendBio;
+  final DateTime? lastSeenAt;
   final String? friendAvatarUrl;
   final FriendStatus status;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final int? rating;
-  final bool isOnline;
 
   Friend({
     required this.id,
@@ -25,12 +25,12 @@ class Friend {
     required this.friendNickname,
     this.friendFullName,
     this.friendBio,
+    this.lastSeenAt,
     this.friendAvatarUrl,
     required this.status,
     required this.createdAt,
     this.updatedAt,
     this.rating,
-    this.isOnline = false,
   });
 
   /// Check if this is a pending request sent by the current user
@@ -54,7 +54,6 @@ class Friend {
     DateTime? createdAt,
     DateTime? updatedAt,
     int? rating,
-    bool? isOnline,
   }) {
     return Friend(
       id: id ?? this.id,
@@ -68,7 +67,6 @@ class Friend {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rating: rating ?? this.rating,
-      isOnline: isOnline ?? this.isOnline,
     );
   }
 }

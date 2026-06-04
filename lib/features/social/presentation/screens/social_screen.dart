@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/services/presence_service.dart';
 import '../../../play/domain/entities/player_color.dart';
 import '../cubits/social_cubit.dart';
 import '../../domain/entities/friend.dart';
@@ -91,6 +92,8 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
       separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final friend = friends[index];
+        final isOnline = PresenceService.isOnline(friend.lastSeenAt);
+        final statusText = PresenceService.formatLastSeen(friend.lastSeenAt);
         return InkWell(
           onTap: () => _viewProfile(friend),
           child: Padding(
@@ -120,6 +123,14 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        statusText, // 👈 СТАТУС
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isOnline ? Colors.green : Colors.grey.shade600,
                         ),
                       ),
                       if (friend.friendFullName != null) ...[

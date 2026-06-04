@@ -40,7 +40,7 @@ class FriendRepositoryImpl implements FriendRepository {
 
       final queryBuilder = _supabase
           .from('profiles')
-          .select('id, nickname, full_name, avatar_url, bio, display_id');
+          .select('id, nickname, full_name, avatar_url, bio, display_id, last_seen_at'); // 👈 ДОБАВЛЕНО last_seen_at
 
       if (currentUserId != null) {
         queryBuilder.neq('id', currentUserId);
@@ -62,6 +62,12 @@ class FriendRepositoryImpl implements FriendRepository {
             data['display_id']?.toString() ??
             'Unknown';
 
+        // 👇 ПАРСИМ last_seen_at
+        DateTime? lastSeenAt;
+        if (data['last_seen_at'] != null) {
+          lastSeenAt = DateTime.parse(data['last_seen_at'] as String);
+        }
+
         return Friend(
           id: data['id'],
           userId: _supabase.auth.currentUser?.id ?? '',
@@ -70,6 +76,7 @@ class FriendRepositoryImpl implements FriendRepository {
           friendFullName: data['full_name'],
           friendBio: data['bio'],
           friendAvatarUrl: data['avatar_url'],
+          lastSeenAt: lastSeenAt, // 👈 ДОБАВЛЕНО
           status: FriendStatus.pending,
           createdAt: DateTime.now(),
         );
@@ -225,13 +232,11 @@ class FriendRepositoryImpl implements FriendRepository {
   Friend _mapToFriend(Map<String, dynamic> data, String currentUserId) {
     final profile = data['profiles'] as Map<String, dynamic>?;
     final friendId = data['friend_id'] as String;
-    final isCurrentUserSender = data['user_id'] == currentUserId;
 
-    bool isOnline = false;
+    // 👇 ПАРСИМ last_seen_at
+    DateTime? lastSeenAt;
     if (profile != null && profile['last_seen_at'] != null) {
-      final lastSeen = DateTime.parse(profile['last_seen_at'] as String);
-      final now = DateTime.now();
-      isOnline = now.difference(lastSeen).inMinutes < 5;
+      lastSeenAt = DateTime.parse(profile['last_seen_at'] as String);
     }
 
     final displayName = profile?['nickname'] ??
@@ -247,12 +252,12 @@ class FriendRepositoryImpl implements FriendRepository {
       friendFullName: profile?['full_name'],
       friendBio: profile?['bio'],
       friendAvatarUrl: profile?['avatar_url'],
+      lastSeenAt: lastSeenAt,
       status: _mapStatus(data['status'] as String),
       createdAt: DateTime.parse(data['created_at'] as String),
       updatedAt: data['updated_at'] != null
           ? DateTime.parse(data['updated_at'] as String)
           : null,
-      isOnline: isOnline,
     );
   }
 
@@ -279,11 +284,10 @@ class FriendRepositoryImpl implements FriendRepository {
       }
     }
 
-    bool isOnline = false;
+    // 👇 ПАРСИМ last_seen_at
+    DateTime? lastSeenAt;
     if (profile != null && profile['last_seen_at'] != null) {
-      final lastSeen = DateTime.parse(profile['last_seen_at'] as String);
-      final now = DateTime.now();
-      isOnline = now.difference(lastSeen).inMinutes < 5;
+      lastSeenAt = DateTime.parse(profile['last_seen_at'] as String);
     }
 
     final displayName = profile?['nickname'] ??
@@ -299,12 +303,12 @@ class FriendRepositoryImpl implements FriendRepository {
       friendFullName: profile?['full_name'],
       friendBio: profile?['bio'],
       friendAvatarUrl: profile?['avatar_url'],
+      lastSeenAt: lastSeenAt,
       status: _mapStatus(data['status'] as String),
       createdAt: DateTime.parse(data['created_at'] as String),
       updatedAt: data['updated_at'] != null
           ? DateTime.parse(data['updated_at'] as String)
           : null,
-      isOnline: isOnline,
     );
   }
 

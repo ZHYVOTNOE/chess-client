@@ -14,6 +14,7 @@ import 'core/providers/settings_provider.dart';
 import 'core/providers/user_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/services/presence_service.dart';
 import 'features/auth/domain/auth_provider.dart';
 import 'features/profile/profile_di.dart';
 import 'features/settings/data/repositories/settings_repository.dart';
@@ -39,6 +40,15 @@ void main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
+  final currentSession = Supabase.instance.client.auth.currentSession;
+  final currentUser = Supabase.instance.client.auth.currentUser;
+  print('🚀 [Main] After Supabase.init:');
+  print('   currentSession = ${currentSession != null ? "YES" : "NO"}');
+  print('   currentUser = ${currentUser?.id ?? "NULL"}');
+
+  sl.registerSingleton<PresenceService>(PresenceService());
+  print('✅ [Main] PresenceService registered: ${sl<PresenceService>().hashCode}');
+
   initProfile();
   initSettingsDI();
   initGameDI();
@@ -47,7 +57,6 @@ void main() async {
   final localeProvider = LocaleProvider();
   await localeProvider.load('en');
 
-  // Register LocaleProvider in DI for SettingsCubit
   sl.registerSingleton<LocaleProvider>(localeProvider);
 
   final authProvider = AuthProvider();
@@ -57,7 +66,6 @@ void main() async {
 
   userProvider.startBackgroundRefresh();
   unawaited(userProvider.loadProfile());
-
 
   final settingsRepo = SettingsRepository(Supabase.instance.client);
   final settingsProvider = SettingsProvider(settingsRepo);
@@ -72,6 +80,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => GameProvider()),
         BlocProvider(create: (_) => sl<MatchmakingCubit>()),
         BlocProvider(create: (_) => sl<SocialCubit>()),
+        // ❌ УБРАН Provider<PresenceService> — он теперь в GetIt
       ],
       child: MyApp(authRefreshListenable: authRefreshListenable),
     ),

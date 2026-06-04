@@ -1,11 +1,14 @@
 import 'package:flutter/cupertino.dart';
+import 'package:get_it/get_it.dart'; // 👈 ДОБАВЬТЕ ИМПОРТ
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/auth_repository.dart';
 import '../data/auth_remote_datasource.dart';
+import '../../../core/services/presence_service.dart'; // 👈 ИМПОРТ PresenceService
 
 class AuthProvider extends ChangeNotifier {
   final AuthRepository _repository;
-  
+  final PresenceService _presenceService; // 👈 ХРАНИМ ССЫЛКУ
+
   User? _currentUser;
   bool _isAuthenticated = false;
   bool _isLoading = true;
@@ -16,10 +19,22 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  AuthProvider() : _repository = AuthRepository(
-      AuthRemoteDataSource(Supabase.instance.client)
-  ) {
+  AuthProvider()
+      : _repository = AuthRepository(AuthRemoteDataSource(Supabase.instance.client)),
+        _presenceService = GetIt.instance<PresenceService>() {
     _initAuthState();
+  }
+
+  void _handleAuthChange(User? user) {
+    print('🔐 [AuthProvider] _handleAuthChange called with user: ${user?.id ?? "null"}');
+
+    if (user != null) {
+      print('🔐 [AuthProvider] User logged in, initializing PresenceService');
+      _presenceService.init(user.id);
+    } else {
+      print('🔐 [AuthProvider] User logged out, disposing PresenceService');
+      _presenceService.dispose();
+    }
   }
 
   void _initAuthState() {
@@ -28,14 +43,23 @@ class AuthProvider extends ChangeNotifier {
     _isAuthenticated = _currentUser != null;
     _isLoading = false;
     _error = null;
-    notifyListeners();  // 🔥 Сразу уведомляем слушателей
+
+    _handleAuthChange(_currentUser); // 👈 ЗАПУСКАЕМ ЕСЛИ УЖЕ ЗАЛОГИНЕН
+    notifyListeners();
 
     // Подписываемся на будущие изменения
     _repository.remote.authStateChanges.listen((state) {
-      _currentUser = state.session?.user;
-      _isAuthenticated = state.session != null;
-      _error = null;
-      notifyListeners();  // 🔥 И снова уведомляем
+      final user = state.session?.user;
+
+      // Срабатываем только если пользователь РЕАЛЬНО изменился
+      if (_currentUser?.id != user?.id) {
+        _currentUser = user;
+        _isAuthenticated = state.session != null;
+        _error = null;
+
+        _handleAuthChange(user); // 👈 АВТОМАТИЧЕСКИЙ ЗАПУСК/ОСТАНОВКА
+        notifyListeners();
+      }
     });
   }
 
@@ -49,6 +73,7 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       await _repository.login(email: email, password: password);
+      // PresenceService запустится автоматически через authStateChanges listener
       return true;
     } on AuthException catch (e) {
       _error = e.message;
@@ -71,19 +96,18 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 🔥 Теперь response имеет тип AuthResponse?
       final response = await _repository.register(
         email: email,
         password: password,
       );
 
-      // 🔥 Проверяем подтверждение почты
       final user = response?.user;
       if (user != null && user.emailConfirmedAt == null) {
         _error = 'confirm_email';
         return false;
       }
 
+      // PresenceService запустится автоматически через authStateChanges listener
       return true;
     } on AuthException catch (e) {
       _error = e.message;
@@ -99,6 +123,8 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await _repository.logout();
+    // PresenceService остановится автоматически через authStateChanges listener,
+    // так как сессия станет null
   }
 
   Future<bool> forgotPassword(String email) async {
@@ -114,5 +140,12 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> loginWithGoogle() async {
     await _repository.loginWithGoogle();
+    // PresenceService запустится автоматически через authStateChanges listener
+  }
+
+  @override
+  void dispose() {
+    _presenceService.dispose(); // 👈 ОЧИЩАЕМ ПРИ УНИЧТОЖЕНИИ ПРОВАЙДЕРА
+    super.dispose();
   }
 }
