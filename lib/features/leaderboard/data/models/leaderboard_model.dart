@@ -4,6 +4,7 @@ class LeaderboardModel {
   final int rank;
   final String userId;
   final String nickname;
+  final String? fullName;
   final String? avatarUrl;
   final String? title;
   final String? countryCode;
@@ -15,6 +16,7 @@ class LeaderboardModel {
     required this.rank,
     required this.userId,
     required this.nickname,
+    this.fullName,
     this.avatarUrl,
     this.title,
     this.countryCode,
@@ -28,6 +30,7 @@ class LeaderboardModel {
       rank: json['rank'] as int? ?? 0,
       userId: json['user_id'] as String,
       nickname: json['nickname'] as String,
+      fullName: json['full_name'] as String?,
       avatarUrl: json['avatar_url'] as String?,
       title: json['title'] as String?,
       countryCode: json['country_code'] as String?,
@@ -42,6 +45,7 @@ class LeaderboardModel {
       rank: rank,
       userId: userId,
       nickname: nickname,
+      fullName: fullName,
       avatarUrl: avatarUrl,
       title: title,
       countryCode: countryCode,

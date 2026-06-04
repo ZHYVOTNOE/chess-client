@@ -1,6 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/leaderboard_entry.dart';
 import '../../domain/usecases/get_leaderboard_usecase.dart';
 import '../../domain/usecases/get_user_rank_usecase.dart';
 import '../../domain/repositories/leaderboard_repository.dart';

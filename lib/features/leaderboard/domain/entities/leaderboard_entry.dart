@@ -2,6 +2,7 @@ class LeaderboardEntry {
   final int rank;
   final String userId;
   final String nickname;
+  final String? fullName;
   final String? avatarUrl;
   final String? title;
   final String? countryCode;
@@ -13,6 +14,7 @@ class LeaderboardEntry {
     required this.rank,
     required this.userId,
     required this.nickname,
+    this.fullName,
     this.avatarUrl,
     this.title,
     this.countryCode,
@@ -25,6 +27,7 @@ class LeaderboardEntry {
     int? rank,
     String? userId,
     String? nickname,
+    String? fullName,
     String? avatarUrl,
     String? title,
     String? countryCode,
@@ -36,6 +39,7 @@ class LeaderboardEntry {
       rank: rank ?? this.rank,
       userId: userId ?? this.userId,
       nickname: nickname ?? this.nickname,
+      fullName: fullName ?? this.fullName,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       title: title ?? this.title,
       countryCode: countryCode ?? this.countryCode,

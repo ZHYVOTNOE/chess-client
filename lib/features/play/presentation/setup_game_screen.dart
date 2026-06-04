@@ -41,14 +41,9 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     bishop.Variant.capablanca(),
     bishop.Variant.crazyhouse(),
     bishop.Variant.seirawan(),
-    bishop.Xiangqi.variant(),
-    bishop.Xiangqi.mini(),
     bishop.Variant.atomic(),
     bishop.Variant.kingOfTheHill(),
     bishop.Variant.horde(),
-    bishop.MiscVariants.dart(),
-    bishop.OtherGames.jesonMor(),
-    bishop.CommonVariants.antichess(),
   ];
 
   final Map<String, List<Map<String, dynamic>>> _timeControls = {
