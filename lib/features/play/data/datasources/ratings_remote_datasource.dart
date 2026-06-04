@@ -6,12 +6,11 @@ class RatingsRemoteDataSource {
 
   RatingsRemoteDataSource(this._client);
 
-  /// Fetch all ratings for a user from the ratings table
   Future<List<RatingModel>> getUserRatings(String userId) async {
     try {
       final response = await _client
           .from('ratings')
-          .select()
+          .select('user_id,variant:variant_key,time_control:time_control_type,rating,rd,volatility') // ✅ без запятой
           .eq('user_id', userId);
 
       return (response as List)
@@ -111,5 +110,25 @@ class RatingsRemoteDataSource {
     } catch (e) {
       throw Exception('Failed to fetch rating history: $e');
     }
+  }
+
+  Stream<List<RatingModel>> ratingsStream(String userId) {
+    return _client
+        .from('ratings:user_id=eq.$userId')
+        .stream(primaryKey: ['user_id', 'variant_key', 'time_control_type'])
+        .map((events) => events
+        .map((json) {
+      // Применяем те же алиасы
+      final mappedJson = {
+        'user_id': json['user_id'],
+        'variant': json['variant_key'],
+        'time_control': json['time_control_type'],
+        'rating': json['rating'],
+        'rd': json['rd'],
+        'volatility': json['volatility'],
+      };
+      return RatingModel.fromJson(mappedJson);
+    })
+        .toList());
   }
 }

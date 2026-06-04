@@ -58,10 +58,6 @@ class RatingRepositoryImpl implements RatingRepository {
       rating: model.rating,
       rd: model.rd,
       volatility: model.volatility,
-      gamesPlayed: model.gamesPlayed,
-      wins: model.wins,
-      losses: model.losses,
-      draws: model.draws,
       lastPlayedAt: model.lastPlayedAt,
     );
   }
@@ -74,10 +70,6 @@ class RatingRepositoryImpl implements RatingRepository {
       rating: entity.rating,
       rd: entity.rd,
       volatility: entity.volatility,
-      gamesPlayed: entity.gamesPlayed,
-      wins: entity.wins,
-      losses: entity.losses,
-      draws: entity.draws,
       lastPlayedAt: entity.lastPlayedAt,
     );
   }

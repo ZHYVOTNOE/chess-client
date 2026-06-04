@@ -4,10 +4,6 @@ class Rating {
   final double rating;
   final double rd; // Rating deviation
   final double volatility;
-  final int gamesPlayed;
-  final int wins;
-  final int losses;
-  final int draws;
   final DateTime? lastPlayedAt;
 
   Rating({
@@ -16,10 +12,6 @@ class Rating {
     required this.rating,
     required this.rd,
     required this.volatility,
-    this.gamesPlayed = 0,
-    this.wins = 0,
-    this.losses = 0,
-    this.draws = 0,
     this.lastPlayedAt,
   });
 
@@ -35,10 +27,6 @@ class Rating {
     double? rating,
     double? rd,
     double? volatility,
-    int? gamesPlayed,
-    int? wins,
-    int? losses,
-    int? draws,
     DateTime? lastPlayedAt,
   }) {
     return Rating(
@@ -47,10 +35,6 @@ class Rating {
       rating: rating ?? this.rating,
       rd: rd ?? this.rd,
       volatility: volatility ?? this.volatility,
-      gamesPlayed: gamesPlayed ?? this.gamesPlayed,
-      wins: wins ?? this.wins,
-      losses: losses ?? this.losses,
-      draws: draws ?? this.draws,
       lastPlayedAt: lastPlayedAt ?? this.lastPlayedAt,
     );
   }

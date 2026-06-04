@@ -44,13 +44,6 @@ class ProfileModel implements UserProfile {
             rating: (value['rating'] as num?)?.toDouble() ?? 1200.0,
             rd: (value['rd'] as num?)?.toDouble() ?? 350.0,
             volatility: (value['volatility'] as num?)?.toDouble() ?? 0.06,
-            gamesPlayed: value['games_played'] as int? ?? 0,
-            wins: value['wins'] as int? ?? 0,
-            losses: value['losses'] as int? ?? 0,
-            draws: value['draws'] as int? ?? 0,
-            lastPlayedAt: value['last_played_at'] != null
-                ? DateTime.parse(value['last_played_at'] as String)
-                : null,
           );
         }
       });

@@ -17,6 +17,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/services/presence_service.dart';
 import 'features/auth/domain/auth_provider.dart';
 import 'features/profile/profile_di.dart';
+import 'features/profile/presentation/cubits/profile_cubit.dart'; // ✅ ДОБАВЛЕНО
 import 'features/settings/data/repositories/settings_repository.dart';
 import 'features/settings/settings_di.dart';
 import 'features/play/game_di.dart';
@@ -50,9 +51,10 @@ void main() async {
   sl.registerSingleton<PresenceService>(PresenceService());
   print('✅ [Main] PresenceService registered: ${sl<PresenceService>().hashCode}');
 
-  initProfile();
+  // ✅ ПРАВИЛЬНЫЙ ПОРЯДОК:
+  initGameDI();       // 1️⃣ Сначала play (регистрирует RatingsRemoteDataSource + RatingRepository)
+  initProfile();      // 2️⃣ Потом profile (использует RatingRepository)
   initSettingsDI();
-  initGameDI();
   initSocialDI();
   initLeaderboardDI();
 
@@ -80,9 +82,14 @@ void main() async {
         ChangeNotifierProvider.value(value: userProvider),
         ChangeNotifierProvider.value(value: settingsProvider),
         ChangeNotifierProvider(create: (_) => GameProvider()),
+
+        // ✅ ДОБАВЛЕНО: ProfileCubit должен быть доступен всему приложению
+        BlocProvider<ProfileCubit>(
+          create: (_) => sl<ProfileCubit>(),
+        ),
+
         BlocProvider(create: (_) => sl<MatchmakingCubit>()),
         BlocProvider(create: (_) => sl<SocialCubit>()),
-        // ❌ УБРАН Provider<PresenceService> — он теперь в GetIt
       ],
       child: MyApp(authRefreshListenable: authRefreshListenable),
     ),

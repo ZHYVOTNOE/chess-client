@@ -28,9 +28,6 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     'atomic',
     'kingOfTheHill',
     'horde',
-    'dart',
-    'jesonMor',
-    'antichess',
   ];
 
   static const List<String> scopes = ['global', 'country', 'friends'];

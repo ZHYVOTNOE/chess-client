@@ -92,7 +92,6 @@ class LeaderboardRepositoryImpl implements LeaderboardRepository {
     }
   }
 
-  // Вспомогательный метод для фильтрации по категориям
   PostgrestFilterBuilder _applyCategoryFilter(PostgrestFilterBuilder query, String category) {
     switch (category) {
       case 'bullet':
@@ -102,14 +101,12 @@ class LeaderboardRepositoryImpl implements LeaderboardRepository {
       case 'rapid':
         return query.eq('variant_key', 'standard').eq('time_control_type', 'rapid');
       case 'puzzles':
-        return query.eq('variant_key', 'puzzles');
+        return query.eq('variant_key', 'puzzles').eq('time_control_type', '');
       default:
-      // Для шахматных вариантов (chess960 и т.д.)
-        return query.eq('variant_key', category);
+        return query.eq('variant_key', category).eq('time_control_type', '');
     }
   }
 
-  // Вспомогательный метод для фильтрации по области видимости
   Future<PostgrestFilterBuilder> _applyScopeFilter(PostgrestFilterBuilder query, String scope) async {
     final currentUserId = _supabase.auth.currentUser?.id;
     if (currentUserId == null) return query;

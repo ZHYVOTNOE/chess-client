@@ -422,17 +422,15 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   }
 
   Widget _buildRatingsSection(LocaleProvider locale) {
-    final ratings = {
-      'bullet': 1500,
-      'blitz': 1500,
-      'rapid': 1500,
-      'puzzles': 1500,
-    };
+    final currentState = context.read<ProfileCubit>().state;
+    final profile = currentState is ProfileLoaded
+        ? currentState.profile
+        : (currentState is ProfileUpdated ? currentState.profile : null);
 
     final ratingModes = [
-      {'key': 'bullet', 'name': 'Пуля', 'icon': MdiIcons.bullet},
-      {'key': 'blitz', 'name': 'Блиц', 'icon': MdiIcons.timerSand},
-      {'key': 'rapid', 'name': 'Рапид', 'icon': MdiIcons.clockFast},
+      {'key': 'standard_bullet', 'name': 'Пуля', 'icon': MdiIcons.bullet},
+      {'key': 'standard_blitz', 'name': 'Блиц', 'icon': Icons.flash_on},
+      {'key': 'standard_rapid', 'name': 'Рапид', 'icon': Icons.timer},
       {'key': 'puzzles', 'name': 'Задачи', 'icon': MdiIcons.puzzle},
     ];
 
@@ -452,7 +450,10 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: ratingModes.map((mode) {
-                  final rating = ratings[mode['key'] as String] ?? 1500;
+                  final ratingKey = mode['key'] as String;
+                  final rating = profile?.ratings?[ratingKey];
+                  final ratingValue = rating?.rating.toInt() ?? 1500;
+
                   return Container(
                     width: 90,
                     margin: const EdgeInsets.only(right: 12),
@@ -465,7 +466,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(mode['icon'] as IconData, size: 24, color: _getRatingColor(rating)),
+                        Icon(mode['icon'] as IconData, size: 24, color: _getRatingColor(ratingValue)),
                         const SizedBox(height: 4),
                         Text(
                           mode['name'] as String,
@@ -476,11 +477,11 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          rating.toString(),
+                          ratingValue.toString(),
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: _getRatingColor(rating),
+                            color: _getRatingColor(ratingValue),
                           ),
                         ),
                       ],
