@@ -37,6 +37,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
       remote.updateCountryCode(userId, countryCode);
 
   @override
+  Future<bool> isNicknameAvailable(String nickname, String currentUserId) async {
+    return await remote.isNicknameAvailable(nickname, currentUserId);
+  }
+
+  @override
   Future<UserProfile> updateProfile(String userId, Map<String, dynamic> data) async {
     final model = await remote.updateProfile(userId, data);
     return model.toEntity();

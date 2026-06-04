@@ -1,8 +1,10 @@
 // lib/features/profile/presentation/screens/edit_profile_screen.dart
+import 'dart:async'; // 🔥 НОВОЕ: для Timer
 import 'dart:io';
 
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -35,6 +37,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final RegExp _nicknameRegex = RegExp(r'^[a-zA-Z0-9_]{3,20}$');
   bool _isUpdatingCountry = false;
 
+  // 🔥 НОВЫЕ ПОЛЯ для проверки уникальности никнейма
+  Timer? _debounce;
+  String? _nicknameAvailabilityMessage;
+  bool _isCheckingNickname = false;
+  bool _isSaving = false; // 🔥 Защита от двойного сохранения
+
   @override
   void initState() {
     super.initState();
@@ -48,10 +56,70 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel(); // 🔥 Обязательно отменяем таймер
     _nicknameController.dispose();
     _fullNameController.dispose();
     _bioController.dispose();
     super.dispose();
+  }
+
+  // 🔥 НОВЫЙ МЕТОД: Асинхронная проверка никнейма с debounce
+  void _checkNicknameAvailability(String? value) {
+    _debounce?.cancel();
+
+    // Если ник слишком короткий или невалидный — сбрасываем статус
+    if (value == null || value.trim().length < 3 || !_nicknameRegex.hasMatch(value.trim())) {
+      if (mounted) {
+        setState(() {
+          _nicknameAvailabilityMessage = null;
+          _isCheckingNickname = false;
+        });
+      }
+      return;
+    }
+
+    // Если ник не изменился (пользователь не менял свой текущий ник) — не проверяем
+    if (value.trim() == widget.initialProfile.nickname) {
+      if (mounted) {
+        setState(() {
+          _nicknameAvailabilityMessage = null;
+          _isCheckingNickname = false;
+        });
+      }
+      return;
+    }
+
+    setState(() => _isCheckingNickname = true);
+
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (!mounted) return;
+
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      try {
+        final cubit = context.read<ProfileCubit>();
+        // 🔥 Вызываем публичный метод кубита
+        final isAvailable = await cubit.checkNicknameAvailability(
+          value.trim(),
+          userId,
+        );
+
+        if (mounted) {
+          setState(() {
+            _isCheckingNickname = false;
+            _nicknameAvailabilityMessage = isAvailable ? null : 'Этот никнейм уже занят';
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isCheckingNickname = false;
+            _nicknameAvailabilityMessage = 'Ошибка проверки доступности';
+          });
+        }
+      }
+    });
   }
 
   void _showImageSourceActionSheet() {
@@ -122,31 +190,76 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
+    if (_isSaving) return;
     if (!_formKey.currentState!.validate() || !mounted) return;
+
+    // Ждём завершения дебаунс-проверки
+    if (_isCheckingNickname) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('⏳ Подождите, проверяем никнейм...')),
+      );
+      return;
+    }
+
+    if (_nicknameAvailabilityMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Исправьте ошибки перед сохранением'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
 
+    setState(() => _isSaving = true);
     final cubit = context.read<ProfileCubit>();
 
     try {
-      // 1. Сначала обновляем аватар (если он изменился)
+      final currentNickname = _nicknameController.text.trim();
+
+      // 🔥 ФИНАЛЬНАЯ серверная проверка перед сохранением
+      // Даже если ник не менялся — пропускаем проверку
+      if (currentNickname != widget.initialProfile.nickname) {
+        final isAvailable = await cubit.checkNicknameAvailability(currentNickname, userId);
+        if (!isAvailable) {
+          if (mounted) {
+            setState(() {
+              _nicknameAvailabilityMessage = 'Этот никнейм уже занят';
+              _isSaving = false;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('❌ Этот никнейм уже занят'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
       if (_tempAvatar != null) {
         await cubit.changeAvatar(userId, _tempAvatar!);
       }
 
-      // 2. 🔥 БЕРЕМ АКТУАЛЬНЫЙ ПРОФИЛЬ ИЗ КУБИТА, а не из initialProfile!
-      // Это нужно, чтобы не затереть новый avatar_url старым из initialProfile
       final currentState = cubit.state;
-      final actualProfile = (currentState is ProfileLoaded || currentState is ProfileUpdated)
-          ? (currentState is ProfileLoaded ? currentState.profile : (currentState as ProfileUpdated).profile)
+      final actualProfile = (currentState is ProfileLoaded)
+          ? currentState.profile
+          : (currentState is ProfileUpdated)
+          ? currentState.profile
           : widget.initialProfile;
 
-      // 3. Обновляем остальные поля
       final updatedProfile = actualProfile.copyWith(
-        nickname: _nicknameController.text.trim(),
-        fullName: _fullNameController.text.trim().isEmpty ? null : _fullNameController.text.trim(),
-        bio: _bioController.text.trim().isEmpty ? null : _bioController.text.trim(),
+        nickname: currentNickname,
+        fullName: _fullNameController.text.trim().isEmpty
+            ? null
+            : _fullNameController.text.trim(),
+        bio: _bioController.text.trim().isEmpty
+            ? null
+            : _bioController.text.trim(),
         countryCode: _selectedCountry?.countryCode,
       );
 
@@ -154,18 +267,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Профиль обновлён'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('✅ Профиль обновлён'),
+            backgroundColor: Colors.green,
+          ),
         );
         await cubit.loadProfile(userId);
-
         context.pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Ошибка сохранения: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('❌ Ошибка сохранения: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -174,7 +294,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (userId == null) return;
 
     final cubit = context.read<ProfileCubit>();
-    
+
     setState(() => _isUpdatingCountry = true);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Определение местоположения...')),
@@ -217,6 +337,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  // 🔥 НОВЫЙ МЕТОД: Определяем иконку для поля никнейма
+  Widget? _buildNicknameSuffixIcon() {
+    if (_isCheckingNickname) {
+      return const Padding(
+        padding: EdgeInsets.all(12),
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+
+    if (_nicknameAvailabilityMessage != null) {
+      return const Icon(Icons.error, color: Colors.red);
+    }
+
+    // Зелёная галочка, только если ник валидный и НЕ равен текущему
+    final currentText = _nicknameController.text.trim();
+    if (currentText.length >= 3 &&
+        _nicknameRegex.hasMatch(currentText) &&
+        currentText != widget.initialProfile.nickname) {
+      return const Icon(Icons.check_circle, color: Colors.green);
+    }
+
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -225,14 +373,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: _saveProfile,
+            icon: _isSaving
+                ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            )
+                : const Icon(Icons.check),
+            onPressed: _isSaving ? null : _saveProfile,
           ),
         ],
       ),
-      body: BlocBuilder<ProfileCubit, ProfileState>(
+      // 🔥 BlocConsumer вместо BlocBuilder для обработки ошибок
+      body: BlocConsumer<ProfileCubit, ProfileState>(
+        listener: (context, state) {
+          if (state is ProfileError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('❌ ${state.message}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
         builder: (context, state) {
-          if (state is ProfileLoading) {
+          if (state is ProfileLoading && _isSaving) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -258,18 +423,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             backgroundImage: _tempAvatar != null
                                 ? FileImage(_tempAvatar!)
                                 : (state is ProfileLoaded || state is ProfileUpdated)
-                                    ? ((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl != null && 
-                                       (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isNotEmpty
-                                        ? NetworkImage((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!) as ImageProvider
-                                        : null)
-                                    : (widget.initialProfile.avatarUrl != null && widget.initialProfile.avatarUrl!.isNotEmpty
-                                        ? NetworkImage(widget.initialProfile.avatarUrl!) as ImageProvider
-                                        : null),
-                            child: (_tempAvatar == null && 
-                                ((state is! ProfileLoaded && state is! ProfileUpdated) || 
-                                 ((state is ProfileLoaded || state is ProfileUpdated) && 
-                                  ((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl == null || 
-                                   (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isEmpty))) &&
+                                ? ((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl != null &&
+                                (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isNotEmpty
+                                ? NetworkImage((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!) as ImageProvider
+                                : null)
+                                : (widget.initialProfile.avatarUrl != null && widget.initialProfile.avatarUrl!.isNotEmpty
+                                ? NetworkImage(widget.initialProfile.avatarUrl!) as ImageProvider
+                                : null),
+                            child: (_tempAvatar == null &&
+                                ((state is! ProfileLoaded && state is! ProfileUpdated) ||
+                                    ((state is ProfileLoaded || state is ProfileUpdated) &&
+                                        ((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl == null ||
+                                            (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isEmpty))) &&
                                 (widget.initialProfile.avatarUrl == null || widget.initialProfile.avatarUrl!.isEmpty))
                                 ? const Icon(Icons.person, size: 50, color: Colors.grey)
                                 : null,
@@ -292,14 +457,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Nickname
+                  // 🔥 Nickname с асинхронной проверкой
                   TextFormField(
                     controller: _nicknameController,
-                    decoration: const InputDecoration(
+                    enabled: !_isSaving,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_]')),
+                      LengthLimitingTextInputFormatter(20),
+                    ],
+                    decoration: InputDecoration(
                       labelText: 'Никнейм',
                       hintText: 'Введите никнейм',
                       helperText: '3-20 символов: буквы, цифры, _',
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
+                      suffixIcon: _buildNicknameSuffixIcon(), // 🔥 Динамическая иконка
+                      errorText: _nicknameAvailabilityMessage, // 🔥 Ошибка доступности
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -311,14 +483,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       if (!_nicknameRegex.hasMatch(value.trim())) {
                         return 'Только буквы, цифры и подчеркивание';
                       }
+                      // 🔥 Блокируем валидацию, если ник занят
+                      if (_nicknameAvailabilityMessage != null) {
+                        return _nicknameAvailabilityMessage;
+                      }
                       return null;
                     },
+                    onChanged: _checkNicknameAvailability, // 🔥 Проверка при вводе
                   ),
                   const SizedBox(height: 16),
 
                   // Full Name
                   TextFormField(
                     controller: _fullNameController,
+                    enabled: !_isSaving,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[\p{L}\s\-]', unicode: true)),
+                      LengthLimitingTextInputFormatter(50),
+                    ],
                     decoration: const InputDecoration(
                       labelText: 'Полное имя (необязательно)',
                       hintText: 'Введите имя и фамилию',
@@ -327,20 +509,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Bio with character counter
+                  // Bio
                   TextFormField(
                     controller: _bioController,
+                    enabled: !_isSaving,
                     maxLines: 4,
                     maxLength: 255,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       labelText: 'О себе',
                       hintText: 'Расскажите о себе',
-                      border: const OutlineInputBorder(),
-                      counterText: '${_bioController.text.length}/255',
+                      border: OutlineInputBorder(),
                     ),
-                    onChanged: (value) {
-                      setState(() {});
-                    },
+                    onChanged: (value) => setState(() {}),
                   ),
                   const SizedBox(height: 16),
 
@@ -354,7 +534,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       children: [
                         Expanded(
                           child: InkWell(
-                            onTap: _showCountryPicker,
+                            onTap: _isSaving ? null : _showCountryPicker,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                               child: Row(
@@ -383,17 +563,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         IconButton(
                           icon: _isUpdatingCountry
                               ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                               : const Icon(Icons.location_on),
-                          onPressed: _isUpdatingCountry ? null : _updateCountryViaGPS,
+                          onPressed: (_isUpdatingCountry || _isSaving) ? null : _updateCountryViaGPS,
                           tooltip: 'Определить по GPS',
                         ),
                         IconButton(
                           icon: const Icon(Icons.edit),
-                          onPressed: _showCountryPicker,
+                          onPressed: _isSaving ? null : _showCountryPicker,
                           tooltip: 'Выбрать страну',
                         ),
                       ],

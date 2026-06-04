@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/services/location_service.dart';
+import '../../data/datasources/profile_remote_datasource.dart';
 import '../../domain/entities/profile_user.dart';
+import '../../domain/usecases/check_nickname_availability_usecase.dart';
 import '../../domain/usecases/get_profile_usecase.dart';
 import '../../domain/usecases/update_profile_usecase.dart';
 import '../../domain/usecases/update_full_name_usecase.dart';
@@ -20,6 +22,7 @@ class ProfileCubit extends Cubit<ProfileState> {
   final UpdateBio updateBio;
   final UpdateCountryCode updateCountryCode;
   final UpdateProfile _updateProfileUseCase;
+  final CheckNicknameAvailability _checkNicknameAvailability;
   final LocationService locationService;
 
   ProfileCubit(
@@ -30,6 +33,7 @@ class ProfileCubit extends Cubit<ProfileState> {
       this.updateBio,
       this.updateCountryCode,
       this._updateProfileUseCase,
+      this._checkNicknameAvailability,
       this.locationService,
       ) : super(ProfileInitial());
 
@@ -132,6 +136,10 @@ class ProfileCubit extends Cubit<ProfileState> {
     }
   }
 
+  Future<bool> checkNicknameAvailability(String nickname, String currentUserId) async {
+    return await _checkNicknameAvailability(nickname, currentUserId);
+  }
+
   Future<void> updateProfile(String userId, UserProfile updatedProfile) async {
     emit(ProfileLoading());
     try {
@@ -142,11 +150,14 @@ class ProfileCubit extends Cubit<ProfileState> {
       if (updatedProfile.countryCode != null) data['country_code'] = updatedProfile.countryCode;
 
       await _updateProfileUseCase(userId, data);
-      
-      // Force reload from database to get fresh data including avatar_url
       await loadProfile(userId);
     } catch (e) {
-      emit(ProfileError(e.toString()));
+      // 🔥 БД тоже защищена — ловим ошибку уникальности как последний рубеж
+      if (e is NicknameAlreadyTakenException) {
+        emit(ProfileError('Этот никнейм уже занят'));
+      } else {
+        emit(ProfileError(e.toString()));
+      }
     }
   }
 }

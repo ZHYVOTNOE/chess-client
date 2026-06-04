@@ -49,20 +49,30 @@ class ProfileRemoteDatasource {
 
   Future<ProfileModel> updateProfile(String userId, Map<String, dynamic> data) async {
     final editableData = <String, dynamic>{};
-    if (data.containsKey('nickname')) editableData['nickname'] = data['nickname'];
+    if (data.containsKey('nickname')) {
+      editableData['nickname'] = (data['nickname'] as String).trim();
+    }
     if (data.containsKey('avatar_url')) editableData['avatar_url'] = data['avatar_url'];
     if (data.containsKey('full_name')) editableData['full_name'] = data['full_name'];
     if (data.containsKey('bio')) editableData['bio'] = data['bio'];
     if (data.containsKey('country_code')) editableData['country_code'] = data['country_code'];
 
-    final response = await _supabase
-        .from('profiles')
-        .update(editableData)
-        .eq('id', userId)
-        .select()
-        .single();
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .update(editableData)
+          .eq('id', userId)
+          .select()
+          .single();
 
-    return ProfileModel.fromJson(response);
+      return ProfileModel.fromJson(response);
+    } catch (e) {
+      // 🔥 Обработка ошибки уникальности
+      if (e is PostgrestException && e.code == '23505') {
+        throw NicknameAlreadyTakenException();
+      }
+      rethrow;
+    }
   }
 
   Future<String> uploadAvatar(String userId, File file) async {
@@ -106,4 +116,25 @@ class ProfileRemoteDatasource {
         .eq('id', userId);
     debugPrint('✅ Avatar URL updated successfully in profiles table');
   }
+
+  Future<bool> isNicknameAvailable(String nickname, String currentUserId) async {
+    try {
+      final response = await _supabase
+          .from('profiles')
+          .select('id')
+          .eq('nickname', nickname.trim())
+          .neq('id', currentUserId)
+          .maybeSingle();
+
+      return response == null;
+    } catch (e) {
+      debugPrint('❌ Error checking nickname availability: $e');
+      throw Exception('Ошибка проверки доступности никнейма: $e');
+    }
+  }
+}
+
+class NicknameAlreadyTakenException implements Exception {
+  @override
+  String toString() => 'Этот никнейм уже занят';
 }
