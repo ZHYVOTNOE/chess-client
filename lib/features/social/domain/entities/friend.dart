@@ -17,6 +17,8 @@ class Friend {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final int? rating;
+  final String? title;
+  final String? countryCode;
 
   Friend({
     required this.id,
@@ -31,6 +33,8 @@ class Friend {
     required this.createdAt,
     this.updatedAt,
     this.rating,
+    this.title,
+    this.countryCode,
   });
 
   /// Check if this is a pending request sent by the current user
@@ -54,6 +58,8 @@ class Friend {
     DateTime? createdAt,
     DateTime? updatedAt,
     int? rating,
+    String? title,
+    String? countryCode,
   }) {
     return Friend(
       id: id ?? this.id,
@@ -67,6 +73,8 @@ class Friend {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rating: rating ?? this.rating,
+      title: title ?? this.title,
+      countryCode: countryCode ?? this.countryCode,
     );
   }
 }

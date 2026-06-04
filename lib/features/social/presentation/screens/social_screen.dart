@@ -16,14 +16,12 @@ class SocialScreen extends StatefulWidget {
   State<SocialScreen> createState() => _SocialScreenState();
 }
 
-// 🔥 ДОБАВЛЕНО: with SingleTickerProviderStateMixin
 class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
 
   int get _selectedTab => _tabController.index;
 
-  // Game setup dialog state
   String _selectedTime = '10|0';
   bool _rated = true;
   String _chosenColor = 'random';
@@ -31,10 +29,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    // Инициализируем контроллер с количеством вкладок (3)
     _tabController = TabController(length: 3, vsync: this);
-
-    // Слушаем изменения индекса, чтобы обновлять UI (если нужно)
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -45,6 +40,105 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     _searchController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  String _getCountryFlag(String? countryCode) {
+    if (countryCode == null || countryCode.isEmpty) return '';
+    final code = countryCode.toUpperCase();
+    if (code.length != 2) return '';
+    final firstLetter = code.codeUnitAt(0) - 0x41 + 0x1F1E6;
+    final secondLetter = code.codeUnitAt(1) - 0x41 + 0x1F1E6;
+    return String.fromCharCode(firstLetter) + String.fromCharCode(secondLetter);
+  }
+
+  Widget _buildAvatarWithStatus({
+    required String? avatarUrl,
+    required String fallbackLetter,
+    required bool isOnline,
+    required Key key,
+    double radius = 24,
+  }) {
+    return Stack(
+      children: [
+        CircleAvatar(
+          key: key,
+          radius: radius,
+          backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl == null
+              ? Text(
+            fallbackLetter.isNotEmpty ? fallbackLetter[0].toUpperCase() : '?',
+            style: TextStyle(fontSize: radius * 0.75, fontWeight: FontWeight.bold),
+          )
+              : null,
+        ),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: Container(
+            width: radius * 0.5,
+            height: radius * 0.5,
+            decoration: BoxDecoration(
+              color: isOnline ? Colors.green : Colors.grey.shade400,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNameRow({
+    required String nickname,
+    required String? title,
+    required String flag,
+    double fontSize = 15,
+  }) {
+    return Row(
+      children: [
+        if (title != null && title.isNotEmpty) ...[
+          _TitleBadge(title: title),
+          const SizedBox(width: 6),
+        ],
+        Flexible(
+          child: Text(
+            nickname,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (flag.isNotEmpty) ...[
+          const SizedBox(width: 10),
+          Text(flag, style: TextStyle(fontSize: fontSize + 1)),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildBioText(String? bio) {
+    if (bio == null || bio.isEmpty) {
+      return Text(
+        'Нет описания',
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey.shade400,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+    return Text(
+      bio,
+      style: TextStyle(
+        fontSize: 12,
+        color: Colors.grey.shade600,
+        fontStyle: FontStyle.italic,
+      ),
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   @override
@@ -94,68 +188,57 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
         final friend = friends[index];
         final isOnline = PresenceService.isOnline(friend.lastSeenAt);
         final statusText = PresenceService.formatLastSeen(friend.lastSeenAt);
+        final flag = _getCountryFlag(friend.countryCode);
+
         return InkWell(
           onTap: () => _viewProfile(friend),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                CircleAvatar(
+                _buildAvatarWithStatus(
+                  avatarUrl: friend.friendAvatarUrl,
+                  fallbackLetter: friend.friendNickname,
+                  isOnline: isOnline,
                   key: ValueKey('friend_${friend.friendId}_${friend.friendAvatarUrl}'),
-                  radius: 28,
-                  backgroundImage: friend.friendAvatarUrl != null
-                      ? NetworkImage(friend.friendAvatarUrl!)
-                      : null,
-                  child: friend.friendAvatarUrl == null
-                      ? Text(
-                    friend.friendNickname.isNotEmpty ? friend.friendNickname[0].toUpperCase() : '?',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  )
-                      : null,
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min, // 👈 ДОБАВЛЕНО
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        friend.friendNickname,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      _buildNameRow(
+                        nickname: friend.friendNickname,
+                        title: friend.title,
+                        flag: flag,
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        statusText, // 👈 СТАТУС
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isOnline ? Colors.green : Colors.grey.shade600,
-                        ),
+                      Row(
+                        children: [
+                          if (friend.friendFullName != null) ...[
+                            Flexible( // Этот Flexible можно оставить, так как он внутри горизонтального Row
+                              child: Text(
+                                friend.friendFullName!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade700,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: 30),
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isOnline ? Colors.green : Colors.grey.shade600,
+                              fontWeight: isOnline ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        ],
                       ),
-                      if (friend.friendFullName != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          friend.friendFullName!,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                      if (friend.friendBio != null && friend.friendBio!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          friend.friendBio!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500,
-                            fontStyle: FontStyle.italic,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -240,64 +323,37 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
             separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final user = state.searchResults[index];
+              final isOnline = PresenceService.isOnline(user.lastSeenAt);
+              final flag = _getCountryFlag(user.countryCode);
+
               return InkWell(
                 onTap: () => _viewProfile(user),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Row(
                     children: [
-                      CircleAvatar(
+                      _buildAvatarWithStatus(
+                        avatarUrl: user.friendAvatarUrl,
+                        fallbackLetter: user.friendNickname,
+                        isOnline: isOnline,
                         key: ValueKey('search_${user.friendId}_${user.friendAvatarUrl}'),
-                        radius: 28,
-                        backgroundImage: user.friendAvatarUrl != null
-                            ? NetworkImage(user.friendAvatarUrl!)
-                            : null,
-                        child: user.friendAvatarUrl == null
-                            ? Text(
-                          user.friendNickname.isNotEmpty ? user.friendNickname[0].toUpperCase() : '?',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        )
-                            : null,
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              user.friendNickname,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            _buildNameRow(
+                              nickname: user.friendNickname,
+                              title: user.title,
+                              flag: flag,
                             ),
-                            if (user.friendFullName != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                user.friendFullName!,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                            if (user.friendBio != null && user.friendBio!.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                user.friendBio!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade500,
-                                  fontStyle: FontStyle.italic,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                            const SizedBox(height: 2),
+                            _buildBioText(user.friendBio),
                           ],
                         ),
                       ),
-                      // 🔥 ИСПРАВЛЕНО: Заменяем IconButton на динамический виджет
                       _buildSearchAction(state, user),
                     ],
                   ),
@@ -310,11 +366,8 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  // 🔥 НОВЫЙ МЕТОД: Определяет, какую иконку показать в поиске
   Widget _buildSearchAction(SocialState state, Friend user) {
-    // Проверяем, есть ли этот пользователь уже в друзьях
     bool isFriend = state.friends.any((f) => f.friendId == user.friendId);
-    // Проверяем, отправлен ли уже ему запрос
     bool isSent = state.sentRequests.any((r) => r.friendId == user.friendId);
 
     if (isFriend) {
@@ -342,7 +395,6 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
 
     return ListView(
       children: [
-        // Incoming Requests Section
         if (incomingRequests.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.all(16),
@@ -361,7 +413,6 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
           }),
           const Divider(height: 32),
         ],
-        // Sent Requests Section
         if (sentRequests.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.all(16),
@@ -384,60 +435,34 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
   }
 
   Widget _buildIncomingRequestTile(Friend request) {
+    final isOnline = PresenceService.isOnline(request.lastSeenAt);
+    final flag = _getCountryFlag(request.countryCode);
+
     return InkWell(
       onTap: () => _viewProfile(request),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            CircleAvatar(
+            _buildAvatarWithStatus(
+              avatarUrl: request.friendAvatarUrl,
+              fallbackLetter: request.friendNickname,
+              isOnline: isOnline,
               key: ValueKey('incoming_${request.friendId}_${request.friendAvatarUrl}'),
-              radius: 28,
-              backgroundImage: request.friendAvatarUrl != null
-                  ? NetworkImage(request.friendAvatarUrl!)
-                  : null,
-              child: request.friendAvatarUrl == null
-                  ? Text(
-                request.friendNickname.isNotEmpty ? request.friendNickname[0].toUpperCase() : '?',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              )
-                  : null,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    request.friendNickname,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  _buildNameRow(
+                    nickname: request.friendNickname,
+                    title: request.title,
+                    flag: flag,
                   ),
-                  if (request.friendFullName != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      request.friendFullName!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                  if (request.friendBio != null && request.friendBio!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      request.friendBio!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                  const SizedBox(height: 2),
+                  _buildBioText(request.friendBio),
                 ],
               ),
             ),
@@ -463,60 +488,34 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
   }
 
   Widget _buildSentRequestTile(Friend request) {
+    final isOnline = PresenceService.isOnline(request.lastSeenAt);
+    final flag = _getCountryFlag(request.countryCode);
+
     return InkWell(
       onTap: () => _viewProfile(request),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            CircleAvatar(
+            _buildAvatarWithStatus(
+              avatarUrl: request.friendAvatarUrl,
+              fallbackLetter: request.friendNickname,
+              isOnline: isOnline,
               key: ValueKey('sent_${request.friendId}_${request.friendAvatarUrl}'),
-              radius: 28,
-              backgroundImage: request.friendAvatarUrl != null
-                  ? NetworkImage(request.friendAvatarUrl!)
-                  : null,
-              child: request.friendAvatarUrl == null
-                  ? Text(
-                request.friendNickname.isNotEmpty ? request.friendNickname[0].toUpperCase() : '?',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              )
-                  : null,
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    request.friendNickname,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  _buildNameRow(
+                    nickname: request.friendNickname,
+                    title: request.title,
+                    flag: flag,
                   ),
-                  if (request.friendFullName != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      request.friendFullName!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                  if (request.friendBio != null && request.friendBio!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      request.friendBio!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                        fontStyle: FontStyle.italic,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                  const SizedBox(height: 2),
+                  _buildBioText(request.friendBio),
                 ],
               ),
             ),
@@ -551,30 +550,14 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                 Wrap(
                   spacing: 8,
                   children: [
-                    _TimeOption(
-                      code: '1|0',
-                      name: '1+0',
-                      isSelected: _selectedTime == '1|0',
-                      onTap: () => setDialogState(() => _selectedTime = '1|0'),
-                    ),
-                    _TimeOption(
-                      code: '3|0',
-                      name: '3+0',
-                      isSelected: _selectedTime == '3|0',
-                      onTap: () => setDialogState(() => _selectedTime = '3|0'),
-                    ),
-                    _TimeOption(
-                      code: '5|0',
-                      name: '5+0',
-                      isSelected: _selectedTime == '5|0',
-                      onTap: () => setDialogState(() => _selectedTime = '5|0'),
-                    ),
-                    _TimeOption(
-                      code: '10|0',
-                      name: '10+0',
-                      isSelected: _selectedTime == '10|0',
-                      onTap: () => setDialogState(() => _selectedTime = '10|0'),
-                    ),
+                    _TimeOption(code: '1|0', name: '1+0', isSelected: _selectedTime == '1|0',
+                        onTap: () => setDialogState(() => _selectedTime = '1|0')),
+                    _TimeOption(code: '3|0', name: '3+0', isSelected: _selectedTime == '3|0',
+                        onTap: () => setDialogState(() => _selectedTime = '3|0')),
+                    _TimeOption(code: '5|0', name: '5+0', isSelected: _selectedTime == '5|0',
+                        onTap: () => setDialogState(() => _selectedTime = '5|0')),
+                    _TimeOption(code: '10|0', name: '10+0', isSelected: _selectedTime == '10|0',
+                        onTap: () => setDialogState(() => _selectedTime = '10|0')),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -582,24 +565,12 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _ColorOption(
-                      code: 'white',
-                      name: 'White',
-                      isSelected: _chosenColor == 'white',
-                      onTap: () => setDialogState(() => _chosenColor = 'white'),
-                    ),
-                    _ColorOption(
-                      code: 'random',
-                      name: 'Random',
-                      isSelected: _chosenColor == 'random',
-                      onTap: () => setDialogState(() => _chosenColor = 'random'),
-                    ),
-                    _ColorOption(
-                      code: 'black',
-                      name: 'Black',
-                      isSelected: _chosenColor == 'black',
-                      onTap: () => setDialogState(() => _chosenColor = 'black'),
-                    ),
+                    _ColorOption(code: 'white', name: 'White', isSelected: _chosenColor == 'white',
+                        onTap: () => setDialogState(() => _chosenColor = 'white')),
+                    _ColorOption(code: 'random', name: 'Random', isSelected: _chosenColor == 'random',
+                        onTap: () => setDialogState(() => _chosenColor = 'random')),
+                    _ColorOption(code: 'black', name: 'Black', isSelected: _chosenColor == 'black',
+                        onTap: () => setDialogState(() => _chosenColor = 'black')),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -613,19 +584,14 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
             ),
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
-
                 try {
                   final timeParts = _selectedTime.split('|');
                   final minutes = int.parse(timeParts[0]);
                   final increment = int.parse(timeParts[1]);
-
                   final gameConfig = {
                     'variant': 'standard',
                     'timeControl': {
@@ -635,9 +601,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                     'rated': _rated,
                     'color': _chosenColor,
                   };
-
                   await context.read<SocialCubit>().sendGameInvite(friend.friendId, gameConfig);
-
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Invitation sent to ${friend.friendNickname}')),
@@ -666,10 +630,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
         title: const Text('Remove friend'),
         content: Text('Are you sure you want to remove ${friend.friendNickname}?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
@@ -731,15 +692,12 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
               final gameId = await context.read<SocialCubit>().acceptGameInvite(invite['id']);
               if (gameId != null && mounted) {
                 Navigator.pop(context);
-
-                // Get game data to determine player colors
                 try {
                   final inviteData = invite;
                   final fromUserId = inviteData['from_user_id'] as String?;
                   final currentUserId = inviteData['to_user_id'] as String?;
 
                   if (fromUserId != null && currentUserId != null) {
-                    // Determine colors based on invite config or random
                     final gameConfig = inviteData['game_config'] as Map<String, dynamic>?;
                     final colorChoice = gameConfig?['color'] as String? ?? 'random';
 
@@ -751,7 +709,6 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                       whiteId = fromUserId;
                       blackId = currentUserId;
                     } else {
-                      // Random assignment
                       final isWhite = DateTime.now().millisecond % 2 == 0;
                       whiteId = isWhite ? currentUserId : fromUserId;
                       blackId = isWhite ? fromUserId : currentUserId;
@@ -788,6 +745,32 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
             child: const Text('Accept'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TitleBadge extends StatelessWidget {
+  final String title;
+  const _TitleBadge({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFFB91C1C),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+          height: 1.2,
+        ),
       ),
     );
   }

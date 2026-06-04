@@ -21,7 +21,6 @@ class FriendRepositoryImpl implements FriendRepository {
 
     final friends = <Friend>[];
     for (final data in response) {
-      // Определяем ID друга: если текущий пользователь - отправитель, то друг - получатель, и наоборот
       final friendId = data['user_id'] == userId ? data['friend_id'] as String : data['user_id'] as String;
       final friend = await _mapToFriendWithProfile(data, userId, friendId);
       friends.add(friend);
@@ -40,7 +39,7 @@ class FriendRepositoryImpl implements FriendRepository {
 
       final queryBuilder = _supabase
           .from('profiles')
-          .select('id, nickname, full_name, avatar_url, bio, display_id, last_seen_at'); // 👈 ДОБАВЛЕНО last_seen_at
+          .select('id, nickname, full_name, avatar_url, bio, display_id, last_seen_at, title, country_code');
 
       if (currentUserId != null) {
         queryBuilder.neq('id', currentUserId);
@@ -62,7 +61,6 @@ class FriendRepositoryImpl implements FriendRepository {
             data['display_id']?.toString() ??
             'Unknown';
 
-        // 👇 ПАРСИМ last_seen_at
         DateTime? lastSeenAt;
         if (data['last_seen_at'] != null) {
           lastSeenAt = DateTime.parse(data['last_seen_at'] as String);
@@ -76,7 +74,9 @@ class FriendRepositoryImpl implements FriendRepository {
           friendFullName: data['full_name'],
           friendBio: data['bio'],
           friendAvatarUrl: data['avatar_url'],
-          lastSeenAt: lastSeenAt, // 👈 ДОБАВЛЕНО
+          lastSeenAt: lastSeenAt,
+          title: data['title'],
+          countryCode: data['country_code'],
           status: FriendStatus.pending,
           createdAt: DateTime.now(),
         );
@@ -134,7 +134,6 @@ class FriendRepositoryImpl implements FriendRepository {
 
     final friends = <Friend>[];
     for (final data in response) {
-      // Для входящих запросов: отправитель - это user_id
       final senderId = data['user_id'] as String;
       final friend = await _mapToFriendWithProfile(data, userId, senderId);
       friends.add(friend);
@@ -153,7 +152,6 @@ class FriendRepositoryImpl implements FriendRepository {
 
     final friends = <Friend>[];
     for (final data in response) {
-      // Для исходящих запросов: получатель - это friend_id
       final receiverId = data['friend_id'] as String;
       final friend = await _mapToFriendWithProfile(data, userId, receiverId);
       friends.add(friend);
@@ -233,7 +231,6 @@ class FriendRepositoryImpl implements FriendRepository {
     final profile = data['profiles'] as Map<String, dynamic>?;
     final friendId = data['friend_id'] as String;
 
-    // 👇 ПАРСИМ last_seen_at
     DateTime? lastSeenAt;
     if (profile != null && profile['last_seen_at'] != null) {
       lastSeenAt = DateTime.parse(profile['last_seen_at'] as String);
@@ -253,6 +250,8 @@ class FriendRepositoryImpl implements FriendRepository {
       friendBio: profile?['bio'],
       friendAvatarUrl: profile?['avatar_url'],
       lastSeenAt: lastSeenAt,
+      title: profile?['title'],
+      countryCode: profile?['country_code'],
       status: _mapStatus(data['status'] as String),
       createdAt: DateTime.parse(data['created_at'] as String),
       updatedAt: data['updated_at'] != null
@@ -272,7 +271,7 @@ class FriendRepositoryImpl implements FriendRepository {
       try {
         final profileData = await _supabase
             .from('profiles')
-            .select('nickname, full_name, bio, avatar_url, last_seen_at, display_id')
+            .select('nickname, full_name, bio, avatar_url, last_seen_at, display_id, title, country_code')
             .eq('id', otherUserId)
             .single();
 
@@ -284,7 +283,6 @@ class FriendRepositoryImpl implements FriendRepository {
       }
     }
 
-    // 👇 ПАРСИМ last_seen_at
     DateTime? lastSeenAt;
     if (profile != null && profile['last_seen_at'] != null) {
       lastSeenAt = DateTime.parse(profile['last_seen_at'] as String);
@@ -304,6 +302,8 @@ class FriendRepositoryImpl implements FriendRepository {
       friendBio: profile?['bio'],
       friendAvatarUrl: profile?['avatar_url'],
       lastSeenAt: lastSeenAt,
+      title: profile?['title'],
+      countryCode: profile?['country_code'],
       status: _mapStatus(data['status'] as String),
       createdAt: DateTime.parse(data['created_at'] as String),
       updatedAt: data['updated_at'] != null

@@ -136,10 +136,11 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
         _friends = friends.map((f) => {
           'id': f.friendId,
           'name': f.friendNickname,
-          'lastSeenAt': f.lastSeenAt, // 👈 ДОБАВЛЕНО: маппим lastSeenAt
+          'title': f.title,              // 👈 ДОБАВЛЕНО
+          'countryCode': f.countryCode,  // 👈 ДОБАВЛЕНО
+          'lastSeenAt': f.lastSeenAt,
           'avatarUrl': f.friendAvatarUrl,
         }).toList()
-        // 👇 Сортируем по онлайн-статусу через PresenceService
           ..sort((a, b) {
             final aOnline = PresenceService.isOnline(a['lastSeenAt'] as DateTime?) ? 1 : 0;
             final bOnline = PresenceService.isOnline(b['lastSeenAt'] as DateTime?) ? 1 : 0;
@@ -151,6 +152,45 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
       debugPrint('SetupGameScreen: failed to load friends: $e');
       setState(() => _isLoadingFriends = false);
     }
+  }
+
+  String _getCountryFlag(String? countryCode) {
+    if (countryCode == null || countryCode.isEmpty) return '';
+    final code = countryCode.toUpperCase();
+    if (code.length != 2) return '';
+    final firstLetter = code.codeUnitAt(0) - 0x41 + 0x1F1E6;
+    final secondLetter = code.codeUnitAt(1) - 0x41 + 0x1F1E6;
+    return String.fromCharCode(firstLetter) + String.fromCharCode(secondLetter);
+  }
+
+  Widget _buildNameRow({
+    required String nickname,
+    required String? title,
+    required String flag,
+    double fontSize = 15,
+  }) {
+    return Row(
+      children: [
+        if (title != null && title.isNotEmpty) ...[
+          _TitleBadge(title: title),
+          const SizedBox(width: 6),
+        ],
+        Flexible(
+          child: Text(
+            nickname,
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.bold,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (flag.isNotEmpty) ...[
+          const SizedBox(width: 10),
+          Text(flag, style: TextStyle(fontSize: fontSize + 1)),
+        ],
+      ],
+    );
   }
 
   @override
@@ -538,19 +578,24 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
       children: [
         ...displayed.map((friend) {
           final isSelected = _selectedFriend == friend['id'];
-          // 👇 Теперь корректно читаем lastSeenAt из словаря
           final lastSeenAt = friend['lastSeenAt'] as DateTime?;
           final isOnline = PresenceService.isOnline(lastSeenAt);
           final statusText = PresenceService.formatLastSeen(lastSeenAt);
+          final title = friend['title'] as String?;
+          final countryCode = friend['countryCode'] as String?;
+          final flag = _getCountryFlag(countryCode);
+
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
             child: ListTile(
               onTap: () => setState(() => _selectedFriend = isSelected ? '' : friend['id'] as String),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               leading: Stack(
                 children: [
                   CircleAvatar(
                     backgroundColor: Colors.grey.shade300,
+                    radius: 24,
                     backgroundImage: friend['avatarUrl'] != null
                         ? NetworkImage(friend['avatarUrl'] as String)
                         : null,
@@ -562,10 +607,10 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
                     bottom: 0,
                     right: 0,
                     child: Container(
-                      width: 10,
-                      height: 10,
+                      width: 12,
+                      height: 12,
                       decoration: BoxDecoration(
-                        color: isOnline ? Colors.green : Colors.grey,
+                        color: isOnline ? Colors.green : Colors.grey.shade400,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2),
                       ),
@@ -573,12 +618,18 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
                   ),
                 ],
               ),
-              title: Text(friend['name'] as String),
+              title: _buildNameRow(
+                nickname: friend['name'] as String,
+                title: title,
+                flag: flag,
+                fontSize: 15,
+              ),
               subtitle: Text(
                 statusText,
                 style: TextStyle(
                   color: isOnline ? Colors.green : Colors.grey.shade600,
                   fontSize: 12,
+                  fontWeight: isOnline ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
               trailing: isSelected
@@ -704,6 +755,32 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     );
 
     context.push('/game/play', extra: config);
+  }
+}
+
+class _TitleBadge extends StatelessWidget {
+  final String title;
+  const _TitleBadge({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: const Color(0xFFB91C1C),
+        borderRadius: BorderRadius.circular(3),
+      ),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+          height: 1.2,
+        ),
+      ),
+    );
   }
 }
 
