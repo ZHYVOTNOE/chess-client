@@ -21,6 +21,7 @@ import '../../features/learn/presentation/openings/openings_screen.dart';
 import '../../features/learn/presentation/puzzles/puzzles_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
 import 'package:client/features/play/domain/entities/game_config.dart';
+import '../../features/play/game_di.dart';
 import '../../features/play/presentation/board_screen.dart';
 import '../../features/play/presentation/cubits/matchmaking_cubit.dart';
 import '../../features/play/presentation/screens/searching_screen.dart';
@@ -34,9 +35,10 @@ import '../../features/settings/presentation/cubits/settings_cubit.dart';
 import '../../features/social/domain/entities/friend.dart';
 import '../../features/social/presentation/cubits/social_cubit.dart';
 import '../../features/social/presentation/screens/social_screen.dart';
+import '../../features/leaderboard/presentation/cubits/leaderboard_cubit.dart';
+import '../../features/leaderboard/presentation/screens/leaderboard_screen.dart';
 import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
-import '../../features/play/game_di.dart';
 
 GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
   // 🔥 КРИТИЧНО: пересчитывать redirect при изменении AuthProvider
@@ -298,6 +300,15 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                     return BlocProvider(
                       create: (_) => sl<SocialCubit>(),
                       child: const SocialScreen(),
+                    );
+                  },
+                ),
+                GoRoute(
+                  path: 'leaderboard',
+                  builder: (context, state) {
+                    return BlocProvider(
+                      create: (_) => sl<LeaderboardCubit>(),
+                      child: const LeaderboardScreen(),
                     );
                   },
                 ),

@@ -23,6 +23,7 @@ import 'features/play/game_di.dart';
 import 'features/play/presentation/cubits/matchmaking_cubit.dart';
 import 'features/social/presentation/cubits/social_cubit.dart';
 import 'features/social/social_di.dart';
+import 'features/leaderboard/leaderboard_di.dart';
 
 final sl = GetIt.instance;
 
@@ -53,6 +54,7 @@ void main() async {
   initSettingsDI();
   initGameDI();
   initSocialDI();
+  initLeaderboardDI();
 
   final localeProvider = LocaleProvider();
   await localeProvider.load('en');
