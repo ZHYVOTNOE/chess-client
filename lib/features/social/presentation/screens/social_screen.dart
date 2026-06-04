@@ -7,7 +7,6 @@ import '../../../play/domain/entities/player_color.dart';
 import '../cubits/social_cubit.dart';
 import '../../domain/entities/friend.dart';
 import '../../../play/domain/entities/game_config.dart';
-import '../../../play/presentation/board_screen.dart';
 
 class SocialScreen extends StatefulWidget {
   const SocialScreen({super.key});
@@ -104,11 +103,11 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                   backgroundImage: friend.friendAvatarUrl != null
                       ? NetworkImage(friend.friendAvatarUrl!)
                       : null,
-                  child: friend.friendAvatarUrl == null 
+                  child: friend.friendAvatarUrl == null
                       ? Text(
-                          friend.friendNickname.isNotEmpty ? friend.friendNickname[0].toUpperCase() : '?',
-                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        )
+                    friend.friendNickname.isNotEmpty ? friend.friendNickname[0].toUpperCase() : '?',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  )
                       : null,
                 ),
                 const SizedBox(width: 16),
@@ -149,18 +148,34 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                     ],
                   ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.play_arrow),
-                      onPressed: () => _inviteToGame(friend),
-                      tooltip: 'Invite to game',
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'play') {
+                      context.go('/game/friend', extra: {'friend': friend});
+                    } else if (value == 'remove') {
+                      _removeFriend(friend);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'play',
+                      child: Row(
+                        children: [
+                          Icon(Icons.play_arrow),
+                          SizedBox(width: 8),
+                          Text('Играть'),
+                        ],
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () => _removeFriend(friend),
-                      tooltip: 'Remove friend',
+                    const PopupMenuItem(
+                      value: 'remove',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Удалить', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -226,11 +241,11 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                         backgroundImage: user.friendAvatarUrl != null
                             ? NetworkImage(user.friendAvatarUrl!)
                             : null,
-                        child: user.friendAvatarUrl == null 
+                        child: user.friendAvatarUrl == null
                             ? Text(
-                                user.friendNickname.isNotEmpty ? user.friendNickname[0].toUpperCase() : '?',
-                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                              )
+                          user.friendNickname.isNotEmpty ? user.friendNickname[0].toUpperCase() : '?',
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        )
                             : null,
                       ),
                       const SizedBox(width: 16),
@@ -271,10 +286,8 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.person_add),
-                        onPressed: () => _sendFriendRequest(user),
-                      ),
+                      // 🔥 ИСПРАВЛЕНО: Заменяем IconButton на динамический виджет
+                      _buildSearchAction(state, user),
                     ],
                   ),
                 ),
@@ -284,6 +297,31 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
         ),
       ],
     );
+  }
+
+  // 🔥 НОВЫЙ МЕТОД: Определяет, какую иконку показать в поиске
+  Widget _buildSearchAction(SocialState state, Friend user) {
+    // Проверяем, есть ли этот пользователь уже в друзьях
+    bool isFriend = state.friends.any((f) => f.friendId == user.friendId);
+    // Проверяем, отправлен ли уже ему запрос
+    bool isSent = state.sentRequests.any((r) => r.friendId == user.friendId);
+
+    if (isFriend) {
+      return const Padding(
+        padding: EdgeInsets.all(8.0),
+        child: Icon(Icons.check_circle, color: Colors.green, semanticLabel: 'Already friends'),
+      );
+    } else if (isSent) {
+      return const Padding(
+        padding: EdgeInsets.all(8.0),
+        child: Icon(Icons.hourglass_empty, color: Colors.orange, semanticLabel: 'Request sent'),
+      );
+    } else {
+      return IconButton(
+        icon: const Icon(Icons.person_add),
+        onPressed: () => _sendFriendRequest(user),
+      );
+    }
   }
 
   Widget _buildRequestsList(List<Friend> incomingRequests, List<Friend> sentRequests) {
@@ -347,11 +385,11 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
               backgroundImage: request.friendAvatarUrl != null
                   ? NetworkImage(request.friendAvatarUrl!)
                   : null,
-              child: request.friendAvatarUrl == null 
+              child: request.friendAvatarUrl == null
                   ? Text(
-                      request.friendNickname.isNotEmpty ? request.friendNickname[0].toUpperCase() : '?',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    )
+                request.friendNickname.isNotEmpty ? request.friendNickname[0].toUpperCase() : '?',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              )
                   : null,
             ),
             const SizedBox(width: 16),
@@ -426,11 +464,11 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
               backgroundImage: request.friendAvatarUrl != null
                   ? NetworkImage(request.friendAvatarUrl!)
                   : null,
-              child: request.friendAvatarUrl == null 
+              child: request.friendAvatarUrl == null
                   ? Text(
-                      request.friendNickname.isNotEmpty ? request.friendNickname[0].toUpperCase() : '?',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    )
+                request.friendNickname.isNotEmpty ? request.friendNickname[0].toUpperCase() : '?',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              )
                   : null,
             ),
             const SizedBox(width: 16),
@@ -472,7 +510,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.cancel, color: Colors.grey),
+              icon: const Icon(Icons.close, color: Colors.red),
               onPressed: () => _cancelSentRequest(request),
               tooltip: 'Cancel',
             ),
@@ -634,7 +672,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
   }
 
   void _sendFriendRequest(Friend user) {
-    context.read<SocialCubit>().sendFriendRequest(user.friendId);
+    context.read<SocialCubit>().sendFriendRequest(user.friendId, knownProfile: user);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Friend request sent to ${user.friendNickname}')),
     );

@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:squares/squares.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/providers/game_provider.dart';
 import '../../../core/providers/locale_provider.dart';
+import '../../social/data/repositories/friend_repository_impl.dart';
+import '../../social/domain/repositories/friend_repository.dart';
 import '../domain/entities/engine_config.dart';
 import '../domain/entities/game_config.dart';
 import '../domain/entities/player_color.dart';
@@ -66,12 +69,11 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     ],
   };
 
-  final List<Map<String, dynamic>> _friends = [
-    {'id': '1', 'name': 'Александр', 'rating': 1850, 'online': true},
-    {'id': '2', 'name': 'Мария', 'rating': 1920, 'online': false},
-    {'id': '3', 'name': 'Дмитрий', 'rating': 1780, 'online': true},
-    {'id': '4', 'name': 'Елена', 'rating': 2100, 'online': true},
-  ];
+  // Реальный список друзей из БД
+  List<Map<String, dynamic>> _friends = [];
+  bool _isLoadingFriends = true;
+  bool _showAllFriends = false;
+  late final FriendRepository _friendRepository;
 
   final List<Map<String, dynamic>> _botLevels = [
     {'id': 'beginner', 'name': 'Новичок', 'rating': 400},
@@ -109,6 +111,37 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
   bool _rated = true;
   bool _botWithTime = false;
   String _selectedBot = 'intermediate';
+
+  @override
+  void initState() {
+    super.initState();
+    _friendRepository = FriendRepositoryImpl(Supabase.instance.client);
+    _loadFriends();
+  }
+
+  Future<void> _loadFriends() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        setState(() => _isLoadingFriends = false);
+        return;
+      }
+      final friends = await _friendRepository.getFriends(userId);
+      setState(() {
+        _friends = friends.map((f) => {
+          'id': f.friendId,
+          'name': f.friendNickname,
+          'online': f.isOnline,
+          'avatarUrl': f.friendAvatarUrl,
+        }).toList()
+          ..sort((a, b) => (b['online'] as bool) ? 1 : -1);
+        _isLoadingFriends = false;
+      });
+    } catch (e) {
+      debugPrint('SetupGameScreen: failed to load friends: $e');
+      setState(() => _isLoadingFriends = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -179,13 +212,20 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
           SizedBox(
             height: 54,
             child: ElevatedButton(
-              onPressed: () => _start(mode),
+              onPressed: _canStart(mode) ? () => _start(mode) : null,
               child: Text(locale.get('start_game')),
             ),
           ),
         ],
       ),
     );
+  }
+
+  bool _canStart(_SetupMode mode) {
+    if (mode == _SetupMode.friend) {
+      return _selectedFriend.isNotEmpty && _friends.isNotEmpty;
+    }
+    return true;
   }
 
   _SetupMode _resolveMode() {
@@ -349,52 +389,6 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     );
   }
 
-  // Widget _buildCustomTime() {
-  //   return Card(
-  //     child: Padding(
-  //       padding: const EdgeInsets.all(16),
-  //       child: Column(
-  //         children: [
-  //           Row(
-  //             children: [
-  //               Expanded(
-  //                 child: _buildNumberPicker(
-  //                   label: 'Минуты',
-  //                   value: _customMinutes,
-  //                   max: 60,
-  //                   onChanged: (value) => setState(() => _customMinutes = value),
-  //                 ),
-  //               ),
-  //               const SizedBox(width: 16),
-  //               Expanded(
-  //                 child: _buildNumberPicker(
-  //                   label: 'Секунды',
-  //                   value: _customSeconds,
-  //                   max: 59,
-  //                   onChanged: (value) => setState(() => _customSeconds = value),
-  //                 ),
-  //               ),
-  //               const SizedBox(width: 16),
-  //               Expanded(
-  //                 child: _buildNumberPicker(
-  //                   label: 'Добавление',
-  //                   value: _customIncrement,
-  //                   max: 60,
-  //                   onChanged: (value) => setState(() => _customIncrement = value),
-  //                 ),
-  //               ),
-  //             ],
-  //           ),
-  //           const SizedBox(height: 16),
-  //           Text(
-  //             'Итого: $_customMinutes:${_customSeconds.toString().padLeft(2, '0')} + $_customIncrement',
-  //             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-  //           ),
-  //         ],
-  //       ),
-  //     ),
-  //   );
-  // }
   Widget _buildCustomTime() {
     return Card(
       child: Padding(
@@ -405,7 +399,6 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
               height: 160,
               child: Row(
                 children: [
-                  // Минуты
                   Expanded(
                     child: _buildWheelPicker(
                       label: 'Мин',
@@ -415,7 +408,6 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
                     ),
                   ),
                   const VerticalDivider(width: 1),
-                  // Секунды
                   Expanded(
                     child: _buildWheelPicker(
                       label: 'Сек',
@@ -425,7 +417,6 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
                     ),
                   ),
                   const VerticalDivider(width: 1),
-                  // Добавление
                   Expanded(
                     child: _buildWheelPicker(
                       label: '+',
@@ -487,69 +478,104 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     );
   }
 
-  Widget _buildNumberPicker({
-    required String label,
-    required int value,
-    required int max,
-    required ValueChanged<int> onChanged,
-  }) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.remove),
-              onPressed: value > 0 ? () => onChanged(value - 1) : null,
-              iconSize: 20,
-            ),
-            Text(
-              value.toString(),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: value < max ? () => onChanged(value + 1) : null,
-              iconSize: 20,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   Widget _buildRatingRangeSelector() {
     final ranges = ['±100', '±200', '±500', 'any'];
     return Column(
       children: ranges
           .map(
             (range) => RadioListTile<String>(
-              value: range,
-              groupValue: _ratingRange,
-              onChanged: (value) => setState(() => _ratingRange = value ?? _ratingRange),
-              title: Text(range == 'any' ? 'Любой' : range),
-            ),
-          )
+          value: range,
+          groupValue: _ratingRange,
+          onChanged: (value) => setState(() => _ratingRange = value ?? _ratingRange),
+          title: Text(range == 'any' ? 'Любой' : range),
+        ),
+      )
           .toList(),
     );
   }
 
   Widget _buildFriendSelector() {
-    return Column(
-      children: _friends.map((friend) {
-        final isSelected = _selectedFriend == friend['id'];
-        return Card(
-          color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
-          child: ListTile(
-            onTap: () => setState(() => _selectedFriend = friend['id'] as String),
-            title: Text(friend['name'] as String),
-            subtitle: Text('${friend['rating']}'),
-            trailing: isSelected ? const Icon(Icons.check_circle) : null,
+    if (_isLoadingFriends) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_friends.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const Icon(Icons.people_outline, size: 48, color: Colors.grey),
+              const SizedBox(height: 8),
+              const Text(
+                'Добавьте друзей для игры',
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                onPressed: () => context.push('/more/friends'),
+                child: const Text('Найти друзей'),
+              ),
+            ],
           ),
-        );
-      }).toList(),
+        ),
+      );
+    }
+
+    final displayed = _showAllFriends ? _friends : _friends.take(3).toList();
+
+    return Column(
+      children: [
+        ...displayed.map((friend) {
+          final isSelected = _selectedFriend == friend['id'];
+          final isOnline = friend['online'] as bool;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+            child: ListTile(
+                onTap: () => setState(() => _selectedFriend = isSelected ? '' : friend['id'] as String),
+                leading: Stack(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.grey.shade300,
+                    backgroundImage: friend['avatarUrl'] != null
+                        ? NetworkImage(friend['avatarUrl'] as String)
+                        : null,
+                    child: friend['avatarUrl'] == null
+                        ? Text((friend['name'] as String)[0].toUpperCase())
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: isOnline ? Colors.green : Colors.grey,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              title: Text(friend['name'] as String),
+              subtitle: Text(isOnline ? 'онлайн' : 'офлайн'),
+              trailing: isSelected
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+            ),
+          );
+        }),
+        if (_friends.length > 3)
+          TextButton(
+            onPressed: () => setState(() => _showAllFriends = !_showAllFriends),
+            child: Text(
+              _showAllFriends ? 'Скрыть' : 'Все друзья (${_friends.length})',
+            ),
+          ),
+      ],
     );
   }
 
@@ -571,20 +597,13 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
           SizedBox(
             width: 32,
             height: 32,
-            child: FittedBox(
-              child: pieceSet.piece(context, 'K'),
-            ),
+            child: FittedBox(child: pieceSet.piece(context, 'K')),
           ),
-          Icon(
-            MdiIcons.helpCircleOutline,
-            size: 30,
-          ),
+          Icon(MdiIcons.helpCircleOutline, size: 30),
           SizedBox(
             width: 32,
             height: 32,
-            child: FittedBox(
-              child: pieceSet.piece(context, 'k'),
-            ),
+            child: FittedBox(child: pieceSet.piece(context, 'k')),
           ),
         ],
       ),

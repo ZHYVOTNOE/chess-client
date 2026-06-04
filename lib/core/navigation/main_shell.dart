@@ -44,35 +44,16 @@ class MainShell extends StatelessWidget {
           ),
           BlocBuilder<SocialCubit, SocialState>(
             builder: (context, state) {
+              final totalBadge = state.pendingRequestsCount; // + другие счётчики когда появятся
               return NavigationDestination(
                 icon: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     const Icon(Icons.more_horiz_outlined),
-                    if (state.pendingRequestsCount > 0)
+                    if (totalBadge > 0)
                       Positioned(
-                        right: -8,
-                        top: -8,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          child: Text(
-                            state.pendingRequestsCount > 99 ? '99+' : state.pendingRequestsCount.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
+                        right: -8, top: -8,
+                        child: _BadgeWidget(count: totalBadge),
                       ),
                   ],
                 ),
@@ -80,30 +61,10 @@ class MainShell extends StatelessWidget {
                   clipBehavior: Clip.none,
                   children: [
                     const Icon(Icons.more_horiz),
-                    if (state.pendingRequestsCount > 0)
+                    if (totalBadge > 0)
                       Positioned(
-                        right: -8,
-                        top: -8,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          child: Text(
-                            state.pendingRequestsCount > 99 ? '99+' : state.pendingRequestsCount.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
+                        right: -8, top: -8,
+                        child: _BadgeWidget(count: totalBadge),
                       ),
                   ],
                 ),
@@ -112,6 +73,25 @@ class MainShell extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BadgeWidget extends StatelessWidget {
+  final int count;
+  const _BadgeWidget({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      child: Text(
+        count > 99 ? '99+' : count.toString(),
+        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.center,
       ),
     );
   }

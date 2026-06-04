@@ -21,7 +21,9 @@ class FriendRepositoryImpl implements FriendRepository {
 
     final friends = <Friend>[];
     for (final data in response) {
-      final friend = await _mapToFriendWithProfile(data, userId);
+      // Определяем ID друга: если текущий пользователь - отправитель, то друг - получатель, и наоборот
+      final friendId = data['user_id'] == userId ? data['friend_id'] as String : data['user_id'] as String;
+      final friend = await _mapToFriendWithProfile(data, userId, friendId);
       friends.add(friend);
     }
     return friends;
@@ -30,41 +32,36 @@ class FriendRepositoryImpl implements FriendRepository {
   @override
   Future<List<Friend>> searchUsers(String query) async {
     try {
-      // Get current user ID to exclude from search results
       final currentUserId = _supabase.auth.currentUser?.id;
-      
+
       print('DEBUG: Searching users. Current User ID: $currentUserId, Query: $query');
-      
-      // Check if query is a 10-digit ID (exact match)
+
       final isNumericId = RegExp(r'^\d{10}$').hasMatch(query);
-      
+
       final queryBuilder = _supabase
           .from('profiles')
           .select('id, nickname, full_name, avatar_url, bio, display_id');
-      
-      // Only exclude current user if they are logged in
+
       if (currentUserId != null) {
         queryBuilder.neq('id', currentUserId);
       }
-      
+
       final response = await queryBuilder
-          .or(isNumericId 
-              ? 'display_id.eq.$query' 
-              : 'nickname.ilike.%$query%,full_name.ilike.%$query%')
+          .or(isNumericId
+          ? 'display_id.eq.$query'
+          : 'nickname.ilike.%$query%,full_name.ilike.%$query%')
           .limit(20);
 
-      // Double-check: filter out current user at Dart level as well
       final filteredResponse = response.where((item) => item['id'] != currentUserId).toList();
-      
+
       print('DEBUG: Total results from DB: ${response.length}, After filter: ${filteredResponse.length}');
 
       return filteredResponse.map((data) {
-        // Fallback chain for display name
-        final displayName = data['nickname'] ?? 
-                           data['full_name'] ?? 
-                           data['display_id']?.toString() ?? 
-                           'Unknown';
-        
+        final displayName = data['nickname'] ??
+            data['full_name'] ??
+            data['display_id']?.toString() ??
+            'Unknown';
+
         return Friend(
           id: data['id'],
           userId: _supabase.auth.currentUser?.id ?? '',
@@ -94,13 +91,17 @@ class FriendRepositoryImpl implements FriendRepository {
 
   @override
   Future<void> acceptFriendRequest(String requestId) async {
-    await _supabase
-        .from('friendships')
-        .update({'status': 'accepted', 'updated_at': DateTime.now().toIso8601String()})
-        .eq('id', requestId);
+    try {
+      await _supabase
+          .from('friendships')
+          .update({'status': 'accepted'})
+          .eq('id', requestId);
+    } catch (e) {
+      debugPrint('Accept ERROR: $e');
+      rethrow;
+    }
   }
 
-  /// Invalidate profile cache for a specific user
   void invalidateProfileCache(String userId) {
     _profileCache.remove(userId);
   }
@@ -126,7 +127,9 @@ class FriendRepositoryImpl implements FriendRepository {
 
     final friends = <Friend>[];
     for (final data in response) {
-      final friend = await _mapToFriendWithProfile(data, userId);
+      // Для входящих запросов: отправитель - это user_id
+      final senderId = data['user_id'] as String;
+      final friend = await _mapToFriendWithProfile(data, userId, senderId);
       friends.add(friend);
     }
     return friends;
@@ -143,7 +146,9 @@ class FriendRepositoryImpl implements FriendRepository {
 
     final friends = <Friend>[];
     for (final data in response) {
-      final friend = await _mapToFriendWithProfile(data, userId);
+      // Для исходящих запросов: получатель - это friend_id
+      final receiverId = data['friend_id'] as String;
+      final friend = await _mapToFriendWithProfile(data, userId, receiverId);
       friends.add(friend);
     }
     return friends;
@@ -161,17 +166,18 @@ class FriendRepositoryImpl implements FriendRepository {
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
         .map((data) => data.where((item) =>
-            item['friend_id'] == userId &&
-            item['status'] == 'pending'
-        ).toList())
+    item['friend_id'] == userId &&
+        item['status'] == 'pending'
+    ).toList())
         .asyncMap((data) async {
-          final friends = <Friend>[];
-          for (final item in data) {
-            final friend = await _mapToFriendWithProfile(item, userId);
-            friends.add(friend);
-          }
-          return friends;
-        });
+      final friends = <Friend>[];
+      for (final item in data) {
+        final senderId = item['user_id'] as String;
+        final friend = await _mapToFriendWithProfile(item, userId, senderId);
+        friends.add(friend);
+      }
+      return friends;
+    });
   }
 
   @override
@@ -181,17 +187,18 @@ class FriendRepositoryImpl implements FriendRepository {
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
         .map((data) => data.where((item) =>
-            item['user_id'] == userId &&
-            item['status'] == 'pending'
-        ).toList())
+    item['user_id'] == userId &&
+        item['status'] == 'pending'
+    ).toList())
         .asyncMap((data) async {
-          final friends = <Friend>[];
-          for (final item in data) {
-            final friend = await _mapToFriendWithProfile(item, userId);
-            friends.add(friend);
-          }
-          return friends;
-        });
+      final friends = <Friend>[];
+      for (final item in data) {
+        final receiverId = item['friend_id'] as String;
+        final friend = await _mapToFriendWithProfile(item, userId, receiverId);
+        friends.add(friend);
+      }
+      return friends;
+    });
   }
 
   @override
@@ -201,17 +208,18 @@ class FriendRepositoryImpl implements FriendRepository {
         .stream(primaryKey: ['id'])
         .order('created_at', ascending: false)
         .map((data) => data.where((item) =>
-            (item['user_id'] == userId || item['friend_id'] == userId) &&
-            item['status'] == 'accepted'
-        ).toList())
+    (item['user_id'] == userId || item['friend_id'] == userId) &&
+        item['status'] == 'accepted'
+    ).toList())
         .asyncMap((data) async {
-          final friends = <Friend>[];
-          for (final item in data) {
-            final friend = await _mapToFriendWithProfile(item, userId);
-            friends.add(friend);
-          }
-          return friends;
-        });
+      final friends = <Friend>[];
+      for (final item in data) {
+        final friendId = item['user_id'] == userId ? item['friend_id'] as String : item['user_id'] as String;
+        final friend = await _mapToFriendWithProfile(item, userId, friendId);
+        friends.add(friend);
+      }
+      return friends;
+    });
   }
 
   Friend _mapToFriend(Map<String, dynamic> data, String currentUserId) {
@@ -219,17 +227,6 @@ class FriendRepositoryImpl implements FriendRepository {
     final friendId = data['friend_id'] as String;
     final isCurrentUserSender = data['user_id'] == currentUserId;
 
-    // Extract rating from profile ratings (get standard/blitz rating as default)
-    int? rating;
-    if (profile != null && profile['ratings'] != null) {
-      final ratings = profile['ratings'] as Map<String, dynamic>;
-      // Try to get blitz rating first, then standard
-      final blitzRating = ratings['blitz']?['rating'];
-      final standardRating = ratings['standard']?['rating'];
-      rating = (blitzRating ?? standardRating)?.toInt();
-    }
-
-    // Determine online status based on last_seen_at
     bool isOnline = false;
     if (profile != null && profile['last_seen_at'] != null) {
       final lastSeen = DateTime.parse(profile['last_seen_at'] as String);
@@ -237,11 +234,10 @@ class FriendRepositoryImpl implements FriendRepository {
       isOnline = now.difference(lastSeen).inMinutes < 5;
     }
 
-    // Fallback chain for display name
-    final displayName = profile?['nickname'] ?? 
-                       profile?['full_name'] ?? 
-                       profile?['display_id']?.toString() ?? 
-                       'Unknown';
+    final displayName = profile?['nickname'] ??
+        profile?['full_name'] ??
+        profile?['display_id']?.toString() ??
+        'Unknown';
 
     return Friend(
       id: data['id'] as String,
@@ -256,15 +252,12 @@ class FriendRepositoryImpl implements FriendRepository {
       updatedAt: data['updated_at'] != null
           ? DateTime.parse(data['updated_at'] as String)
           : null,
-      rating: rating,
       isOnline: isOnline,
     );
   }
 
-  Future<Friend> _mapToFriendWithProfile(Map<String, dynamic> data, String currentUserId) async {
-    final friendId = data['friend_id'] as String;
-
-    final cached = _profileCache[friendId];
+  Future<Friend> _mapToFriendWithProfile(Map<String, dynamic> data, String currentUserId, String otherUserId) async {
+    final cached = _profileCache[otherUserId];
     final now = DateTime.now();
     Map<String, dynamic>? profile;
 
@@ -274,29 +267,18 @@ class FriendRepositoryImpl implements FriendRepository {
       try {
         final profileData = await _supabase
             .from('profiles')
-            .select('nickname, full_name, bio, avatar_url, last_seen_at, ratings, display_id')
-            .eq('id', friendId)
+            .select('nickname, full_name, bio, avatar_url, last_seen_at, display_id')
+            .eq('id', otherUserId)
             .single();
 
-        // Сохраняем в кэш с текущим временем
-        _profileCache[friendId] = _CachedProfile(profileData, now);
+        _profileCache[otherUserId] = _CachedProfile(profileData, now);
         profile = profileData;
       } catch (e) {
-        debugPrint('Failed to fetch profile for $friendId: $e');
+        debugPrint('Failed to fetch profile for $otherUserId: $e');
         profile = null;
       }
     }
 
-    // Extract rating from profile ratings (get standard/blitz rating as default)
-    int? rating;
-    if (profile != null && profile['ratings'] != null) {
-      final ratings = profile['ratings'] as Map<String, dynamic>;
-      final blitzRating = ratings['blitz']?['rating'];
-      final standardRating = ratings['standard']?['rating'];
-      rating = (blitzRating ?? standardRating)?.toInt();
-    }
-
-    // Determine online status based on last_seen_at
     bool isOnline = false;
     if (profile != null && profile['last_seen_at'] != null) {
       final lastSeen = DateTime.parse(profile['last_seen_at'] as String);
@@ -304,16 +286,15 @@ class FriendRepositoryImpl implements FriendRepository {
       isOnline = now.difference(lastSeen).inMinutes < 5;
     }
 
-    // Fallback chain for display name: nickname → full_name → display_id → "Unknown"
-    final displayName = profile?['nickname'] ?? 
-                       profile?['full_name'] ?? 
-                       profile?['display_id']?.toString() ?? 
-                       'Unknown';
+    final displayName = profile?['nickname'] ??
+        profile?['full_name'] ??
+        profile?['display_id']?.toString() ??
+        'Unknown';
 
     return Friend(
       id: data['id'] as String,
       userId: data['user_id'] as String,
-      friendId: friendId,
+      friendId: otherUserId,
       friendNickname: displayName,
       friendFullName: profile?['full_name'],
       friendBio: profile?['bio'],
@@ -323,7 +304,6 @@ class FriendRepositoryImpl implements FriendRepository {
       updatedAt: data['updated_at'] != null
           ? DateTime.parse(data['updated_at'] as String)
           : null,
-      rating: rating,
       isOnline: isOnline,
     );
   }
@@ -341,7 +321,6 @@ class FriendRepositoryImpl implements FriendRepository {
     }
   }
 }
-
 
 class _CachedProfile {
   final Map<String, dynamic> data;

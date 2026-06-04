@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -20,12 +21,26 @@ class SocialCubit extends Cubit<SocialState> {
     final userId = _getCurrentUserId();
     if (userId == null) return;
 
-    // Listen to friends stream
+    // 1. ПЕРВИЧНАЯ ЗАГРУЗКА: чтобы данные подтянулись сразу, не дожидаясь стримов
+    try {
+      final friends = await _friendRepository.getFriends(userId);
+      final requests = await _friendRepository.getPendingRequests(userId);
+      final sentRequests = await _friendRepository.getSentRequests(userId);
+      emit(state.copyWith(
+        friends: friends,
+        friendRequests: requests,
+        sentRequests: sentRequests,
+        pendingRequestsCount: requests.length,
+      ));
+    } catch (e) {
+      debugPrint('Error initializing social data: $e');
+    }
+
+    // 2. Подписка на стримы для синхронизации в реальном времени (если включен Realtime)
     _friendRepository.friendsStream(userId).listen((friends) {
       emit(state.copyWith(friends: friends));
     });
 
-    // Listen to friend requests stream
     _friendRepository.friendRequestsStream(userId).listen((requests) {
       emit(state.copyWith(
         friendRequests: requests,
@@ -33,12 +48,10 @@ class SocialCubit extends Cubit<SocialState> {
       ));
     });
 
-    // Listen to sent requests stream
     _friendRepository.sentRequestsStream(userId).listen((requests) {
       emit(state.copyWith(sentRequests: requests));
     });
 
-    // Listen to game invites stream
     _friendService.gameInvitesStream(userId).listen((invites) {
       emit(state.copyWith(gameInvites: invites));
     });
@@ -64,12 +77,26 @@ class SocialCubit extends Cubit<SocialState> {
     }
   }
 
-  Future<void> sendFriendRequest(String friendId) async {
+  Future<void> sendFriendRequest(String friendId, {Friend? knownProfile}) async {
     final userId = _getCurrentUserId();
     if (userId == null) return;
 
     try {
       await _friendRepository.sendFriendRequest(userId, friendId);
+
+      // Оптимистично добавляем в sentRequests с уже известным профилем
+      if (knownProfile != null) {
+        final optimistic = knownProfile.copyWith(
+          userId: userId,
+          status: FriendStatus.pending,
+          createdAt: DateTime.now(),
+        );
+        final updated = [...state.sentRequests, optimistic];
+        emit(state.copyWith(sentRequests: updated));
+      } else {
+        final sentRequests = await _friendRepository.getSentRequests(userId);
+        emit(state.copyWith(sentRequests: sentRequests));
+      }
     } catch (e) {
       emit(state.copyWith(error: e.toString()));
     }
@@ -78,9 +105,9 @@ class SocialCubit extends Cubit<SocialState> {
   Future<void> acceptFriendRequest(String requestId) async {
     try {
       await _friendRepository.acceptFriendRequest(requestId);
-      // Force refresh to ensure UI updates immediately
       final userId = _getCurrentUserId();
       if (userId != null) {
+        // Мгновенно обновляем: убираем из запросов, добавляем в друзья
         final friends = await _friendRepository.getFriends(userId);
         final requests = await _friendRepository.getPendingRequests(userId);
         emit(state.copyWith(
@@ -97,7 +124,6 @@ class SocialCubit extends Cubit<SocialState> {
   Future<void> declineFriendRequest(String requestId) async {
     try {
       await _friendRepository.declineFriendRequest(requestId);
-      // Force refresh to ensure UI updates immediately
       final userId = _getCurrentUserId();
       if (userId != null) {
         final requests = await _friendRepository.getPendingRequests(userId);
@@ -114,7 +140,6 @@ class SocialCubit extends Cubit<SocialState> {
   Future<void> cancelSentRequest(String requestId) async {
     try {
       await _friendRepository.cancelSentRequest(requestId);
-      // Force refresh to ensure UI updates immediately
       final userId = _getCurrentUserId();
       if (userId != null) {
         final sentRequests = await _friendRepository.getSentRequests(userId);
@@ -128,6 +153,11 @@ class SocialCubit extends Cubit<SocialState> {
   Future<void> removeFriend(String friendId) async {
     try {
       await _friendRepository.removeFriend(friendId);
+      final userId = _getCurrentUserId();
+      if (userId != null) {
+        final friends = await _friendRepository.getFriends(userId);
+        emit(state.copyWith(friends: friends));
+      }
     } catch (e) {
       emit(state.copyWith(error: e.toString()));
     }

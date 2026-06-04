@@ -5,10 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/providers/locale_provider.dart';
 import '../../../social/data/repositories/friend_repository_impl.dart';
 import '../../../social/data/services/friend_service.dart';
+import '../../../social/domain/entities/friend.dart';
 import '../../../social/domain/repositories/friend_repository.dart';
 
 class PlayFriendScreen extends StatefulWidget {
-  const PlayFriendScreen({super.key});
+  final Friend? preselectedFriend;
+  const PlayFriendScreen({super.key, this.preselectedFriend});
 
   @override
   State<PlayFriendScreen> createState() => _PlayFriendScreenState();
@@ -19,6 +21,7 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
   String _selectedFriend = '';
   bool _rated = true;
   String _chosenColor = 'random';
+  bool _showAllFriends = false;
 
   late final FriendRepository _friendRepository;
   late final FriendService _friendService;
@@ -38,6 +41,9 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.preselectedFriend != null) {
+      _selectedFriend = widget.preselectedFriend!.friendId;
+    }
     _friendRepository = FriendRepositoryImpl(Supabase.instance.client);
     _friendService = FriendService(_friendRepository, Supabase.instance.client);
     _loadFriends();
@@ -46,22 +52,28 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
   Future<void> _loadFriends() async {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) return;
+      if (userId == null) {
+        debugPrint('PlayFriend: userId is null');
+        return;
+      }
 
+      debugPrint('PlayFriend: loading friends for $userId');
       final friends = await _friendRepository.getFriends(userId);
+      debugPrint('PlayFriend: got ${friends.length} friends');
+
       setState(() {
         _friends = friends.map((friend) => {
           'id': friend.friendId,
           'name': friend.friendNickname,
-          'rating': friend.rating ?? 1200,
           'online': friend.isOnline,
         }).toList();
         _isLoadingFriends = false;
       });
+
+      debugPrint('PlayFriend: _friends = $_friends');
     } catch (e) {
-      setState(() {
-        _isLoadingFriends = false;
-      });
+      debugPrint('PlayFriend ERROR: $e');
+      setState(() => _isLoadingFriends = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to load friends: $e')),
@@ -134,10 +146,11 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
             children: [
               const Icon(Icons.people_outline, size: 48, color: Colors.grey),
               const SizedBox(height: 16),
-              const Text('Нет друзей онлайн', style: TextStyle(color: Colors.grey)),
+              const Text('Добавьте друзей для игры',
+                  style: TextStyle(color: Colors.grey)),
               const SizedBox(height: 16),
               OutlinedButton(
-                onPressed: () => context.push('/social'),
+                onPressed: () => context.push('/more/friends'),
                 child: const Text('Найти друзей'),
               ),
             ],
@@ -146,43 +159,58 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
       );
     }
 
-    return Column(
-      children: _friends.map((friend) {
-        final isSelected = _selectedFriend == friend['id'];
-        final isOnline = friend['online'] as bool;
+    // Сортируем: онлайн первыми
+    final sorted = [..._friends]
+      ..sort((a, b) => (b['online'] as bool) ? 1 : -1);
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
-          child: ListTile(
-            onTap: () => setState(() => _selectedFriend = friend['id'] as String),
-            leading: Stack(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.grey.shade300,
-                  child: Text((friend['name'] as String)[0]),
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: isOnline ? Colors.green : Colors.grey,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+    final showAll = _showAllFriends; // bool в стейте
+    final displayed = showAll ? sorted : sorted.take(3).toList();
+
+    return Column(
+      children: [
+        ...displayed.map((friend) {
+          final isSelected = _selectedFriend == friend['id'];
+          final isOnline = friend['online'] as bool;
+          return Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            color: isSelected
+                ? Theme.of(context).primaryColor.withOpacity(0.1)
+                : null,
+            child: ListTile(
+              onTap: () => setState(() => _selectedFriend = friend['id'] as String),
+              leading: Stack(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.grey.shade300,
+                    child: Text((friend['name'] as String)[0]),
+                  ),
+                  Positioned(
+                    bottom: 0, right: 0,
+                    child: Container(
+                      width: 12, height: 12,
+                      decoration: BoxDecoration(
+                        color: isOnline ? Colors.green : Colors.grey,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              title: Text(friend['name'] as String),
+              subtitle: Text(isOnline ? 'онлайн' : 'офлайн'),
+              trailing: isSelected
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : null,
             ),
-            title: Text(friend['name'] as String),
-            subtitle: Text('${friend['rating']} • ${isOnline ? 'онлайн' : 'офлайн'}'),
-            trailing: isSelected ? const Icon(Icons.check_circle, color: Colors.green) : null,
+          );
+        }),
+        if (sorted.length > 3)
+          TextButton(
+            onPressed: () => setState(() => _showAllFriends = !_showAllFriends),
+            child: Text(showAll ? 'Скрыть' : 'Все друзья (${sorted.length})'),
           ),
-        );
-      }).toList(),
+      ],
     );
   }
 
