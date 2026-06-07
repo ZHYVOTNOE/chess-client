@@ -32,6 +32,8 @@ class GameHubScreen extends StatelessWidget {
                       subtitle: locale.get('game_quick_subtitle'),
                       color: Colors.orange,
                       onTap: () {
+                        print(MediaQuery.of(context).size.width);
+                        print(MediaQuery.of(context).size.height);
                         gameProvider.setVsRandom(value: true);
                         gameProvider.setVsFriend(value: false);
                         gameProvider.setVsComputer(value: false);

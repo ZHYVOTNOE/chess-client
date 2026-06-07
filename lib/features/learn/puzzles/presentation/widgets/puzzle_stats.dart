@@ -25,23 +25,29 @@ class PuzzleStats extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _StatItem(
-              icon: Icons.local_fire_department,
-              value: '$streak',
-              label: locale.get('puzzles_streak'),
-              color: Colors.orange,
+            Expanded(
+              child: _StatItem(
+                icon: Icons.local_fire_department,
+                value: '$streak',
+                label: locale.get('puzzles_streak'),
+                color: Colors.orange,
+              ),
             ),
-            _StatItem(
-              icon: Icons.check_circle,
-              value: '$solvedToday',
-              label: locale.get('puzzles_solved_today'),
-              color: Colors.green,
+            Expanded(
+              child: _StatItem(
+                icon: Icons.check_circle,
+                value: '$solvedToday',
+                label: locale.get('puzzles_solved_today'),
+                color: Colors.green,
+              ),
             ),
-            _StatItem(
-              icon: Icons.trending_up,
-              value: progress >= 0 ? '+$progress' : '$progress',
-              label: locale.get('puzzles_progress'),
-              color: Colors.blue,
+            Expanded(
+              child: _StatItem(
+                icon: Icons.trending_up,
+                value: progress >= 0 ? '+$progress' : '$progress',
+                label: locale.get('puzzles_progress'),
+                color: Colors.blue,
+              ),
             ),
           ],
         ),

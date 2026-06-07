@@ -5,9 +5,12 @@ abstract class AppException implements Exception {
   AppException(this.message, {this.statusCode});
 }
 
-class ServerException extends AppException {
-  ServerException([String message = 'Server error occurred', int? statusCode])
-      : super(message, statusCode: statusCode);
+class ServerException implements Exception {
+  final String message;
+  const ServerException([this.message = 'Server error']);
+
+  @override
+  String toString() => message;
 }
 
 class CacheException extends AppException {

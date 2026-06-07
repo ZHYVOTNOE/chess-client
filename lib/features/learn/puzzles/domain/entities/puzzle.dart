@@ -27,15 +27,15 @@ class Puzzle extends Equatable {
 
   factory Puzzle.fromJson(Map<String, dynamic> json) {
     return Puzzle(
-      id: json['PuzzleId'] as String? ?? json['puzzle_id'] as String? ?? json['id'] as String,
-      fen: json['FEN'] as String? ?? json['fen'] as String,
-      moves: _parseMoves(json['Moves'] as String? ?? json['moves'] as String),
-      rating: json['Rating'] as int? ?? json['rating'] as int,
-      ratingDeviation: json['RatingDeviation'] as int? ?? json['rating_deviation'] as int?,
-      popularity: json['Popularity'] as int? ?? json['popularity'] as int?,
-      nbPlays: json['NbPlays'] as int? ?? json['nb_plays'] as int?,
-      themes: _parseThemes(json['Themes'] as String? ?? json['themes'] as String?),
-      gameUrl: json['GameUrl'] as String? ?? json['game_url'] as String?,
+      id: (json['PuzzleId'] ?? json['puzzle_id'] ?? json['id'])?.toString() ?? '',
+      fen: (json['FEN'] ?? json['fen'])?.toString() ?? '',
+      moves: _parseMoves((json['Moves'] ?? json['moves'])?.toString() ?? ''),
+      rating: (json['Rating'] ?? json['rating']) as int? ?? 1500,
+      ratingDeviation: (json['RatingDeviation'] ?? json['rating_deviation']) as int?,
+      popularity: (json['Popularity'] ?? json['popularity']) as int?,
+      nbPlays: (json['NbPlays'] ?? json['nb_plays']) as int?,
+      themes: _parseThemes((json['Themes'] ?? json['themes'])?.toString()),
+      gameUrl: (json['GameUrl'] ?? json['game_url'])?.toString(),
       openingTags: json['OpeningTags'] != null
           ? (json['OpeningTags'] as String).split(',')
           : (json['opening_tags'] != null ? (json['opening_tags'] as String).split(',') : null),
@@ -43,13 +43,13 @@ class Puzzle extends Equatable {
   }
 
   static List<String> _parseMoves(String movesString) {
-    // Lichess moves format: "e2e4 e7e5 g1f3" etc.
-    return movesString.trim().split(' ');
+    if (movesString.isEmpty) return [];
+    return movesString.trim().split(' ').where((m) => m.isNotEmpty).toList();
   }
 
   static List<String> _parseThemes(String? themesString) {
     if (themesString == null || themesString.isEmpty) return [];
-    return themesString.split(',').map((t) => t.trim()).toList();
+    return themesString.trim().split(' ');
   }
 
   Map<String, dynamic> toJson() {

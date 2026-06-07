@@ -21,6 +21,14 @@ abstract class PuzzleRemoteDataSource {
     required List<String> moves,
   });
 
+  Future<int> getUserPuzzleRating(String userId);
+
+  Future<void> savePuzzleAttempt({
+    required String userId,
+    required String puzzleId,
+    required bool isSolved,
+  });
+
   Future<Map<String, dynamic>> getUserStats();
 
   Future<List<String>> getThemes();
@@ -36,29 +44,24 @@ class PuzzleRemoteDataSourceImpl implements PuzzleRemoteDataSource {
     required int userRating,
     String? theme,
   }) async {
-    try {
-      final query = client.from('puzzles').select('*');
+    final userId = client.auth.currentUser?.id;
+    print('=== userId: $userId, userRating: $userRating');
 
-      // Filter by theme if specified
-      if (theme != null && theme != 'all') {
-        query.ilike('Themes', '%$theme%');
-      }
+    final response = await client.rpc('get_random_puzzle', params: {
+      'p_user_id': userId,
+      'p_user_rating': userRating,
+    });
 
-      // Filter by rating range (user rating ± 200)
-      final minRating = userRating - 200;
-      final maxRating = userRating + 200;
-      query.gte('Rating', minRating).lte('Rating', maxRating);
+    print('=== RPC response: $response');
+    print('=== response type: ${response.runtimeType}');
 
-      // Order by popularity and limit to 1
-      final response = await query
-          .order('Popularity', ascending: false)
-          .limit(1)
-          .single();
-
-      return Puzzle.fromJson(response);
-    } catch (e) {
-      throw ServerException('Failed to fetch puzzle');
+    if (response == null || (response is List && response.isEmpty)) {
+      throw ServerException('No puzzles found in rating range');
     }
+
+    final puzzleData = response is List ? response.first : response;
+    return Puzzle.fromJson(puzzleData);
+    // Внешний catch в loadPuzzle поймает любую ошибку с деталями
   }
 
   @override
@@ -99,6 +102,21 @@ class PuzzleRemoteDataSourceImpl implements PuzzleRemoteDataSource {
     }
   }
 
+  Future<int> getUserPuzzleRating(String userId) async {
+    try {
+      final response = await client
+          .from('ratings')
+          .select('rating')
+          .eq('user_id', userId)
+          .eq('variant_key', 'puzzles')
+          .single();
+
+      return response['rating'] as int? ?? 1500;
+    } catch (e) {
+      return 1500;
+    }
+  }
+
   @override
   Future<bool> submitSolution({
     required String puzzleId,
@@ -119,13 +137,13 @@ class PuzzleRemoteDataSourceImpl implements PuzzleRemoteDataSource {
         }
       }
 
-      // Record the solved puzzle in user_puzzle_solutions table
+      // Record the solved puzzle using RPC function
       final userId = client.auth.currentUser?.id;
       if (userId != null) {
-        await client.from('user_puzzle_solutions').insert({
-          'user_id': userId,
-          'puzzle_id': puzzleId,
-          'solved_at': DateTime.now().toIso8601String(),
+        await client.rpc('save_puzzle_attempt', params: {
+          'p_user_id': userId,
+          'p_puzzle_id': puzzleId,
+          'p_is_solved': true,
         });
       }
 
@@ -135,51 +153,79 @@ class PuzzleRemoteDataSourceImpl implements PuzzleRemoteDataSource {
     }
   }
 
+  Future<void> savePuzzleAttempt({
+    required String userId,
+    required String puzzleId,
+    required bool isSolved,
+  }) async {
+    try {
+      await client.rpc('save_puzzle_attempt', params: {
+        'p_user_id': userId,
+        'p_puzzle_id': puzzleId,
+        'p_is_solved': isSolved,
+      });
+    } catch (e) {
+      throw ServerException('Failed to save puzzle attempt');
+    }
+  }
+
   @override
   Future<Map<String, dynamic>> getUserStats() async {
     try {
       final userId = client.auth.currentUser?.id;
       if (userId == null) {
-        return {
-          'rating': 1500,
-          'streak': 0,
-          'solved_today': 0,
-        };
+        return {'rating': 1500, 'streak': 0, 'solved_today': 0, 'solved_total': 0};
       }
 
-      // Get user's puzzle rating from profiles table
-      final profileResponse = await client
-          .from('profiles')
-          .select('puzzle_rating')
-          .eq('id', userId)
-          .single();
+      final puzzleRating = await getUserPuzzleRating(userId);
 
-      final puzzleRating = profileResponse['puzzle_rating'] as int? ?? 1500;
+      int solvedTotal = 0;
+      int solvedToday = 0;
+      int streak = 0;
 
-      // Get today's solved puzzles count
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day).toIso8601String();
-      final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59).toIso8601String();
+      try {
+        final solvedResponse = await client
+            .from('user_puzzle_attempts')
+            .select('puzzle_id')
+            .eq('user_id', userId)
+            .eq('is_solved', true);
+        solvedTotal = solvedResponse.length;
+      } catch (e) {
+        print('=== getUserStats: solvedTotal error: $e');
+      }
 
-      final solvedResponse = await client
-          .from('user_puzzle_solutions')
-          .select('id')
-          .eq('user_id', userId)
-          .gte('solved_at', startOfDay)
-          .lte('solved_at', endOfDay);
+      try {
+        final today = DateTime.now();
+        final startOfDay = DateTime(today.year, today.month, today.day).toIso8601String();
+        final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59).toIso8601String();
 
-      final solvedToday = solvedResponse.length;
+        final solvedTodayResponse = await client
+            .from('user_puzzle_attempts')
+            .select('puzzle_id')
+            .eq('user_id', userId)
+            .eq('is_solved', true)
+            .gte('last_attempt_at', startOfDay)
+            .lte('last_attempt_at', endOfDay);
+        solvedToday = solvedTodayResponse.length;
+      } catch (e) {
+        print('=== getUserStats: solvedToday error: $e');
+      }
 
-      // Get current streak (consecutive days with at least one solved puzzle)
-      final streak = await _calculateStreak(userId);
+      try {
+        streak = await _calculateStreak(userId);
+      } catch (e) {
+        print('=== getUserStats: streak error: $e');
+      }
 
       return {
         'rating': puzzleRating,
         'streak': streak,
         'solved_today': solvedToday,
+        'solved_total': solvedTotal,
       };
     } catch (e) {
-      throw ServerException('Failed to fetch user stats');
+      print('=== getUserStats failed: $e');
+      return {'rating': 1500, 'streak': 0, 'solved_today': 0, 'solved_total': 0};
     }
   }
 
@@ -187,14 +233,15 @@ class PuzzleRemoteDataSourceImpl implements PuzzleRemoteDataSource {
     try {
       // Get all solved puzzles grouped by date
       final response = await client
-          .from('user_puzzle_solutions')
-          .select('solved_at')
+          .from('user_puzzle_attempts')
+          .select('last_attempt_at')
           .eq('user_id', userId)
-          .order('solved_at', ascending: false)
+          .eq('is_solved', true)
+          .order('last_attempt_at', ascending: false)
           .limit(365); // Last year
 
       final dates = response
-          .map((r) => DateTime.parse(r['solved_at'] as String))
+          .map((r) => DateTime.parse(r['last_attempt_at'] as String))
           .map((d) => DateTime(d.year, d.month, d.day))
           .toSet()
           .toList()

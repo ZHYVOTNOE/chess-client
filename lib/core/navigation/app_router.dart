@@ -19,7 +19,7 @@ import '../../features/home/home_screen.dart';
 import '../../features/leaderboard/leaderboard_di.dart';
 import '../../features/learn/presentation/learn_hub_screen.dart';
 import '../../features/learn/presentation/openings/openings_screen.dart';
-import '../../features/learn/presentation/puzzles/puzzles_screen.dart';
+import '../../features/learn/puzzles/presentation/screens/puzzles_screen.dart';
 import '../../features/matchmaking/presentation/cubits/matchmaking_cubit.dart';
 import '../../features/matchmaking/presentation/screens/searching_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
