@@ -796,14 +796,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/providers/game_provider.dart';
 import '../../../../core/providers/locale_provider.dart';
-import '../../../matchmaking/presentation/cubits/matchmaking_cubit.dart';
 import '../../data/datasources/ratings_remote_datasource.dart';
+import '../../data/repositories/game_setup_repository_impl.dart';
 import '../../data/repositories/rating_repository_impl.dart';
 import '../../domain/entities/engine_config.dart';
 import '../../domain/entities/game_config.dart';
+import '../../domain/entities/game_setup.dart';
 import '../../domain/entities/player_color.dart';
-import '../../domain/entities/rating.dart';
 import '../../domain/entities/time_control.dart';
+import '../../domain/repositories/game_setup_repository.dart';
 import '../../domain/repositories/rating_repository.dart';
 
 class SetupGameScreen extends StatefulWidget {
@@ -820,6 +821,7 @@ class SetupGameScreen extends StatefulWidget {
 
 class _SetupGameScreenState extends State<SetupGameScreen> {
   late final RatingRepository _ratingRepository;
+  late final GameSetupRepository _gameSetupRepository;
 
   final List<bishop.Variant> _variants = [
     bishop.Variant.standard(),
@@ -907,6 +909,59 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     _ratingRepository = RatingRepositoryImpl(
       RatingsRemoteDataSource(Supabase.instance.client),
     );
+    _gameSetupRepository = GameSetupRepositoryImpl(
+      Supabase.instance.client,
+    );
+    _loadSavedSettings();
+  }
+
+  Future<void> _loadSavedSettings() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      final savedSetup = await _gameSetupRepository.getGameSetup(userId);
+      if (savedSetup != null) {
+        setState(() {
+          // Find variant index by name
+          final variantIndex = _variants.indexWhere(
+            (v) => v.name == savedSetup.variant,
+          );
+          if (variantIndex >= 0) {
+            _variant = variantIndex;
+          }
+
+          // Set time control category
+          _currentCategory = savedSetup.timeControlCategory;
+
+          // Set time control
+          _selectedTime = savedSetup.timeControl;
+
+          // Set rating range
+          _ratingRange = savedSetup.ratingRange;
+        });
+      }
+    } catch (e) {
+      // Ignore errors, use defaults
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      final setup = GameSetup(
+        userId: userId,
+        variant: _variants[_variant].name,
+        timeControl: _selectedTime,
+        timeControlCategory: _currentCategory,
+        ratingRange: _ratingRange,
+      );
+      await _gameSetupRepository.saveGameSetup(setup);
+    } catch (e) {
+      // Ignore save errors
+    }
   }
 
   @override
@@ -1032,7 +1087,10 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     return DropdownButtonFormField<int>(
       value: _variant,
       items: _variantDropdownItems,
-      onChanged: (value) => setState(() => _variant = value ?? _variant),
+      onChanged: (value) {
+        setState(() => _variant = value ?? _variant);
+        _saveSettings();
+      },
       decoration: const InputDecoration(
         border: OutlineInputBorder(),
       ),
@@ -1078,6 +1136,7 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
                     _selectedTime = _timeControls[_currentCategory]!.first['code'] as String;
                   }
                 });
+                _saveSettings();
               },
             ),
           );
@@ -1102,7 +1161,10 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
         final time = times[index];
         final isSelected = _selectedTime == time['code'];
         return GestureDetector(
-          onTap: () => setState(() => _selectedTime = time['code'] as String),
+          onTap: () {
+            setState(() => _selectedTime = time['code'] as String);
+            _saveSettings();
+          },
           child: Container(
             decoration: BoxDecoration(
               color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade100,
@@ -1316,7 +1378,10 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
             (range) => RadioListTile<String>(
           value: range,
           groupValue: _ratingRange,
-          onChanged: (value) => setState(() => _ratingRange = value ?? _ratingRange),
+          onChanged: (value) {
+            setState(() => _ratingRange = value ?? _ratingRange);
+            _saveSettings();
+          },
           title: Text(range == 'any' ? 'Любой' : range),
         ),
       )

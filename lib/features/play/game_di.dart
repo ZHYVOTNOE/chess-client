@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../matchmaking/data/websocket_service.dart';
 import '../matchmaking/presentation/cubits/matchmaking_cubit.dart';
 import 'data/datasources/ratings_remote_datasource.dart';
+import 'data/repositories/game_setup_repository_impl.dart';
 import 'data/repositories/rating_repository_impl.dart';
 import 'data/services/game_service.dart';
 import 'data/services/stockfish_service.dart';
@@ -12,6 +13,7 @@ import 'domain/controllers/game_controller.dart';
 import 'domain/controllers/local_controller.dart';
 import 'domain/entities/engine_config.dart';
 import 'domain/entities/game_config.dart';
+import 'domain/repositories/game_setup_repository.dart';
 import 'domain/repositories/rating_repository.dart';
 
 
@@ -30,6 +32,7 @@ void initGameDI() {
 
   // Repositories
   sl.registerLazySingleton<RatingRepository>(() => RatingRepositoryImpl(sl()));
+  sl.registerLazySingleton<GameSetupRepository>(() => GameSetupRepositoryImpl(Supabase.instance.client));
 
   // Controllers
   sl.registerFactoryParam<GameController, String, GameConfig>((mode, config) {
