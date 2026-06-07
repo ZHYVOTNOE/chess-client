@@ -9,6 +9,8 @@ class SocialState {
   final int pendingRequestsCount;
   final bool isSearching;
   final String? error;
+  final String currentUserRole; // 'user' | 'admin'
+  final Set<String> bannedUserIds; // id пользователей, которые сейчас забанены
 
   SocialState({
     required this.friends,
@@ -19,6 +21,8 @@ class SocialState {
     this.pendingRequestsCount = 0,
     required this.isSearching,
     this.error,
+    this.currentUserRole = 'user',
+    this.bannedUserIds = const {},
   });
 
   factory SocialState.initial() {
@@ -30,8 +34,12 @@ class SocialState {
       gameInvites: [],
       pendingRequestsCount: 0,
       isSearching: false,
+      currentUserRole: 'user',
+      bannedUserIds: {},
     );
   }
+
+  bool get isAdmin => currentUserRole == 'admin';
 
   SocialState copyWith({
     List<Friend>? friends,
@@ -42,6 +50,8 @@ class SocialState {
     int? pendingRequestsCount,
     bool? isSearching,
     String? error,
+    String? currentUserRole,
+    Set<String>? bannedUserIds,
   }) {
     return SocialState(
       friends: friends ?? this.friends,
@@ -52,6 +62,8 @@ class SocialState {
       pendingRequestsCount: pendingRequestsCount ?? this.pendingRequestsCount,
       isSearching: isSearching ?? this.isSearching,
       error: error,
+      currentUserRole: currentUserRole ?? this.currentUserRole,
+      bannedUserIds: bannedUserIds ?? this.bannedUserIds,
     );
   }
 }

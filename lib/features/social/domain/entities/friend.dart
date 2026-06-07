@@ -19,6 +19,7 @@ class Friend {
   final int? rating;
   final String? title;
   final String? countryCode;
+  final String role; // 'user' | 'admin'
 
   Friend({
     required this.id,
@@ -35,16 +36,13 @@ class Friend {
     this.rating,
     this.title,
     this.countryCode,
+    this.role = 'user',
   });
 
-  /// Check if this is a pending request sent by the current user
   bool get isSentRequest => status == FriendStatus.pending;
-
-  /// Check if this is a pending request received by the current user
   bool get isReceivedRequest => status == FriendStatus.pending;
-
-  /// Check if this is an accepted friend
   bool get isFriend => status == FriendStatus.accepted;
+  bool get isAdmin => role == 'admin';
 
   Friend copyWith({
     String? id,
@@ -60,6 +58,7 @@ class Friend {
     int? rating,
     String? title,
     String? countryCode,
+    String? role,
   }) {
     return Friend(
       id: id ?? this.id,
@@ -75,6 +74,7 @@ class Friend {
       rating: rating ?? this.rating,
       title: title ?? this.title,
       countryCode: countryCode ?? this.countryCode,
+      role: role ?? this.role,
     );
   }
 }

@@ -11,6 +11,7 @@ part 'social_state.dart';
 class SocialCubit extends Cubit<SocialState> {
   final FriendRepository _friendRepository;
   final FriendService _friendService;
+  final _supabase = Supabase.instance.client;
 
   SocialCubit(this._friendRepository, this._friendService)
       : super(SocialState.initial()) {
@@ -21,7 +22,9 @@ class SocialCubit extends Cubit<SocialState> {
     final userId = _getCurrentUserId();
     if (userId == null) return;
 
-    // 1. ПЕРВИЧНАЯ ЗАГРУЗКА: чтобы данные подтянулись сразу, не дожидаясь стримов
+    // Загружаем роль текущего пользователя
+    await _loadCurrentUserRole(userId);
+
     try {
       final friends = await _friendRepository.getFriends(userId);
       final requests = await _friendRepository.getPendingRequests(userId);
@@ -36,7 +39,6 @@ class SocialCubit extends Cubit<SocialState> {
       debugPrint('Error initializing social data: $e');
     }
 
-    // 2. Подписка на стримы для синхронизации в реальном времени (если включен Realtime)
     _friendRepository.friendsStream(userId).listen((friends) {
       emit(state.copyWith(friends: friends));
     });
@@ -57,13 +59,26 @@ class SocialCubit extends Cubit<SocialState> {
     });
   }
 
+  Future<void> _loadCurrentUserRole(String userId) async {
+    try {
+      final data = await _supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .single();
+      emit(state.copyWith(currentUserRole: data['role'] ?? 'user'));
+    } catch (e) {
+      debugPrint('Error loading user role: $e');
+    }
+  }
+
   String? _getCurrentUserId() {
-    return Supabase.instance.client.auth.currentUser?.id;
+    return _supabase.auth.currentUser?.id;
   }
 
   Future<void> searchUsers(String query) async {
     if (query.isEmpty) {
-      emit(state.copyWith(searchResults: []));
+      emit(state.copyWith(searchResults: [], bannedUserIds: {}));
       return;
     }
 
@@ -71,28 +86,95 @@ class SocialCubit extends Cubit<SocialState> {
 
     try {
       final results = await _friendRepository.searchUsers(query);
-      emit(state.copyWith(searchResults: results, isSearching: false));
+
+      // Если текущий пользователь — админ, подгружаем статусы банов
+      Set<String> bannedIds = {};
+      if (state.isAdmin && results.isNotEmpty) {
+        final ids = results.map((u) => u.friendId).toList();
+        final banned = await _supabase
+            .from('profiles')
+            .select('id, is_banned, banned_until')
+            .inFilter('id', ids);
+
+        final now = DateTime.now();
+        bannedIds = (banned as List)
+            .where((p) {
+          if (p['is_banned'] != true) return false;
+          final until = p['banned_until'];
+          if (until == null) return true; // перманентный
+          return DateTime.parse(until).isAfter(now);
+        })
+            .map<String>((p) => p['id'] as String)
+            .toSet();
+      }
+
+      emit(state.copyWith(
+        searchResults: results,
+        bannedUserIds: bannedIds,
+        isSearching: false,
+      ));
     } catch (e) {
       emit(state.copyWith(isSearching: false, error: e.toString()));
     }
   }
 
+  /// Забанить пользователя.
+  /// [bannedUntil] == null означает перманентный бан.
+  Future<void> banUser({
+    required String userId,
+    required String reason,
+    DateTime? bannedUntil,
+  }) async {
+    final adminId = _getCurrentUserId();
+    if (adminId == null) return;
+
+    try {
+      await _supabase.from('profiles').update({
+        'is_banned': true,
+        'ban_reason': reason,
+        'banned_until': bannedUntil?.toIso8601String(),
+        'banned_by': adminId,
+      }).eq('id', userId);
+
+      // Обновляем локальное состояние оптимистично
+      final updated = {...state.bannedUserIds, userId};
+      emit(state.copyWith(bannedUserIds: updated));
+    } catch (e) {
+      emit(state.copyWith(error: 'Ошибка бана: ${e.toString()}'));
+    }
+  }
+
+  Future<void> unbanUser(String userId) async {
+    try {
+      await _supabase.from('profiles').update({
+        'is_banned': false,
+        'ban_reason': null,
+        'banned_until': null,
+        'banned_by': null,
+      }).eq('id', userId);
+
+      // Убираем из локального состояния
+      final updated = {...state.bannedUserIds}..remove(userId);
+      emit(state.copyWith(bannedUserIds: updated));
+    } catch (e) {
+      emit(state.copyWith(error: 'Ошибка разбана: ${e.toString()}'));
+    }
+  }
+
+  // --- Остальные методы без изменений ---
+
   Future<void> sendFriendRequest(String friendId, {Friend? knownProfile}) async {
     final userId = _getCurrentUserId();
     if (userId == null) return;
-
     try {
       await _friendRepository.sendFriendRequest(userId, friendId);
-
-      // Оптимистично добавляем в sentRequests с уже известным профилем
       if (knownProfile != null) {
         final optimistic = knownProfile.copyWith(
           userId: userId,
           status: FriendStatus.pending,
           createdAt: DateTime.now(),
         );
-        final updated = [...state.sentRequests, optimistic];
-        emit(state.copyWith(sentRequests: updated));
+        emit(state.copyWith(sentRequests: [...state.sentRequests, optimistic]));
       } else {
         final sentRequests = await _friendRepository.getSentRequests(userId);
         emit(state.copyWith(sentRequests: sentRequests));
@@ -107,7 +189,6 @@ class SocialCubit extends Cubit<SocialState> {
       await _friendRepository.acceptFriendRequest(requestId);
       final userId = _getCurrentUserId();
       if (userId != null) {
-        // Мгновенно обновляем: убираем из запросов, добавляем в друзья
         final friends = await _friendRepository.getFriends(userId);
         final requests = await _friendRepository.getPendingRequests(userId);
         emit(state.copyWith(

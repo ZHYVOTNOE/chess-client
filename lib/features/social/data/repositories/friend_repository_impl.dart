@@ -32,14 +32,12 @@ class FriendRepositoryImpl implements FriendRepository {
   Future<List<Friend>> searchUsers(String query) async {
     try {
       final currentUserId = _supabase.auth.currentUser?.id;
-
-      print('DEBUG: Searching users. Current User ID: $currentUserId, Query: $query');
-
       final isNumericId = RegExp(r'^\d{10}$').hasMatch(query);
 
       final queryBuilder = _supabase
           .from('profiles')
-          .select('id, nickname, full_name, avatar_url, bio, display_id, last_seen_at, title, country_code');
+      // добавляем role в select
+          .select('id, nickname, full_name, avatar_url, bio, display_id, last_seen_at, title, country_code, role');
 
       if (currentUserId != null) {
         queryBuilder.neq('id', currentUserId);
@@ -51,9 +49,9 @@ class FriendRepositoryImpl implements FriendRepository {
           : 'nickname.ilike.%$query%,full_name.ilike.%$query%')
           .limit(20);
 
-      final filteredResponse = response.where((item) => item['id'] != currentUserId).toList();
-
-      print('DEBUG: Total results from DB: ${response.length}, After filter: ${filteredResponse.length}');
+      final filteredResponse = response
+          .where((item) => item['id'] != currentUserId)
+          .toList();
 
       return filteredResponse.map((data) {
         final displayName = data['nickname'] ??
@@ -77,6 +75,7 @@ class FriendRepositoryImpl implements FriendRepository {
           lastSeenAt: lastSeenAt,
           title: data['title'],
           countryCode: data['country_code'],
+          role: data['role'] ?? 'user', // <-- добавлено
           status: FriendStatus.pending,
           createdAt: DateTime.now(),
         );
@@ -260,7 +259,11 @@ class FriendRepositoryImpl implements FriendRepository {
     );
   }
 
-  Future<Friend> _mapToFriendWithProfile(Map<String, dynamic> data, String currentUserId, String otherUserId) async {
+  Future<Friend> _mapToFriendWithProfile(
+      Map<String, dynamic> data,
+      String currentUserId,
+      String otherUserId,
+      ) async {
     final cached = _profileCache[otherUserId];
     final now = DateTime.now();
     Map<String, dynamic>? profile;
@@ -271,7 +274,8 @@ class FriendRepositoryImpl implements FriendRepository {
       try {
         final profileData = await _supabase
             .from('profiles')
-            .select('nickname, full_name, bio, avatar_url, last_seen_at, display_id, title, country_code')
+        // добавляем role
+            .select('nickname, full_name, bio, avatar_url, last_seen_at, display_id, title, country_code, role')
             .eq('id', otherUserId)
             .single();
 
@@ -304,6 +308,7 @@ class FriendRepositoryImpl implements FriendRepository {
       lastSeenAt: lastSeenAt,
       title: profile?['title'],
       countryCode: profile?['country_code'],
+      role: profile?['role'] ?? 'user', // <-- добавлено
       status: _mapStatus(data['status'] as String),
       createdAt: DateTime.parse(data['created_at'] as String),
       updatedAt: data['updated_at'] != null

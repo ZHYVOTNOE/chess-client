@@ -367,25 +367,174 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
   }
 
   Widget _buildSearchAction(SocialState state, Friend user) {
-    bool isFriend = state.friends.any((f) => f.friendId == user.friendId);
-    bool isSent = state.sentRequests.any((r) => r.friendId == user.friendId);
+    final isFriend = state.friends.any((f) => f.friendId == user.friendId);
+    final isSent = state.sentRequests.any((r) => r.friendId == user.friendId);
+    final isBanned = state.bannedUserIds.contains(user.friendId);
 
-    if (isFriend) {
-      return const Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Icon(Icons.check_circle, color: Colors.green, semanticLabel: 'Already friends'),
-      );
-    } else if (isSent) {
-      return const Padding(
-        padding: EdgeInsets.all(8.0),
-        child: Icon(Icons.hourglass_empty, color: Colors.orange, semanticLabel: 'Request sent'),
-      );
-    } else {
-      return IconButton(
-        icon: const Icon(Icons.person_add),
-        onPressed: () => _sendFriendRequest(user),
-      );
-    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Кнопка добавления в друзья (для всех)
+        if (isFriend)
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Icon(Icons.check_circle, color: Colors.green),
+          )
+        else if (isSent)
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Icon(Icons.hourglass_empty, color: Colors.orange),
+          )
+        else
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            onPressed: () => _sendFriendRequest(user),
+          ),
+
+        if (state.isAdmin && !user.isAdmin)
+          isBanned
+              ? IconButton(
+            icon: const Icon(Icons.lock_open, color: Colors.green),
+            tooltip: 'Разбанить',
+            onPressed: () => _showUnbanDialog(user),
+          )
+              : IconButton(
+            icon: const Icon(Icons.block, color: Colors.red),
+            tooltip: 'Заблокировать',
+            onPressed: () => _showBanDialog(user),
+          ),
+      ],
+    );
+  }
+
+  void _showBanDialog(Friend user) {
+    // Пресеты срока бана
+    const presets = [
+      ('1 час', Duration(hours: 1)),
+      ('24 часа', Duration(hours: 24)),
+      ('7 дней', Duration(days: 7)),
+      ('30 дней', Duration(days: 30)),
+      ('1 год', Duration(days: 365)),
+      ('Навсегда', null),
+    ];
+
+    int selectedPreset = 1; // 24 часа по умолчанию
+    final reasonController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Заблокировать ${user.friendNickname}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Срок блокировки',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                ...List.generate(presets.length, (i) {
+                  final (label, _) = presets[i];
+                  return RadioListTile<int>(
+                    title: Text(label),
+                    value: i,
+                    groupValue: selectedPreset,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    onChanged: (v) => setDialogState(() => selectedPreset = v!),
+                  );
+                }),
+                const SizedBox(height: 12),
+                const Text(
+                  'Причина',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: reasonController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText: 'Укажите причину блокировки',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              onPressed: () async {
+                final reason = reasonController.text.trim();
+                if (reason.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Укажите причину блокировки')),
+                  );
+                  return;
+                }
+
+                final (_, duration) = presets[selectedPreset];
+                final bannedUntil = duration != null
+                    ? DateTime.now().add(duration)
+                    : null; // null = навсегда
+
+                Navigator.pop(context);
+
+                await context.read<SocialCubit>().banUser(
+                  userId: user.friendId,
+                  reason: reason,
+                  bannedUntil: bannedUntil,
+                );
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${user.friendNickname} заблокирован'),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Заблокировать'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUnbanDialog(Friend user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Разблокировать ${user.friendNickname}?'),
+        content: const Text('Пользователь снова получит полный доступ к приложению.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await context.read<SocialCubit>().unbanUser(user.friendId);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${user.friendNickname} разблокирован')),
+                );
+              }
+            },
+            child: const Text('Разблокировать'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildRequestsList(List<Friend> incomingRequests, List<Friend> sentRequests) {
