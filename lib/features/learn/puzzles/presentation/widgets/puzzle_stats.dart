@@ -1,35 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:client/core/providers/locale_provider.dart';
 
 class PuzzleStats extends StatelessWidget {
   final int streak;
   final int solvedToday;
-  final int progress;
+  final int userRating;
+  final int elapsedSeconds;
+  final int? ratingDelta;
 
   const PuzzleStats({
     super.key,
     this.streak = 0,
     this.solvedToday = 0,
-    this.progress = 0,
+    this.userRating = 1500,
+    this.elapsedSeconds = 0,
+    this.ratingDelta,
   });
+
+  String _formatTime(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final locale = context.watch<LocaleProvider>();
-
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             Expanded(
               child: _StatItem(
                 icon: Icons.local_fire_department,
                 value: '$streak',
-                label: locale.get('puzzles_streak'),
+                label: 'Серия',
                 color: Colors.orange,
               ),
             ),
@@ -37,21 +42,72 @@ class PuzzleStats extends StatelessWidget {
               child: _StatItem(
                 icon: Icons.check_circle,
                 value: '$solvedToday',
-                label: locale.get('puzzles_solved_today'),
+                label: 'Сегодня',
                 color: Colors.green,
               ),
             ),
             Expanded(
+              child: _RatingItem(
+                rating: userRating,
+                delta: ratingDelta,
+              ),
+            ),
+            Expanded(
               child: _StatItem(
-                icon: Icons.trending_up,
-                value: progress >= 0 ? '+$progress' : '$progress',
-                label: locale.get('puzzles_progress'),
+                icon: Icons.timer,
+                value: _formatTime(elapsedSeconds),
+                label: 'Время',
                 color: Colors.blue,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RatingItem extends StatelessWidget {
+  final int rating;
+  final int? delta;
+
+  const _RatingItem({required this.rating, this.delta});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const Icon(Icons.star, color: Colors.purple, size: 20),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$rating',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.purple,
+              ),
+            ),
+            if (delta != null) ...[
+              const SizedBox(width: 4),
+              Text(
+                delta! >= 0 ? '+$delta' : '$delta',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: delta! >= 0 ? Colors.green : Colors.red,
+                ),
+              ),
+            ],
+          ],
+        ),
+        Text(
+          'Рейтинг',
+          style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+        ),
+      ],
     );
   }
 }
@@ -73,22 +129,19 @@ class _StatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 24),
+        Icon(icon, color: color, size: 20),
         const SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 16,
             fontWeight: FontWeight.bold,
             color: color,
           ),
         ),
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
         ),
       ],
     );

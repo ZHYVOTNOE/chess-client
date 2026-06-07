@@ -2,13 +2,11 @@ part of 'puzzle_cubit.dart';
 
 abstract class PuzzleState extends Equatable {
   const PuzzleState();
-
   @override
   List<Object?> get props => [];
 }
 
 class PuzzleInitial extends PuzzleState {}
-
 class PuzzleLoading extends PuzzleState {}
 
 class PuzzleLoaded extends PuzzleState {
@@ -19,7 +17,11 @@ class PuzzleLoaded extends PuzzleState {
   final bool isHintShown;
   final int streak;
   final int solvedToday;
-  final int ratingProgress;
+  final int userRating;
+  final int elapsedSeconds;
+  final String? feedbackMessage;
+  final int? ratingDelta;
+  final int hintLevel; // 0=нет, 1=фигура подсвечена, 2=стрелка
 
   const PuzzleLoaded({
     required this.fen,
@@ -29,7 +31,11 @@ class PuzzleLoaded extends PuzzleState {
     this.isHintShown = false,
     this.streak = 0,
     this.solvedToday = 0,
-    this.ratingProgress = 0,
+    this.userRating = 1500,
+    this.elapsedSeconds = 0,
+    this.feedbackMessage,
+    this.ratingDelta,
+    this.hintLevel = 0,
   });
 
   PuzzleLoaded copyWith({
@@ -40,7 +46,11 @@ class PuzzleLoaded extends PuzzleState {
     bool? isHintShown,
     int? streak,
     int? solvedToday,
-    int? ratingProgress,
+    int? userRating,
+    int? elapsedSeconds,
+    Object? feedbackMessage = _sentinel,
+    Object? ratingDelta = _sentinel,
+    int? hintLevel,
   }) {
     return PuzzleLoaded(
       fen: fen ?? this.fen,
@@ -50,22 +60,23 @@ class PuzzleLoaded extends PuzzleState {
       isHintShown: isHintShown ?? this.isHintShown,
       streak: streak ?? this.streak,
       solvedToday: solvedToday ?? this.solvedToday,
-      ratingProgress: ratingProgress ?? this.ratingProgress,
+      userRating: userRating ?? this.userRating,
+      elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+      feedbackMessage: feedbackMessage == _sentinel ? this.feedbackMessage : feedbackMessage as String?,
+      ratingDelta: ratingDelta == _sentinel ? this.ratingDelta : ratingDelta as int?,
+      hintLevel: hintLevel ?? this.hintLevel,
     );
   }
 
   @override
   List<Object?> get props => [
-    fen,
-    currentMoveIndex,
-    isOpponentTurn,
-    userColor,
-    isHintShown,
-    streak,
-    solvedToday,
-    ratingProgress,
+    fen, currentMoveIndex, isOpponentTurn, userColor, isHintShown,
+    streak, solvedToday, userRating, elapsedSeconds,
+    feedbackMessage, ratingDelta, hintLevel,
   ];
 }
+
+const _sentinel = Object();
 
 class PuzzleSolved extends PuzzleState {
   final String fen;
@@ -73,7 +84,9 @@ class PuzzleSolved extends PuzzleState {
   final String userColor;
   final int streak;
   final int solvedToday;
-  final int ratingProgress;
+  final int userRating;
+  final int elapsedSeconds;
+  final int? ratingDelta;
 
   const PuzzleSolved({
     required this.fen,
@@ -81,25 +94,21 @@ class PuzzleSolved extends PuzzleState {
     required this.userColor,
     this.streak = 0,
     this.solvedToday = 0,
-    this.ratingProgress = 0,
+    this.userRating = 1500,
+    this.elapsedSeconds = 0,
+    this.ratingDelta,
   });
 
   @override
   List<Object?> get props => [
-    fen,
-    currentMoveIndex,
-    userColor,
-    streak,
-    solvedToday,
-    ratingProgress,
+    fen, currentMoveIndex, userColor,
+    streak, solvedToday, userRating, elapsedSeconds, ratingDelta,
   ];
 }
 
 class PuzzleError extends PuzzleState {
   final String message;
-
   const PuzzleError({required this.message});
-
   @override
   List<Object?> get props => [message];
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -27,58 +28,97 @@ class PuzzleCubit extends Cubit<PuzzleState> {
   String _userColor = 'white';
   late bishop.Game _game;
 
-  Future<void> loadPuzzle(String userId) async {
+  int _streak = 0;
+  int _solvedToday = 0;
+  int _userRating = 1500;
+  bool _madeErrorThisPuzzle = false;
+  bool _ratingPenaltyApplied = false;
+
+  Timer? _timer;
+  int _elapsedSeconds = 0;
+
+  void _startTimer() {
+    _timer?.cancel();
+    _elapsedSeconds = 0;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (state is PuzzleLoaded) {
+        _elapsedSeconds++;
+        emit((state as PuzzleLoaded).copyWith(elapsedSeconds: _elapsedSeconds));
+      }
+    });
+  }
+
+  void _stopTimer() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  Future<void> loadPuzzle(String userId, {bool isFirst = false}) async {
+    _stopTimer();
+
+    final savedStreak = _streak;
+    final savedSolvedToday = _solvedToday;
+    final savedRating = _userRating;
+
     emit(PuzzleLoading());
     try {
-      // Загружаем паззл и статистику параллельно
-      final results = await Future.wait([
-        getRandomPuzzle(userId),
-        repository.getUserStats(userId),
-      ]);
-
-      _currentPuzzle = results[0] as Puzzle;
-      final stats = results[1] as Map<String, dynamic>;
+      if (isFirst) {
+        final results = await Future.wait([
+          getRandomPuzzle(userId),
+          repository.getUserStats(userId),
+        ]);
+        _currentPuzzle = results[0] as Puzzle;
+        final stats = results[1] as Map<String, dynamic>;
+        _streak = stats['current_streak'] as int? ?? 0;
+        _solvedToday = stats['solved_today'] as int? ?? 0;
+        _userRating = stats['rating'] as int? ?? 1500;
+      } else {
+        _currentPuzzle = await getRandomPuzzle(userId);
+        _streak = savedStreak;
+        _solvedToday = savedSolvedToday;
+        _userRating = savedRating;
+      }
 
       _currentFen = _currentPuzzle!.fen;
       _game = bishop.Game(fen: _currentFen);
       _currentMoveIndex = 0;
       _isOpponentTurn = true;
+      _madeErrorThisPuzzle = false;
+      _ratingPenaltyApplied = false;
+      _elapsedSeconds = 0;
 
       final parts = _currentFen.split(' ');
-      final activeColor = parts[1];
-      _userColor = (activeColor == 'w') ? 'black' : 'white';
+      _userColor = (parts[1] == 'w') ? 'black' : 'white';
 
       emit(PuzzleLoaded(
         fen: _currentFen,
         currentMoveIndex: _currentMoveIndex,
         isOpponentTurn: _isOpponentTurn,
         userColor: _userColor,
-        streak: stats['streak'] as int? ?? 0,
-        solvedToday: stats['solved_today'] as int? ?? 0,
-        ratingProgress: 0,
+        streak: _streak,
+        solvedToday: _solvedToday,
+        userRating: _userRating,
+        elapsedSeconds: 0,
+        ratingDelta: null,
       ));
 
       await Future.delayed(const Duration(milliseconds: 1000));
       _playOpponentMove();
+      _startTimer();
     } catch (e, st) {
-      print('=== PUZZLE ERROR ===');
-      print('Type: ${e.runtimeType}');
-      print('Message: $e');
-      print('Stack: $st');
+      print('=== PUZZLE ERROR ===\n$e\n$st');
       emit(PuzzleError(message: e.toString()));
     }
   }
 
   void _playOpponentMove() {
-    if (_currentPuzzle == null || _currentMoveIndex >= _currentPuzzle!.moves.length) return;
+    if (_currentPuzzle == null ||
+        _currentMoveIndex >= _currentPuzzle!.moves.length) return;
 
     final uciMove = _currentPuzzle!.moves[_currentMoveIndex];
-    final success = _applyMove(uciMove);
-    
-    if (success) {
+    if (_applyMove(uciMove)) {
       _currentMoveIndex++;
       _isOpponentTurn = false;
-
       if (state is PuzzleLoaded) {
         emit((state as PuzzleLoaded).copyWith(
           fen: _currentFen,
@@ -91,14 +131,11 @@ class PuzzleCubit extends Cubit<PuzzleState> {
 
   bool _applyMove(String uciMove) {
     try {
-      // Bishop's makeMoveString accepts UCI format directly (e.g., 'e2e4', 'f7f8q')
       final success = _game.makeMoveString(uciMove);
-      
       if (success) {
         _currentFen = _game.fen;
         return true;
       }
-      
       return false;
     } catch (e) {
       print('Error applying move: $e');
@@ -113,65 +150,106 @@ class PuzzleCubit extends Cubit<PuzzleState> {
     final expectedMove = _currentPuzzle!.moves[_currentMoveIndex];
 
     if (uciMove == expectedMove) {
-      // Correct move
       final success = _applyMove(uciMove);
-      
       if (success) {
         _currentMoveIndex++;
-
         if (_currentMoveIndex >= _currentPuzzle!.moves.length) {
-          // Puzzle solved
           _onPuzzleSolved();
         } else {
-          // Opponent's turn
           _isOpponentTurn = true;
           emit((state as PuzzleLoaded).copyWith(
             fen: _currentFen,
             currentMoveIndex: _currentMoveIndex,
             isOpponentTurn: _isOpponentTurn,
+            feedbackMessage: null,
+            hintLevel: 0,
           ));
-
-          // Auto-play opponent move after 500ms
-          Future.delayed(const Duration(milliseconds: 500), () {
-            _playOpponentMove();
-          });
+          Future.delayed(const Duration(milliseconds: 500), _playOpponentMove);
         }
       }
     } else {
-      // Incorrect move - show error feedback
+      // Неверный ход
+      _madeErrorThisPuzzle = true;
+
+      final fenBeforeError = _currentFen;
+      final gameBeforeError = bishop.Game(fen: _currentFen);
+      _applyMove(uciMove);
+
       emit((state as PuzzleLoaded).copyWith(
-        isHintShown: true,
+        fen: _currentFen,
+        feedbackMessage: 'wrong',
+        hintLevel: 0,
       ));
 
-      // Hide hint after 500ms
-      Future.delayed(const Duration(milliseconds: 500), () {
+      // Штраф рейтинга только один раз за задачу
+      if (!_ratingPenaltyApplied) {
+        _ratingPenaltyApplied = true;
+        _applyRatingPenalty();
+      }
+
+      // Откат хода через 800ms
+      Future.delayed(const Duration(milliseconds: 800), () {
         if (state is PuzzleLoaded) {
+          _currentFen = fenBeforeError;
+          _game = gameBeforeError;
           emit((state as PuzzleLoaded).copyWith(
-            isHintShown: false,
+            fen: _currentFen,
+            streak: _streak,
           ));
         }
       });
     }
   }
 
-  Future<void> _onPuzzleSolved() async {
+  void _applyRatingPenalty() {
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    int streak = 0;
-    int solvedToday = 0;
+    if (userId == null || _currentPuzzle == null) return;
+
+    Supabase.instance.client.rpc('complete_puzzle', params: {
+      'p_user_id': userId,
+      'p_puzzle_id': _currentPuzzle!.id,
+      'p_puzzle_rating': _currentPuzzle!.rating,
+      'p_is_solved': false,
+      'p_already_penalized': false,
+    }).then((result) {
+      if (result != null) {
+        final delta = (result['rating_delta'] as num?)?.toInt() ?? 0;
+        _streak = (result['current_streak'] as num?)?.toInt() ?? 0;
+        _userRating = (result['new_rating'] as num?)?.toInt() ?? _userRating;
+        if (state is PuzzleLoaded) {
+          emit((state as PuzzleLoaded).copyWith(
+            streak: _streak,
+            userRating: _userRating,
+            ratingDelta: delta,
+          ));
+        }
+      }
+    }).catchError((e) => print('Rating penalty error: $e'));
+  }
+
+  Future<void> _onPuzzleSolved() async {
+    _stopTimer();
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    int? ratingDelta;
 
     if (userId != null && _currentPuzzle != null) {
       try {
-        await repository.savePuzzleAttempt(
-          userId: userId,
-          puzzleId: _currentPuzzle!.id,
-          isSolved: true,
-        );
-        // Обновляем статистику после решения
-        final stats = await repository.getUserStats(userId);
-        streak = stats['streak'] as int? ?? 0;
-        solvedToday = stats['solved_today'] as int? ?? 0;
+        final result = await Supabase.instance.client.rpc('complete_puzzle', params: {
+          'p_user_id': userId,
+          'p_puzzle_id': _currentPuzzle!.id,
+          'p_puzzle_rating': _currentPuzzle!.rating,
+          'p_is_solved': true,
+          'p_already_penalized': _ratingPenaltyApplied,
+        });
+
+        if (result != null) {
+          ratingDelta = (result['rating_delta'] as num?)?.toInt();
+          _streak = (result['current_streak'] as num?)?.toInt() ?? _streak;
+          _solvedToday = (result['solved_today'] as num?)?.toInt() ?? _solvedToday;
+          _userRating = (result['new_rating'] as num?)?.toInt() ?? _userRating;
+        }
       } catch (e) {
-        print('Error saving puzzle attempt: $e');
+        print('Error completing puzzle: $e');
       }
     }
 
@@ -179,71 +257,64 @@ class PuzzleCubit extends Cubit<PuzzleState> {
       fen: _currentFen,
       currentMoveIndex: _currentMoveIndex,
       userColor: _userColor,
-      streak: streak,
-      solvedToday: solvedToday,
-      ratingProgress: 0,
+      streak: _streak,
+      solvedToday: _solvedToday,
+      userRating: _userRating,
+      elapsedSeconds: _elapsedSeconds,
+      ratingDelta: ratingDelta,
     ));
   }
 
   void retryPuzzle() {
     if (_currentPuzzle == null) return;
-
-    // Берём статистику из текущего стейта чтобы не терять
-    int streak = 0;
-    int solvedToday = 0;
-    if (state is PuzzleLoaded) {
-      streak = (state as PuzzleLoaded).streak;
-      solvedToday = (state as PuzzleLoaded).solvedToday;
-    } else if (state is PuzzleSolved) {
-      streak = (state as PuzzleSolved).streak;
-      solvedToday = (state as PuzzleSolved).solvedToday;
-    }
+    _stopTimer();
 
     _currentFen = _currentPuzzle!.fen;
     _game = bishop.Game(fen: _currentFen);
     _currentMoveIndex = 0;
     _isOpponentTurn = true;
+    _madeErrorThisPuzzle = false;
+    _ratingPenaltyApplied = false;
+    _elapsedSeconds = 0;
 
     emit(PuzzleLoaded(
       fen: _currentFen,
       currentMoveIndex: _currentMoveIndex,
       isOpponentTurn: _isOpponentTurn,
       userColor: _userColor,
-      streak: streak,
-      solvedToday: solvedToday,
+      streak: _streak,
+      solvedToday: _solvedToday,
+      userRating: _userRating,
+      elapsedSeconds: 0,
+      ratingDelta: null,
     ));
 
     Future.delayed(const Duration(milliseconds: 500), () {
       _playOpponentMove();
+      _startTimer();
     });
   }
 
   void showHint() {
-    if (state is PuzzleLoaded) {
-      emit((state as PuzzleLoaded).copyWith(
-        isHintShown: true,
-      ));
-
-      // Hide hint after 2 seconds
-      Future.delayed(const Duration(milliseconds: 2000), () {
-        if (state is PuzzleLoaded) {
-          emit((state as PuzzleLoaded).copyWith(
-            isHintShown: false,
-          ));
-        }
-      });
-    }
+    if (state is! PuzzleLoaded) return;
+    final currentLevel = (state as PuzzleLoaded).hintLevel;
+    // Первое нажатие — подсветка фигуры, второе — стрелка
+    emit((state as PuzzleLoaded).copyWith(
+      hintLevel: currentLevel >= 2 ? 2 : currentLevel + 1,
+    ));
   }
 
-  void loadNextPuzzle(String userId) {
-    loadPuzzle(userId);
-  }
+  void loadNextPuzzle(String userId) => loadPuzzle(userId, isFirst: false);
 
-  // Helper method to get hint move (for UI highlighting)
   String? getHintMove() {
-    if (_currentPuzzle == null || _currentMoveIndex >= _currentPuzzle!.moves.length) {
-      return null;
-    }
+    if (_currentPuzzle == null ||
+        _currentMoveIndex >= _currentPuzzle!.moves.length) return null;
     return _currentPuzzle!.moves[_currentMoveIndex];
+  }
+
+  @override
+  Future<void> close() {
+    _stopTimer();
+    return super.close();
   }
 }
