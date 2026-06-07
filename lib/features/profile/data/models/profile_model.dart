@@ -42,8 +42,6 @@ class ProfileModel implements UserProfile {
             variant: value['variant'] as String? ?? 'standard',
             timeControl: value['time_control'] as String? ?? 'blitz',
             rating: (value['rating'] as num?)?.toDouble() ?? 1200.0,
-            rd: (value['rd'] as num?)?.toDouble() ?? 350.0,
-            volatility: (value['volatility'] as num?)?.toDouble() ?? 0.06,
           );
         }
       });

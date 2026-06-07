@@ -18,8 +18,6 @@ class ProfileRepositoryImpl implements ProfileRepository {
       variant: playRating.variant,
       timeControl: playRating.timeControl,
       rating: playRating.rating,
-      rd: playRating.rd,
-      volatility: playRating.volatility,
       lastPlayedAt: playRating.lastPlayedAt,
     );
   }

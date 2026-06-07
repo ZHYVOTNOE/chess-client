@@ -24,7 +24,6 @@ class LeaderboardCubit extends Cubit<LeaderboardState> {
     'capablanca',
     'crazyhouse',
     'seirawan',
-    'xiangqi',
     'atomic',
     'kingOfTheHill',
     'horde',

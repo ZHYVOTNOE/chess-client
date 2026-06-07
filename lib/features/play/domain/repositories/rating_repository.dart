@@ -17,8 +17,6 @@ abstract class RatingRepository {
     required String variant,
     required String timeControl,
     double initialRating,
-    double initialRd,
-    double initialVolatility,
   });
 
   /// Update an existing rating entry

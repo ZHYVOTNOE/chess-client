@@ -30,16 +30,12 @@ class RatingRepositoryImpl implements RatingRepository {
     required String variant,
     required String timeControl,
     double initialRating = 1500.0,
-    double initialRd = 350.0,
-    double initialVolatility = 0.06,
   }) async {
     final model = await _remoteDataSource.createRatingEntry(
       userId: userId,
       variant: variant,
       timeControl: timeControl,
       initialRating: initialRating,
-      initialRd: initialRd,
-      initialVolatility: initialVolatility,
     );
     return _modelToEntity(model);
   }
@@ -56,8 +52,6 @@ class RatingRepositoryImpl implements RatingRepository {
       variant: model.variant,
       timeControl: model.timeControl,
       rating: model.rating,
-      rd: model.rd,
-      volatility: model.volatility,
       lastPlayedAt: model.lastPlayedAt,
     );
   }
@@ -68,8 +62,6 @@ class RatingRepositoryImpl implements RatingRepository {
       variant: entity.variant,
       timeControl: entity.timeControl,
       rating: entity.rating,
-      rd: entity.rd,
-      volatility: entity.volatility,
       lastPlayedAt: entity.lastPlayedAt,
     );
   }

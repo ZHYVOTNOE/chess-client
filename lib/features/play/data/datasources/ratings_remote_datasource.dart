@@ -10,7 +10,7 @@ class RatingsRemoteDataSource {
     try {
       final response = await _client
           .from('ratings')
-          .select('user_id,variant:variant_key,time_control:time_control_type,rating,rd,volatility') // ✅ без запятой
+          .select('user_id,variant:variant_key,time_control:time_control_type,rating') // ✅ без запятой
           .eq('user_id', userId);
 
       return (response as List)
@@ -50,8 +50,6 @@ class RatingsRemoteDataSource {
     required String variant,
     required String timeControl,
     double initialRating = 1500.0,
-    double initialRd = 350.0,
-    double initialVolatility = 0.06,
   }) async {
     try {
       final ratingData = {
@@ -59,8 +57,6 @@ class RatingsRemoteDataSource {
         'variant': variant,
         'time_control': timeControl,
         'rating': initialRating,
-        'rd': initialRd,
-        'volatility': initialVolatility,
         'games_played': 0,
         'wins': 0,
         'losses': 0,
@@ -124,8 +120,6 @@ class RatingsRemoteDataSource {
         'variant': json['variant_key'],
         'time_control': json['time_control_type'],
         'rating': json['rating'],
-        'rd': json['rd'],
-        'volatility': json['volatility'],
       };
       return RatingModel.fromJson(mappedJson);
     })

@@ -30,14 +30,9 @@ abstract class Rating {
   String get variant;
   String get timeControl;
   double get rating;
-  double get rd; // Rating deviation
-  double get volatility;
   int get gamesPlayed;
   int get wins;
   int get losses;
   int get draws;
   DateTime? get lastPlayedAt;
-
-  /// Returns formatted rating string (e.g., "1500 ± 50")
-  String get formatted;
 }

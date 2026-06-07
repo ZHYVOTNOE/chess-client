@@ -716,7 +716,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
 
                     final config = GameConfig.create(
                       variant: bishop.Variant.standard(),
-                      gameId: gameId,
+                      //gameId: gameId,
                       humanPlayer: whiteId == currentUserId ? PlayerColor.white : PlayerColor.black,
                       opponentType: OpponentType.human,
                     );

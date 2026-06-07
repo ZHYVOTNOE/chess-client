@@ -51,8 +51,6 @@ class ProfileCubit extends Cubit<ProfileState> {
       variant: model.variant,
       timeControl: model.timeControl,
       rating: model.rating,
-      rd: model.rd,
-      volatility: model.volatility,
       lastPlayedAt: model.lastPlayedAt,
     );
   }
@@ -62,8 +60,6 @@ class ProfileCubit extends Cubit<ProfileState> {
       variant: playRating.variant,
       timeControl: playRating.timeControl,
       rating: playRating.rating,
-      rd: playRating.rd,
-      volatility: playRating.volatility,
       lastPlayedAt: playRating.lastPlayedAt,
     );
   }

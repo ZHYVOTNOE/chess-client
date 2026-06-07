@@ -1,19 +1,17 @@
-import 'package:client/features/play/presentation/cubits/matchmaking_cubit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../matchmaking/data/websocket_service.dart';
+import '../matchmaking/presentation/cubits/matchmaking_cubit.dart';
 import 'data/datasources/ratings_remote_datasource.dart';
-import 'data/repositories/matchmaking_repository_impl.dart';
 import 'data/repositories/rating_repository_impl.dart';
 import 'data/services/game_service.dart';
 import 'data/services/stockfish_service.dart';
 import 'domain/controllers/bot_controller.dart';
 import 'domain/controllers/game_controller.dart';
 import 'domain/controllers/local_controller.dart';
-import 'domain/controllers/online_controller.dart';
 import 'domain/entities/engine_config.dart';
 import 'domain/entities/game_config.dart';
-import 'domain/repositories/matchmaking_repository.dart';
 import 'domain/repositories/rating_repository.dart';
 
 
@@ -23,13 +21,15 @@ void initGameDI() {
   // Services
   sl.registerLazySingleton<StockfishService>(() => StockfishService());
   sl.registerLazySingleton<GameService>(() => GameService(Supabase.instance.client));
+  sl.registerLazySingleton<MatchmakingWebSocketService>(() => MatchmakingWebSocketService(
+    serverUrl: 'ws://91.149.179.215:8080/ws',
+  ));
 
   // Data Sources
   sl.registerLazySingleton<RatingsRemoteDataSource>(() => RatingsRemoteDataSource(Supabase.instance.client));
 
   // Repositories
   sl.registerLazySingleton<RatingRepository>(() => RatingRepositoryImpl(sl()));
-  sl.registerLazySingleton<MatchmakingRepository>(() => MatchmakingRepositoryImpl(sl()));
 
   // Controllers
   sl.registerFactoryParam<GameController, String, GameConfig>((mode, config) {
@@ -40,12 +40,12 @@ void initGameDI() {
           botLevel: _mapBotLevel(config.engineConfig),
           timeLimitMs: config.engineConfig.timeLimitMs,
         );
-      case 'online':
-        return OnlineController(
-          gameService: sl(),
-          gameId: config.gameId ?? '',
-          userId: Supabase.instance.client.auth.currentUser?.id ?? '',
-        );
+      // case 'online':
+      //   return OnlineController(
+      //     gameService: sl(),
+      //     gameId: config.gameId ?? '',
+      //     userId: Supabase.instance.client.auth.currentUser?.id ?? '',
+      //   );
       case 'local':
         return LocalController();
       default:

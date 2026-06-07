@@ -35,11 +35,7 @@ class GameHubScreen extends StatelessWidget {
                         gameProvider.setVsRandom(value: true);
                         gameProvider.setVsFriend(value: false);
                         gameProvider.setVsComputer(value: false);
-                        context.push('/game/searching', extra: {
-                          'variant': 'standard',
-                          'timeControl': '3|0',
-                          'ratingRange': '±200',
-                        });
+                        context.push('/game/setup/random');
                       },
                     ),
                   ),

@@ -59,8 +59,6 @@ class RatingImpl implements Rating {
   @override final String variant;
   @override final String timeControl;
   @override final double rating;
-  @override final double rd;
-  @override final double volatility;
   @override final int gamesPlayed;
   @override final int wins;
   @override final int losses;
@@ -71,15 +69,10 @@ class RatingImpl implements Rating {
     required this.variant,
     required this.timeControl,
     required this.rating,
-    required this.rd,
-    required this.volatility,
     this.gamesPlayed = 0,
     this.wins = 0,
     this.losses = 0,
     this.draws = 0,
     this.lastPlayedAt,
   });
-
-  @override
-  String get formatted => '${rating.toInt()} ± ${rd.toInt()}';
 }

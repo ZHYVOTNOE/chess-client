@@ -16,12 +16,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/services/presence_service.dart';
 import 'features/auth/domain/auth_provider.dart';
+import 'features/matchmaking/presentation/cubits/matchmaking_cubit.dart';
 import 'features/profile/profile_di.dart';
 import 'features/profile/presentation/cubits/profile_cubit.dart'; // ✅ ДОБАВЛЕНО
 import 'features/settings/data/repositories/settings_repository.dart';
 import 'features/settings/settings_di.dart';
 import 'features/play/game_di.dart';
-import 'features/play/presentation/cubits/matchmaking_cubit.dart';
 import 'features/social/presentation/cubits/social_cubit.dart';
 import 'features/social/social_di.dart';
 import 'features/leaderboard/leaderboard_di.dart';

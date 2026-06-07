@@ -16,16 +16,16 @@ import '../../features/game_hub/presentation/tournament/join_daily_tournament_sc
 import '../../features/game_hub/presentation/tournament/join_live_tournament_screen.dart';
 import '../../features/game_hub/presentation/tournament/tournament_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/leaderboard/leaderboard_di.dart';
 import '../../features/learn/presentation/learn_hub_screen.dart';
 import '../../features/learn/presentation/openings/openings_screen.dart';
 import '../../features/learn/presentation/puzzles/puzzles_screen.dart';
+import '../../features/matchmaking/presentation/cubits/matchmaking_cubit.dart';
+import '../../features/matchmaking/presentation/screens/searching_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
 import 'package:client/features/play/domain/entities/game_config.dart';
-import '../../features/play/game_di.dart';
-import '../../features/play/presentation/board_screen.dart';
-import '../../features/play/presentation/cubits/matchmaking_cubit.dart';
-import '../../features/play/presentation/screens/searching_screen.dart';
-import '../../features/play/presentation/setup_game_screen.dart';
+import '../../features/play/presentation/screens/board_screen.dart';
+import '../../features/play/presentation/screens/setup_game_screen.dart';
 import '../../features/profile/domain/entities/profile_user.dart';
 import '../../features/profile/presentation/cubits/profile_cubit.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
@@ -185,7 +185,7 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                     final friend = extra?['friend'] as Friend?;
                     return SetupGameScreen(
                       initialMode: 'friend',
-                      initialFriendId: friend?.friendId,
+                      //initialFriendId: friend?.friendId,
                     );
                   },
                 ),
@@ -209,6 +209,8 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                       child: SearchingScreen(
                         variant: params['variant'] as String,
                         timeControl: params['timeControl'] as String,
+                        timeControlType: params['timeControlType'] as String,
+                        rating: params['rating'] as int,
                         ratingRange: params['ratingRange'] as String,
                       ),
                     );
