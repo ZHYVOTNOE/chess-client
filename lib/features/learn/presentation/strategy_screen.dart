@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/providers/locale_provider.dart';
 
 class StrategyScreen extends StatelessWidget {
   const StrategyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Strategy'),
+        title: Text(locale.get('learn_strategy')),
       ),
-      body: const Center(
-        child: Text('Strategy - Coming Soon'),
+      body: Center(
+        child: Text('${locale.get('learn_strategy')} - ${locale.get('coming_soon')}'),
       ),
     );
   }

@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:client/core/providers/locale_provider.dart';
 
 class NewsScreen extends StatelessWidget {
   const NewsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('News'),
+        title: Text(locale.get('more_news')),
       ),
-      body: const Center(
-        child: Text('News - Coming Soon'),
+      body: Center(
+        child: Text('${locale.get('more_news')} - ${locale.get('coming_soon')}'),
       ),
     );
   }

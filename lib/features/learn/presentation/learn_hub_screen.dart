@@ -13,7 +13,7 @@ class LearnHubScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(locale.get('learn_title')),
+        title: Text(locale.get('learn_title') ?? 'Learn'),
         centerTitle: true,
       ),
       body: Padding(

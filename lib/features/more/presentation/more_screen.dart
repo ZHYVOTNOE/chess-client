@@ -29,7 +29,7 @@ class MoreScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(locale.get('more_title')),
+        title: Text(locale.get('more_title') ?? 'More'),
         centerTitle: true,
       ),
       body: BlocBuilder<SocialCubit, SocialState>(
