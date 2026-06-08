@@ -20,6 +20,8 @@ import '../../features/leaderboard/leaderboard_di.dart';
 import '../../features/learn/presentation/learn_hub_screen.dart';
 import '../../features/learn/presentation/openings/openings_screen.dart';
 import '../../features/learn/puzzles/presentation/screens/puzzles_screen.dart';
+import '../../features/learn/presentation/strategy_screen.dart';
+import '../../features/learn/presentation/endgames_screen.dart';
 import '../../features/matchmaking/presentation/cubits/matchmaking_cubit.dart';
 import '../../features/matchmaking/presentation/screens/searching_screen.dart';
 import '../../features/more/presentation/more_screen.dart';
@@ -39,6 +41,14 @@ import '../../features/leaderboard/presentation/cubits/leaderboard_cubit.dart';
 import '../../features/leaderboard/presentation/screens/leaderboard_screen.dart';
 import '../../features/tech_support/presentation/cubits/support_cubit.dart';
 import '../../features/tech_support/presentation/screens/support_screen.dart';
+import '../../features/more/presentation/screens/shop_screen.dart';
+import '../../features/more/presentation/screens/achievements_screen.dart';
+import '../../features/more/presentation/screens/quests_screen.dart';
+import '../../features/more/presentation/screens/stats_screen.dart';
+import '../../features/more/presentation/screens/inbox_screen.dart';
+import '../../features/more/presentation/screens/analysis_screen.dart';
+import '../../features/more/presentation/screens/games_screen.dart';
+import '../../features/more/presentation/screens/news_screen.dart';
 import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
 
@@ -243,14 +253,14 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                   path: 'openings',
                   builder: (context, state) => const OpeningsScreen(),
                 ),
-                /*GoRoute(
+                GoRoute(
                   path: 'strategy',
                   builder: (context, state) => const StrategyScreen(),
                 ),
                 GoRoute(
                   path: 'endgames',
                   builder: (context, state) => const EndgamesScreen(),
-                ),*/
+                ),
               ],
             ),
           ],
@@ -299,6 +309,10 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                   },
                 ),
                 GoRoute(
+                  path: 'inbox',
+                  builder: (context, state) => const InboxScreen(),
+                ),
+                GoRoute(
                   path: 'friends',
                   builder: (context, state) {
                     return BlocProvider(
@@ -306,6 +320,10 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                       child: const SocialScreen(),
                     );
                   },
+                ),
+                GoRoute(
+                  path: 'analysis',
+                  builder: (context, state) => const AnalysisScreen(),
                 ),
                 GoRoute(
                   path: 'leaderboard',
@@ -317,13 +335,37 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                   },
                 ),
                 GoRoute(
-                  path: '/support',
+                  path: 'games',
+                  builder: (context, state) => const GamesScreen(),
+                ),
+                GoRoute(
+                  path: 'support',
                   builder: (context, state) {
                     return BlocProvider(
                       create: (_) => sl<SupportCubit>(),
                       child: const _SupportScreenWrapper(),
                     );
                   },
+                ),
+                GoRoute(
+                  path: 'news',
+                  builder: (context, state) => const NewsScreen(),
+                ),
+                GoRoute(
+                  path: 'shop',
+                  builder: (context, state) => const ShopScreen(),
+                ),
+                GoRoute(
+                  path: 'achievements',
+                  builder: (context, state) => const AchievementsScreen(),
+                ),
+                GoRoute(
+                  path: 'quests',
+                  builder: (context, state) => const QuestsScreen(),
+                ),
+                GoRoute(
+                  path: 'stats',
+                  builder: (context, state) => const StatsScreen(),
                 ),
               ],
             ),

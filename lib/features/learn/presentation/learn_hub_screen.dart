@@ -40,7 +40,7 @@ class LearnHubScreen extends StatelessWidget {
                       title: locale.get('learn_openings'),
                       subtitle: locale.get('learn_openings_desc'),
                       color: Colors.blue,
-                      onTap: () => context.push('/learn/openings'),
+                      onTap: null, // Disabled - too many placeholders needed
                     ),
                   ),
                 ],
@@ -85,14 +85,14 @@ class _LearnCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final Color color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _LearnCard({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.color,
-    required this.onTap,
+    this.onTap,
   });
 
   @override
@@ -107,7 +107,9 @@ class _LearnCard extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [color, color.withOpacity(0.7)],
+              colors: onTap == null
+                  ? [Colors.grey, Colors.grey.shade600]
+                  : [color, color.withOpacity(0.7)],
             ),
           ),
           child: Padding(
