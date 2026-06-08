@@ -37,6 +37,8 @@ import '../../features/social/presentation/cubits/social_cubit.dart';
 import '../../features/social/presentation/screens/social_screen.dart';
 import '../../features/leaderboard/presentation/cubits/leaderboard_cubit.dart';
 import '../../features/leaderboard/presentation/screens/leaderboard_screen.dart';
+import '../../features/tech_support/presentation/cubits/support_cubit.dart';
+import '../../features/tech_support/presentation/screens/support_screen.dart';
 import 'auth_refresh_listenable.dart';
 import 'main_shell.dart';
 
@@ -314,6 +316,15 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                     );
                   },
                 ),
+                GoRoute(
+                  path: '/support',
+                  builder: (context, state) {
+                    return BlocProvider(
+                      create: (_) => sl<SupportCubit>(),
+                      child: const _SupportScreenWrapper(),
+                    );
+                  },
+                ),
               ],
             ),
           ],
@@ -322,3 +333,61 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
     ),
   ],
 );
+
+class _SupportScreenWrapper extends StatefulWidget {
+  const _SupportScreenWrapper();
+
+  @override
+  State<_SupportScreenWrapper> createState() => _SupportScreenWrapperState();
+}
+
+class _SupportScreenWrapperState extends State<_SupportScreenWrapper> {
+  String? _role;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) {
+        setState(() {
+          _role = 'user';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final response = await Supabase.instance.client
+          .from('profiles')
+          .select('role')
+          .eq('id', userId)
+          .single();
+
+      setState(() {
+        _role = response['role'] as String? ?? 'user';
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _role = 'user';
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return SupportScreen(currentUserRole: _role ?? 'user');
+  }
+}
