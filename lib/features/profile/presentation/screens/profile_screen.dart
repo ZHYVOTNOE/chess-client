@@ -12,6 +12,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../../core/providers/locale_provider.dart';
 import '../../../../../core/services/presence_service.dart';
 import '../../../auth/domain/auth_provider.dart';
+import '../../../social/presentation/screens/social_screen.dart';
 import '../cubits/profile_cubit.dart';
 import '../cubits/profile_state.dart';
 
@@ -283,28 +284,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (profile.title != null && profile.title!.isNotEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade100,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.diamond, size: 16, color: Colors.blue),
-                        const SizedBox(width: 4),
-                        Text(
-                          profile.title!,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  TitleBadge(title: profile.title!),
                   const SizedBox(width: 8),
                 ],
                 Text(

@@ -65,11 +65,13 @@ class PuzzleCubit extends Cubit<PuzzleState> {
     try {
       if (isFirst) {
         final results = await Future.wait([
-          getRandomPuzzle(userId),
           repository.getUserStats(userId),
+          getRandomPuzzle(userId),
         ]);
-        _currentPuzzle = results[0] as Puzzle;
-        final stats = results[1] as Map<String, dynamic>;
+
+        final stats = results[0] as Map<String, dynamic>;
+        _currentPuzzle = results[1] as Puzzle;
+
         _streak = stats['current_streak'] as int? ?? 0;
         _solvedToday = stats['solved_today'] as int? ?? 0;
         _userRating = stats['rating'] as int? ?? 1500;

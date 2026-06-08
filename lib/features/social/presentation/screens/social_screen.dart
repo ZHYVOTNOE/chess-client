@@ -98,7 +98,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     return Row(
       children: [
         if (title != null && title.isNotEmpty) ...[
-          _TitleBadge(title: title),
+          TitleBadge(title: title),
           SizedBox(width: 6.0.w),
         ],
         Flexible(
@@ -900,9 +900,9 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
   }
 }
 
-class _TitleBadge extends StatelessWidget {
+class TitleBadge extends StatelessWidget {
   final String title;
-  const _TitleBadge({required this.title});
+  const TitleBadge({required this.title});
 
   @override
   Widget build(BuildContext context) {

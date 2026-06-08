@@ -41,7 +41,7 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
 
     final userId = client.auth.currentUser?.id;
     if (userId != null) {
-      _puzzleCubit.loadPuzzle(userId);
+      _puzzleCubit.loadPuzzle(userId, isFirst: true);
     }
   }
 
@@ -81,7 +81,7 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                       onPressed: () {
                         final userId = Supabase.instance.client.auth.currentUser?.id;
                         if (userId != null) {
-                          _puzzleCubit.loadPuzzle(userId);
+                          _puzzleCubit.loadPuzzle(userId, isFirst: true);
                         }
                       },
                       child: const Text('Попробовать снова'),
@@ -185,50 +185,6 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                 ],
               );
             }
-
-            if (state is PuzzleSolved) {
-              return Column(
-                children: [
-                  SizedBox(height: 8.h),
-                  PuzzleStats(
-                    streak: state.streak,
-                    solvedToday: state.solvedToday,
-                    userRating: state.userRating,
-                    elapsedSeconds: state.elapsedSeconds,
-                  ),
-                  SizedBox(height: 8.h),
-                  Expanded(
-                    child: PuzzleBoard(
-                      fen: state.fen,
-                      userColor: state.userColor,
-                      isOpponentTurn: false,
-                      isHintShown: false,
-                      onMoveMade: (_) {},
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(vertical: 8.h),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check_circle, size: 24.r, color: Colors.green),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'Задача решена!',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16.sp,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const PuzzleActionButtons(),
-                ],
-              );
-            }
-
             return const Center(child: Text('Загрузка задач...'));
           },
         ),
