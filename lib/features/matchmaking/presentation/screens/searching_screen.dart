@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../cubits/matchmaking_cubit.dart';
 
@@ -110,32 +111,32 @@ class _SearchingScreenState extends State<SearchingScreen>
               children: [
                 // Radar Animation
                 SizedBox(
-                  width: 200,
-                  height: 200,
+                  width: 200.r,
+                  height: 200.r,
                   child: AnimatedBuilder(
                     animation: _animation,
                     builder: (context, child) {
                       return CustomPaint(
                         painter: RadarPainter(_animation.value),
-                        size: const Size(200, 200),
+                        size: Size(200.r, 200.r),
                       );
                     },
                   ),
                 ),
-                const SizedBox(height: 40),
-                const Text(
+                SizedBox(height: 40.h),
+                Text(
                   'Поиск соперника...',
                   style: TextStyle(
                     color: Colors.black,
-                    fontSize: 24,
+                    fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: 20.h),
                 if (state.isSearching)
                   Column(
                     children: [
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20.h),
                       ElevatedButton(
                         onPressed: () {
                           final cubit = context.read<MatchmakingCubit>();
@@ -178,7 +179,7 @@ class RadarPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 10;
+    final radius = size.width / 2 - 10.r;
 
     // Draw radar circles
     for (int i = 3; i >= 1; i--) {
@@ -188,7 +189,7 @@ class RadarPainter extends CustomPainter {
       final paint = Paint()
         ..color = Colors.blue.withOpacity(opacity * 0.3)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2;
+        ..strokeWidth = 2.r,
 
       canvas.drawCircle(center, circleRadius, paint);
     }
@@ -202,7 +203,7 @@ class RadarPainter extends CustomPainter {
 
     final linePaint = Paint()
       ..color = Colors.blue.withOpacity(animationValue)
-      ..strokeWidth = 3;
+      ..strokeWidth = 3.r;
 
     canvas.drawLine(center, lineEnd, linePaint);
 
@@ -211,7 +212,7 @@ class RadarPainter extends CustomPainter {
       ..color = Colors.blue
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(center, 5, dotPaint);
+    canvas.drawCircle(center, 5.r, dotPaint);
   }
 
   @override
