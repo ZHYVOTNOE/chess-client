@@ -33,6 +33,7 @@ class PuzzleCubit extends Cubit<PuzzleState> {
   int _userRating = 1500;
   bool _madeErrorThisPuzzle = false;
   bool _ratingPenaltyApplied = false;
+  bool _hintUsed = false;
 
   Timer? _timer;
   int _elapsedSeconds = 0;
@@ -85,6 +86,7 @@ class PuzzleCubit extends Cubit<PuzzleState> {
       _isOpponentTurn = true;
       _madeErrorThisPuzzle = false;
       _ratingPenaltyApplied = false;
+      _hintUsed = false;
       _elapsedSeconds = 0;
 
       final parts = _currentFen.split(' ');
@@ -100,6 +102,7 @@ class PuzzleCubit extends Cubit<PuzzleState> {
         userRating: _userRating,
         elapsedSeconds: 0,
         ratingDelta: null,
+        hintLevel: 0,
       ));
 
       await Future.delayed(const Duration(milliseconds: 1000));
@@ -168,7 +171,6 @@ class PuzzleCubit extends Cubit<PuzzleState> {
         }
       }
     } else {
-      // Неверный ход
       _madeErrorThisPuzzle = true;
 
       final fenBeforeError = _currentFen;
@@ -181,13 +183,11 @@ class PuzzleCubit extends Cubit<PuzzleState> {
         hintLevel: 0,
       ));
 
-      // Штраф рейтинга только один раз за задачу
       if (!_ratingPenaltyApplied) {
         _ratingPenaltyApplied = true;
         _applyRatingPenalty();
       }
 
-      // Откат хода через 800ms
       Future.delayed(const Duration(milliseconds: 800), () {
         if (state is PuzzleLoaded) {
           _currentFen = fenBeforeError;
@@ -239,7 +239,8 @@ class PuzzleCubit extends Cubit<PuzzleState> {
           'p_puzzle_id': _currentPuzzle!.id,
           'p_puzzle_rating': _currentPuzzle!.rating,
           'p_is_solved': true,
-          'p_already_penalized': _ratingPenaltyApplied,
+          // Если была ошибка или подсказка — не меняем рейтинг вверх
+          'p_already_penalized': _ratingPenaltyApplied || _hintUsed,
         });
 
         if (result != null) {
@@ -275,6 +276,7 @@ class PuzzleCubit extends Cubit<PuzzleState> {
     _isOpponentTurn = true;
     _madeErrorThisPuzzle = false;
     _ratingPenaltyApplied = false;
+    _hintUsed = false;
     _elapsedSeconds = 0;
 
     emit(PuzzleLoaded(
@@ -287,6 +289,7 @@ class PuzzleCubit extends Cubit<PuzzleState> {
       userRating: _userRating,
       elapsedSeconds: 0,
       ratingDelta: null,
+      hintLevel: 0,
     ));
 
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -297,8 +300,8 @@ class PuzzleCubit extends Cubit<PuzzleState> {
 
   void showHint() {
     if (state is! PuzzleLoaded) return;
+    _hintUsed = true;
     final currentLevel = (state as PuzzleLoaded).hintLevel;
-    // Первое нажатие — подсветка фигуры, второе — стрелка
     emit((state as PuzzleLoaded).copyWith(
       hintLevel: currentLevel >= 2 ? 2 : currentLevel + 1,
     ));

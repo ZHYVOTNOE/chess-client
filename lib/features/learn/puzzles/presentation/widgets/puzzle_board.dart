@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:squares/squares.dart';
 import 'package:square_bishop/square_bishop.dart';
 import 'package:bishop/bishop.dart' as bishop;
 import 'package:client/core/utils/piece_set_loader.dart';
+import 'package:client/core/providers/settings_provider.dart';
+import 'package:client/features/settings/constants/custom_board_themes.dart';
 
 class PuzzleBoard extends StatelessWidget {
   final String fen;
@@ -10,7 +13,7 @@ class PuzzleBoard extends StatelessWidget {
   final bool isOpponentTurn;
   final bool isHintShown;
   final int hintLevel;
-  final String? hintMove; // UCI формат e.g. "e2e4"
+  final String? hintMove;
   final Function(String) onMoveMade;
 
   const PuzzleBoard({
@@ -24,32 +27,53 @@ class PuzzleBoard extends StatelessWidget {
     this.hintMove,
   });
 
-  // Конвертируем UCI квадрат ("e2") в индекс squares с учётом ориентации
-  int _squareToIndex(String sq, int playerIndex, BoardSize size) {
+  int _algToIndex(String sq, BoardSize size) {
     final file = sq.codeUnitAt(0) - 'a'.codeUnitAt(0);
     final rank = int.parse(sq[1]) - 1;
-    final rawIndex = rank * size.h.toInt() + file;
-    return rawIndex;
+    return rank * size.h.toInt() + file;
   }
 
   @override
   Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+    final pieceSet = settings.settings?.pieceSet ?? 'merida';
+    final boardTheme = CustomBoardThemes.all
+        .firstWhere(
+          (e) => e.id == settings.settings?.boardTheme,
+      orElse: () => CustomBoardThemes.all[0],
+    )
+        .theme;
+
     try {
       final game = bishop.Game(fen: fen);
       final playerIndex = userColor == 'white' ? 0 : 1;
       final squaresState = game.squaresState(playerIndex);
 
-      // Парсим hintMove для подсветки
-      List<int> hintSquares = [];
-      if (hintMove != null && hintMove!.length >= 4 && hintLevel > 0) {
+      // Подсветка фигуры (hintLevel >= 1)
+      List<Widget> underlays = [];
+      if (hintLevel >= 1 && hintMove != null && hintMove!.length >= 4) {
         final fromSq = hintMove!.substring(0, 2);
-        final toSq = hintMove!.substring(2, 4);
-        final fromIdx = _squareToIndex(fromSq, playerIndex, squaresState.size);
-        if (hintLevel == 1) {
-          hintSquares = [fromIdx]; // только фигура
-        } else {
-          hintSquares = [fromIdx, _squareToIndex(toSq, playerIndex, squaresState.size)];
-        }
+        final fromIdx = _algToIndex(fromSq, squaresState.size);
+        underlays = [
+          _SquareHighlight(
+            square: fromIdx,
+            size: squaresState.size,
+            color: Colors.yellow.withValues(alpha: 0.7),
+          ),
+        ];
+      }
+
+      // Стрелка (hintLevel >= 2)
+      List<Widget> overlays = [];
+      if (hintLevel >= 2 && hintMove != null && hintMove!.length >= 4) {
+        overlays = [
+          _HintArrow(
+            fromSq: hintMove!.substring(0, 2),
+            toSq: hintMove!.substring(2, 4),
+            playerIndex: playerIndex,
+            size: squaresState.size,
+          ),
+        ];
       }
 
       return Center(
@@ -57,17 +81,17 @@ class PuzzleBoard extends StatelessWidget {
           aspectRatio: squaresState.size.aspectRatio,
           child: BoardController(
             state: squaresState.board,
-            playState: isOpponentTurn
+            playState: isOpponentTurn || hintLevel >= 2
                 ? PlayState.theirTurn
                 : squaresState.state,
             size: squaresState.size,
-            pieceSet: PieceSetLoader.load('merida'),
-            theme: BoardTheme.brown,
-            moves: isOpponentTurn ? const [] : squaresState.moves,
+            pieceSet: PieceSetLoader.load(pieceSet),
+            theme: boardTheme,
+            moves: (isOpponentTurn || hintLevel >= 2) ? const [] : squaresState.moves,
             animatePieces: true,
             animationDuration: const Duration(milliseconds: 250),
             animationCurve: Curves.easeInOut,
-            onMove: isOpponentTurn
+            onMove: (isOpponentTurn || hintLevel >= 2)
                 ? null
                 : (move) {
               try {
@@ -76,7 +100,8 @@ class PuzzleBoard extends StatelessWidget {
               } catch (_) {
                 final h = squaresState.size.h.toInt();
                 String toAlg(int idx) {
-                  final file = String.fromCharCode('a'.codeUnitAt(0) + (idx % h));
+                  final file = String.fromCharCode(
+                      'a'.codeUnitAt(0) + (idx % h));
                   final rank = (idx ~/ h + 1).toString();
                   return '$file$rank';
                 }
@@ -88,22 +113,8 @@ class PuzzleBoard extends StatelessWidget {
               piece: MarkerTheme.corners(),
             ),
             promotionBehaviour: PromotionBehaviour.autoPremove,
-            underlays: hintSquares.isNotEmpty
-                ? hintSquares.map((sq) => SquareHighlight(
-              square: sq,
-              color: Colors.yellow.withValues(alpha: 0.6),
-            )).toList()
-                : [],
-            overlays: hintLevel == 2 && hintMove != null && hintMove!.length >= 4
-                ? [
-              _HintArrow(
-                fromSq: hintMove!.substring(0, 2),
-                toSq: hintMove!.substring(2, 4),
-                playerIndex: playerIndex,
-                size: squaresState.size,
-              ),
-            ]
-                : [],
+            underlays: underlays,
+            overlays: overlays,
           ),
         ),
       );
@@ -122,18 +133,47 @@ class PuzzleBoard extends StatelessWidget {
   }
 }
 
-// Подсветка квадрата
-class SquareHighlight extends StatelessWidget {
+class _SquareHighlight extends StatelessWidget {
   final int square;
+  final BoardSize size;
   final Color color;
 
-  const SquareHighlight({super.key, required this.square, required this.color});
+  const _SquareHighlight({
+    required this.square,
+    required this.size,
+    required this.color,
+  });
 
   @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final sqW = constraints.maxWidth / size.h;
+          final sqH = constraints.maxHeight / size.v;
+          final file = square % size.h.toInt();
+          final rank = square ~/ size.h.toInt();
+          // Squares рисует с 8й горизонтали вверху
+          final x = file * sqW;
+          final y = (size.v.toInt() - 1 - rank) * sqH;
+
+          return Stack(
+            children: [
+              Positioned(
+                left: x,
+                top: y,
+                width: sqW,
+                height: sqH,
+                child: Container(color: color),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }
 
-// Стрелка подсказки
 class _HintArrow extends StatelessWidget {
   final String fromSq;
   final String toSq;
@@ -167,16 +207,18 @@ class _HintArrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final canvasSize = Size(constraints.maxWidth, constraints.maxHeight);
-          final from = _squareCenter(fromSq, canvasSize);
-          final to = _squareCenter(toSq, canvasSize);
-
-          return CustomPaint(
-            painter: _ArrowPainter(from: from, to: to),
-          );
-        },
+      child: IgnorePointer(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final canvasSize =
+            Size(constraints.maxWidth, constraints.maxHeight);
+            final from = _squareCenter(fromSq, canvasSize);
+            final to = _squareCenter(toSq, canvasSize);
+            return CustomPaint(
+              painter: _ArrowPainter(from: from, to: to),
+            );
+          },
+        ),
       ),
     );
   }
@@ -190,34 +232,43 @@ class _ArrowPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    final dir = to - from;
+    final dist = dir.distance;
+    if (dist == 0) return;
+
+    final norm = dir / dist;
+    final perp = Offset(-norm.dy, norm.dx);
+    const strokeW = 10.0;
+    const arrowHead = 24.0;
+
+    // Линия чуть не доходит до центра клетки назначения
+    final lineEnd = to - norm * (arrowHead * 0.6);
+
     final paint = Paint()
       ..color = Colors.yellow.withValues(alpha: 0.85)
-      ..strokeWidth = 8
+      ..strokeWidth = strokeW
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
-    canvas.drawLine(from, to, paint);
+    canvas.drawLine(from, lineEnd, paint);
 
-    // Наконечник стрелки
-    final angle = (to - from).direction;
-    const arrowSize = 20.0;
-    final path = Path();
-    path.moveTo(to.dx, to.dy);
-    path.lineTo(
-      to.dx - arrowSize * (0.866 * (to - from).dx / (to - from).distance +
-          0.5 * (to - from).dy / (to - from).distance),
-      to.dy - arrowSize * (0.866 * (to - from).dy / (to - from).distance -
-          0.5 * (to - from).dx / (to - from).distance),
-    );
-    path.lineTo(
-      to.dx - arrowSize * (0.866 * (to - from).dx / (to - from).distance -
-          0.5 * (to - from).dy / (to - from).distance),
-      to.dy - arrowSize * (0.866 * (to - from).dy / (to - from).distance +
-          0.5 * (to - from).dx / (to - from).distance),
-    );
-    path.close();
+    // Наконечник
+    final tip = to;
+    final base1 = lineEnd + perp * arrowHead * 0.6;
+    final base2 = lineEnd - perp * arrowHead * 0.6;
 
-    canvas.drawPath(path, paint..style = PaintingStyle.fill);
+    final arrowPath = Path()
+      ..moveTo(tip.dx, tip.dy)
+      ..lineTo(base1.dx, base1.dy)
+      ..lineTo(base2.dx, base2.dy)
+      ..close();
+
+    canvas.drawPath(
+      arrowPath,
+      Paint()
+        ..color = Colors.yellow.withValues(alpha: 0.85)
+        ..style = PaintingStyle.fill,
+    );
   }
 
   @override
