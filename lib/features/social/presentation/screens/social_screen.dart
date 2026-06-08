@@ -1,6 +1,7 @@
 import 'package:bishop/bishop.dart' as bishop;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/services/presence_service.dart';
@@ -98,7 +99,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
       children: [
         if (title != null && title.isNotEmpty) ...[
           _TitleBadge(title: title),
-          const SizedBox(width: 6),
+          SizedBox(width: 6.0.w),
         ],
         Flexible(
           child: Text(
@@ -111,7 +112,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
           ),
         ),
         if (flag.isNotEmpty) ...[
-          const SizedBox(width: 10),
+          SizedBox(width: 10.0.w),
           Text(flag, style: TextStyle(fontSize: fontSize + 1)),
         ],
       ],
@@ -193,7 +194,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
         return InkWell(
           onTap: () => _viewProfile(friend),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
             child: Row(
               children: [
                 _buildAvatarWithStatus(
@@ -202,7 +203,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                   isOnline: isOnline,
                   key: ValueKey('friend_${friend.friendId}_${friend.friendAvatarUrl}'),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12.w),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min, // 👈 ДОБАВЛЕНО
@@ -213,7 +214,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                         title: friend.title,
                         flag: flag,
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2.0.h),
                       Row(
                         children: [
                           if (friend.friendFullName != null) ...[
@@ -228,7 +229,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                               ),
                             ),
                           ],
-                          const SizedBox(width: 30),
+                          SizedBox(width: 30.w),
                           Text(
                             statusText,
                             style: TextStyle(
@@ -329,7 +330,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
               return InkWell(
                 onTap: () => _viewProfile(user),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
                   child: Row(
                     children: [
                       _buildAvatarWithStatus(
@@ -338,7 +339,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                         isOnline: isOnline,
                         key: ValueKey('search_${user.friendId}_${user.friendAvatarUrl}'),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: 12.w),
                       Expanded(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -349,7 +350,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                               title: user.title,
                               flag: flag,
                             ),
-                            const SizedBox(height: 2),
+                            SizedBox(height: 2.0.h),
                             _buildBioText(user.friendBio),
                           ],
                         ),

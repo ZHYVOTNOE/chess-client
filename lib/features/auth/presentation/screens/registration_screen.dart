@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -98,7 +99,7 @@ class _RegistrationScreenState
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Form(
           key: _formKey,
           child: Column(
@@ -107,21 +108,21 @@ class _RegistrationScreenState
             children: [
               Icon(
                 Icons.person_add_outlined,
-                size: 80,
+                size: 80.r,
                 color:
                 Theme.of(context).primaryColor,
               ),
 
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
 
               if (_errorMessage != null) ...[
                 Container(
                   padding:
-                  const EdgeInsets.all(12),
+                  EdgeInsets.all(12.r),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
                     borderRadius:
-                    BorderRadius.circular(8),
+                    BorderRadius.circular(8.r),
                   ),
                   child: Text(
                     _errorMessage!,
@@ -133,7 +134,7 @@ class _RegistrationScreenState
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
               ],
 
               AuthTextField(
@@ -163,7 +164,7 @@ class _RegistrationScreenState
                 },
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               AuthTextField(
                 controller:
@@ -206,7 +207,7 @@ class _RegistrationScreenState
                 ),
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               AuthTextField(
                 controller:
@@ -253,7 +254,7 @@ class _RegistrationScreenState
                 locale.get('register_button'),
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               ElevatedButton.icon(
                 onPressed: () async {
@@ -269,12 +270,12 @@ class _RegistrationScreenState
                 },
                 icon: Image.asset(
                   'assets/pictures/google.png',
-                  height: 24,
+                  height: 24.h,
                 ),
                 label: const Text('Google'),
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               TextButton(
                 onPressed: () {

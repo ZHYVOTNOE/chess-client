@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/locale_provider.dart';
 
@@ -125,16 +126,16 @@ class _EventCarouselState extends State<_EventCarousel> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h),
         // Индикаторы страниц
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
             _events.length,
                 (index) => Container(
-              width: 8,
-              height: 8,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: 8.r,
+              height: 8.r,
+              margin: EdgeInsets.symmetric(horizontal: 4.w),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: _currentPage == index
@@ -144,7 +145,7 @@ class _EventCarouselState extends State<_EventCarousel> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h)
       ],
     );
   }
@@ -158,7 +159,7 @@ class _EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.all(16),
+      margin: EdgeInsets.all(16.r),
       clipBehavior: Clip.antiAlias,
       child: Container(
         decoration: BoxDecoration(
@@ -172,12 +173,12 @@ class _EventCard extends StatelessWidget {
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(24.r),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(event.icon, size: 64, color: Colors.white),
-              const SizedBox(height: 24),
+              Icon(event.icon, size: 64.r, color: Colors.white),
+              SizedBox(height: 24.h),
               Text(
                 event.title,
                 style: const TextStyle(
@@ -187,16 +188,16 @@ class _EventCard extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
               Text(
                 event.description,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: 16.sp,
                   color: Colors.white70,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
               FilledButton(
                 onPressed: () {
                   // TODO: действие по событию

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../../core/providers/locale_provider.dart';
 import '../cubits/puzzle_cubit.dart';
@@ -72,10 +73,10 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                    const SizedBox(height: 16),
+                    Icon(Icons.error_outline, size: 48.r, color: Colors.red),
+                    SizedBox(height: 16.h),
                     Text(state.message),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     ElevatedButton(
                       onPressed: () {
                         final userId = Supabase.instance.client.auth.currentUser?.id;
@@ -93,7 +94,7 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
             if (state is PuzzleLoaded) {
               return Column(
                 children: [
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   PuzzleStats(
                     streak: state.streak,
                     solvedToday: state.solvedToday,
@@ -101,7 +102,7 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                     elapsedSeconds: state.elapsedSeconds,
                     ratingDelta: state.ratingDelta,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   Expanded(
                     child: PuzzleBoard(
                       fen: state.fen,
@@ -118,25 +119,25 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                   // Фидбек сообщение
                   if (state.feedbackMessage == 'wrong')
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: const Row(
+                      padding: EdgeInsets.symmetric(vertical: 8.h),
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.close, color: Colors.red),
-                          SizedBox(width: 8),
+                          Icon(Icons.close, size: 24.r, color: Colors.red),
+                          SizedBox(width: 8.w),
                           Text(
                             'Неверный ход',
                             style: TextStyle(
                               color: Colors.red,
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: 16.sp,
                             ),
                           ),
                         ],
                       ),
                     )
                   else
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40.h),
                   const PuzzleActionButtons(),
                 ],
               );
@@ -145,14 +146,14 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
             if (state is PuzzleSolved) {
               return Column(
                 children: [
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   PuzzleStats(
                     streak: state.streak,
                     solvedToday: state.solvedToday,
                     userRating: state.userRating,
                     elapsedSeconds: state.elapsedSeconds,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   Expanded(
                     child: PuzzleBoard(
                       fen: state.fen,
@@ -163,18 +164,18 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: const Row(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green),
-                        SizedBox(width: 8),
+                        Icon(Icons.check_circle, size: 24.r, color: Colors.green),
+                        SizedBox(width: 8.w),
                         Text(
                           'Задача решена!',
                           style: TextStyle(
                             color: Colors.green,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 16.sp,
                           ),
                         ),
                       ],
@@ -188,14 +189,14 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
             if (state is PuzzleSolved) {
               return Column(
                 children: [
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   PuzzleStats(
                     streak: state.streak,
                     solvedToday: state.solvedToday,
                     userRating: state.userRating,
                     elapsedSeconds: state.elapsedSeconds,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   Expanded(
                     child: PuzzleBoard(
                       fen: state.fen,
@@ -206,18 +207,18 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: const Row(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green),
-                        SizedBox(width: 8),
+                        Icon(Icons.check_circle, size: 24.r, color: Colors.green),
+                        SizedBox(width: 8.w),
                         Text(
                           'Задача решена!',
                           style: TextStyle(
                             color: Colors.green,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 16.sp,
                           ),
                         ),
                       ],

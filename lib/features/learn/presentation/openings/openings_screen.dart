@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/providers/locale_provider.dart';
@@ -58,7 +59,7 @@ class OpeningsScreen extends StatelessWidget {
         ],
       ),
       body: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         itemCount: openings.length,
         itemBuilder: (context, index) {
           final category = openings[index];
@@ -67,11 +68,11 @@ class OpeningsScreen extends StatelessWidget {
             children: [
               // Заголовок категории
               Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 12),
+                padding: EdgeInsets.only(top: 8.h, bottom: 12.h),
                 child: Text(
                   category['category'] as String,
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: TextStyle(
+                    fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -80,11 +81,11 @@ class OpeningsScreen extends StatelessWidget {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   childAspectRatio: 0.75,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12.w,
+                  mainAxisSpacing: 12.h,
                 ),
                 itemCount: (category['items'] as List).length,
                 itemBuilder: (context, itemIndex) {
@@ -99,7 +100,7 @@ class OpeningsScreen extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
             ],
           );
         },
@@ -132,7 +133,7 @@ class _OpeningCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(12.r),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -141,66 +142,66 @@ class _OpeningCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                     decoration: BoxDecoration(
                       color: Theme.of(context).primaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(4.r),
                     ),
                     child: Text(
                       eco,
                       style: TextStyle(
                         color: Theme.of(context).primaryColor,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 12.sp,
                       ),
                     ),
                   ),
                   Row(
                     children: [
-                      const Icon(Icons.trending_up, size: 14, color: Colors.grey),
-                      const SizedBox(width: 2),
+                      Icon(Icons.trending_up, size: 14.r, color: Colors.grey),
+                      SizedBox(width: 2.w),
                       Text(
                         '$popularity%',
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        style: TextStyle(fontSize: 12.sp, color: Colors.grey),
                       ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
 
               // Название дебюта
               Expanded(
                 child: Text(
                   name,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
 
               // Ходы
               Text(
                 moves,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 12.sp,
                   color: Colors.grey.shade600,
                   fontFamily: 'monospace',
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
 
               // Винрейт
               Row(
                 children: [
-                  const Icon(Icons.emoji_events, size: 16, color: Colors.amber),
-                  const SizedBox(width: 4),
+                  Icon(Icons.emoji_events, size: 16.r, color: Colors.amber),
+                  SizedBox(width: 4.w),
                   Text(
                     '$winRate%',
                     style: const TextStyle(
@@ -209,7 +210,7 @@ class _OpeningCard extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                  Icon(Icons.arrow_forward_ios, size: 16.r, color: Colors.grey),
                 ],
               ),
             ],

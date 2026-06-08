@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AuthButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -15,14 +16,14 @@ class AuthButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 48,
+      height: 48.h,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         child: isLoading
-            ? const SizedBox(
-          height: 24,
-          width: 24,
-          child: CircularProgressIndicator(
+            ? SizedBox(
+          height: 24.h,
+          width: 24.w,
+          child: const CircularProgressIndicator(
             strokeWidth: 2,
             color: Colors.white,
           ),

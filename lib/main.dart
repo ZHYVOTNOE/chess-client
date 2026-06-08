@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 import 'core/navigation/app_router.dart';
@@ -75,23 +76,28 @@ void main() async {
   final settingsProvider = SettingsProvider(settingsRepo);
 
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: localeProvider),
-        ChangeNotifierProvider.value(value: authProvider),
-        ChangeNotifierProvider.value(value: userProvider),
-        ChangeNotifierProvider.value(value: settingsProvider),
-        ChangeNotifierProvider(create: (_) => GameProvider()),
+    ScreenUtilInit(
+      designSize: const Size(388, 863),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: localeProvider),
+          ChangeNotifierProvider.value(value: authProvider),
+          ChangeNotifierProvider.value(value: userProvider),
+          ChangeNotifierProvider.value(value: settingsProvider),
+          ChangeNotifierProvider(create: (_) => GameProvider()),
 
-        // ✅ ДОБАВЛЕНО: ProfileCubit должен быть доступен всему приложению
-        BlocProvider<ProfileCubit>(
-          create: (_) => sl<ProfileCubit>(),
-        ),
+          // ✅ ДОБАВЛЕНО: ProfileCubit должен быть доступен всему приложению
+          BlocProvider<ProfileCubit>(
+            create: (_) => sl<ProfileCubit>(),
+          ),
 
-        BlocProvider(create: (_) => sl<MatchmakingCubit>()),
-        BlocProvider(create: (_) => sl<SocialCubit>()),
-      ],
-      child: MyApp(authRefreshListenable: authRefreshListenable),
+          BlocProvider(create: (_) => sl<MatchmakingCubit>()),
+          BlocProvider(create: (_) => sl<SocialCubit>()),
+        ],
+        child: MyApp(authRefreshListenable: authRefreshListenable),
+      ),
     ),
   );
 }

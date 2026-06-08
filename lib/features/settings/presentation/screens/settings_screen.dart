@@ -1,6 +1,7 @@
 // lib/features/settings/presentation/screens/settings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:squares/squares.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/piece_set_loader.dart';
@@ -68,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
 
                 _buildCardTitle('🎨 Доска'),
 
@@ -97,11 +98,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Text(
                               'Предпросмотр:',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 14.sp,
                                 color: Colors.grey.shade600,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4.h),
                             Text(
                               CustomBoardThemes.all
                                   .firstWhere((e) => e.id == s.boardTheme,
@@ -116,8 +117,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       SizedBox(
-                        width: 80,
-                        height: 80,
+                        width: 80.r,
+                        height: 80.r,
                         child: Board(
                           state: const BoardState(
                             board: ['', ''],
@@ -140,7 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
 
                 // 🔹 Фигуры
                 _buildCardTitle('♟️ Фигуры'),
@@ -182,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             }).toList(),
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4.h),
                         // 🔹 Чёрные фигуры (нижний ряд)
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
@@ -205,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
 
                 // 🔹 Звуки (commented out for future)
                 // _buildCardTitle('🔊 Звуки'),

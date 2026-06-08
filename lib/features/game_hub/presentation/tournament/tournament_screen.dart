@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/providers/locale_provider.dart';
@@ -12,7 +13,7 @@ class TournamentScreen extends StatelessWidget {
 
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         child: Column(
           children: [
             // Живые турниры (онлайн)
@@ -29,7 +30,7 @@ class TournamentScreen extends StatelessWidget {
                       onTap: () => context.push('/game/tournament/join-live'),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16.w),
                   // Создать живой
                   Expanded(
                     child: _TournamentActionCard(
@@ -43,7 +44,7 @@ class TournamentScreen extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             // Заочные турниры (дни на ход)
             Expanded(
               child: Row(
@@ -58,7 +59,7 @@ class TournamentScreen extends StatelessWidget {
                       onTap: () => context.push('/game/tournament/join-daily'),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16.w),
                   // Создать заочный
                   Expanded(
                     child: _TournamentActionCard(
@@ -110,26 +111,26 @@ class _TournamentActionCard extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.r),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 48, color: Colors.white),
-                const SizedBox(height: 16),
+                Icon(icon, size: 48.r, color: Colors.white),
+                SizedBox(height: 16.h),
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 12.sp,
                     color: Colors.white.withOpacity(0.9),
                   ),
                   textAlign: TextAlign.center,

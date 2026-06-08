@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -192,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text('Ошибка: ${state.message}'),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   ElevatedButton(
                     onPressed: () => _loadProfile(),
                     child: const Text('Повторить'),
@@ -213,14 +214,14 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               child: Column(
                 children: [
                   _buildProfileHeader(locale, profile),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   _buildRatingsSection(locale),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   _buildRadarChart(locale),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16.h),
                   _buildGameHistory(locale),
                   if (!widget.isReadOnly) ...[
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     _buildLogoutSection(locale),
                   ],
                 ],
@@ -251,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               children: [
                 CircleAvatar(
                   key: ValueKey(profile.avatarUrl),
-                  radius: 50,
+                  radius: 50.r,
                   backgroundColor: Colors.grey.shade300,
                   backgroundImage: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
                       ? NetworkImage(profile.avatarUrl!)
@@ -266,8 +267,8 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                     bottom: 2,
                     right: 2,
                     child: Container(
-                      width: 18,
-                      height: 18,
+                      width: 18.r,
+                      height: 18.r,
                       decoration: BoxDecoration(
                         color: isOnline ? Colors.green : Colors.grey,
                         shape: BoxShape.circle,

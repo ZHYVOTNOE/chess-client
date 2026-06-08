@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/locale_provider.dart';
@@ -16,7 +17,7 @@ class LearnHubScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         child: Column(
           children: [
             // Верхний ряд: Задачи + Дебюты
@@ -32,7 +33,7 @@ class LearnHubScreen extends StatelessWidget {
                       onTap: () => context.push('/learn/puzzles'),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16.w),
                   Expanded(
                     child: _LearnCard(
                       icon: Icons.open_in_full,
@@ -59,7 +60,7 @@ class LearnHubScreen extends StatelessWidget {
                       onTap: () => context.push('/learn/strategy'),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16.w),
                   Expanded(
                     child: _LearnCard(
                       icon: Icons.flag,
@@ -110,26 +111,26 @@ class _LearnCard extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.r),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 48, color: Colors.white),
-                const SizedBox(height: 16),
+                Icon(icon, size: 48.r, color: Colors.white),
+                SizedBox(height: 16.h),
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: TextStyle(
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 12.sp,
                     color: Colors.white.withOpacity(0.9),
                   ),
                   textAlign: TextAlign.center,

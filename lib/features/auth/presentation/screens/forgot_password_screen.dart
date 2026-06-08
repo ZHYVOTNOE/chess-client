@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -60,7 +61,7 @@ class _ForgotPasswordScreenState
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: _isSuccess
             ? _buildSuccessState(locale)
             : _buildForm(locale),
@@ -76,11 +77,11 @@ class _ForgotPasswordScreenState
         children: [
           Icon(
             Icons.lock_reset_outlined,
-            size: 80,
+            size: 80.r,
             color: Theme.of(context).primaryColor,
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
 
           Text(
             locale.get('forgot_description'),
@@ -88,14 +89,14 @@ class _ForgotPasswordScreenState
             style: Theme.of(context).textTheme.bodyLarge,
           ),
 
-          const SizedBox(height: 32),
+          SizedBox(height: 32.h),
 
           if (_errorMessage != null) ...[
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12.r),
               decoration: BoxDecoration(
                 color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(
                 _errorMessage!,
@@ -106,7 +107,7 @@ class _ForgotPasswordScreenState
               ),
             ),
 
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
           ],
 
           AuthTextField(
@@ -133,7 +134,7 @@ class _ForgotPasswordScreenState
             },
           ),
 
-          const SizedBox(height: 32),
+          SizedBox(height: 32.h),
 
           AuthButton(
             onPressed: _sendResetLink,
@@ -141,7 +142,7 @@ class _ForgotPasswordScreenState
             text: locale.get('forgot_button'),
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
 
           TextButton(
             onPressed: () => context.pop(),
@@ -164,11 +165,11 @@ class _ForgotPasswordScreenState
       children: [
         Icon(
           Icons.check_circle_outline,
-          size: 80,
+          size: 80.r,
           color: Colors.green.shade600,
         ),
 
-        const SizedBox(height: 24),
+        SizedBox(height: 24.h),
 
         Text(
           locale.get(
@@ -180,7 +181,7 @@ class _ForgotPasswordScreenState
               .headlineSmall,
         ),
 
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h),
 
         Text(
           locale.get(
@@ -191,7 +192,7 @@ class _ForgotPasswordScreenState
           Theme.of(context).textTheme.bodyLarge,
         ),
 
-        const SizedBox(height: 32),
+        SizedBox(height: 32.h),
 
         AuthButton(
           onPressed: () => context.pop(),

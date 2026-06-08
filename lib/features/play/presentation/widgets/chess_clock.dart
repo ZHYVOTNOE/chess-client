@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/providers/locale_provider.dart';
 
@@ -148,12 +149,12 @@ class _ClockDisplay extends StatelessWidget {
     final seconds = time.inSeconds.remainder(60);
     
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
       decoration: BoxDecoration(
         color: isActive 
             ? (isLowTime ? Colors.red.shade100 : Colors.green.shade100)
             : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
           color: isActive 
               ? (isLowTime ? Colors.red : Colors.green)
@@ -166,16 +167,16 @@ class _ClockDisplay extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 14.sp,
               fontWeight: FontWeight.w500,
               color: isActive ? Colors.black87 : Colors.grey.shade600,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Text(
             '$minutes:${seconds.toString().padLeft(2, '0')}',
             style: TextStyle(
-              fontSize: 32,
+              fontSize: 32.sp,
               fontWeight: FontWeight.bold,
               fontFamily: 'monospace',
               color: isActive 

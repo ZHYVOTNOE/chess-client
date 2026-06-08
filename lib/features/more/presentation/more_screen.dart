@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/providers/locale_provider.dart';
 import '../../social/presentation/cubits/social_cubit.dart';
@@ -34,12 +35,12 @@ class MoreScreen extends StatelessWidget {
       body: BlocBuilder<SocialCubit, SocialState>(
         builder: (context, socialState) {
           return GridView.builder(
-            padding: const EdgeInsets.all(16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            padding: EdgeInsets.all(16.r),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
               childAspectRatio: 0.8,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+              crossAxisSpacing: 12.w,
+              mainAxisSpacing: 12.h,
             ),
             itemCount: items.length,
             itemBuilder: (context, index) {
@@ -98,12 +99,12 @@ class _MoreButton extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 32, color: Theme.of(context).primaryColor),
-                  const SizedBox(height: 8),
+                  Icon(icon, size: 32.r, color: Theme.of(context).primaryColor),
+                  SizedBox(height: 8.h),
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 12),
+                    style: TextStyle(fontSize: 12.sp),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -112,20 +113,20 @@ class _MoreButton extends StatelessWidget {
             ),
             if (badge != null)
               Positioned(
-                top: 8,
-                right: 8,
+                top: 8.r,
+                right: 8.r,
                 child: Container(
-                  padding: const EdgeInsets.all(4),
+                  padding: EdgeInsets.all(4.r),
                   decoration: const BoxDecoration(
                     color: Colors.red,
                     shape: BoxShape.circle,
                   ),
-                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                  constraints: BoxConstraints(minWidth: 20.r, minHeight: 20.r),
                   child: Text(
                     badge.toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 12,
+                      fontSize: 12.sp,
                       fontWeight: FontWeight.bold,
                     ),
                     textAlign: TextAlign.center,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -66,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.r),
         child: Form(
           key: _formKey,
           child: Column(
@@ -74,18 +75,18 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Icon(
                 Icons.login_outlined,
-                size: 80,
+                size: 80.r,
                 color: Theme.of(context).primaryColor,
               ),
 
-              const SizedBox(height: 32),
+              SizedBox(height: 32.h),
 
               if (_errorMessage != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12.r),
                   decoration: BoxDecoration(
                     color: Colors.red.shade50,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   child: Text(
                     _errorMessage!,
@@ -96,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
               ],
 
               AuthTextField(
@@ -119,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               AuthTextField(
                 controller: _passwordController,
@@ -147,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
 
               Align(
                 alignment: Alignment.centerRight,
@@ -161,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
 
               AuthButton(
                 onPressed: _login,
@@ -169,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 text: locale.get('login_button'),
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               ElevatedButton.icon(
                 onPressed: () async {
@@ -185,12 +186,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
                 icon: Image.asset(
                   'assets/pictures/google.png',
-                  height: 24,
+                  height: 24.h,
                 ),
                 label: const Text('Google'),
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               TextButton(
                 onPressed: () {

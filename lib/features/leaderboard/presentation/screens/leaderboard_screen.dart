@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../cubits/leaderboard_cubit.dart';
 import '../../domain/entities/leaderboard_entry.dart';
@@ -114,13 +115,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   Widget _buildFilterBar(BuildContext context, LeaderboardState state) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.r),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            blurRadius: 10.r,
             offset: const Offset(0, 2),
           ),
         ],
@@ -138,7 +139,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               },
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           Expanded(
             child: _buildDropdown(
               label: 'Category',
@@ -162,7 +163,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     required ValueChanged<String?> onChanged,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: EdgeInsets.symmetric(horizontal: 10.w),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
@@ -172,11 +173,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         child: DropdownButton<String>(
           value: value,
           isExpanded: true,
-          icon: const Icon(Icons.arrow_drop_down, color: Colors.grey, size: 20),
+          icon: Icon(Icons.arrow_drop_down, color: Colors.grey, size: 20.r),
           style: TextStyle(
             color: Colors.grey.shade800,
             fontWeight: FontWeight.w600,
-            fontSize: 13,
+            fontSize: 13.sp,
           ),
           items: items,
           onChanged: onChanged,
@@ -285,10 +286,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       onTap: () => _navigateToUserProfile(context, entry.userId),
       child: Container(
         height: 60,
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        margin: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
         decoration: BoxDecoration(
           color: isTopThree ? rankBackgroundColor!.withOpacity(0.1) : Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           border: Border.all(
             color: isTopThree ? rankBackgroundColor!.withOpacity(0.3) : Colors.grey.shade200,
             width: isTopThree ? 1.5 : 1,
@@ -304,30 +305,30 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               : null,
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 40.r,
+                height: 40.r,
                 decoration: BoxDecoration(
                   color: rankBackgroundColor ?? Colors.grey.shade100, // Светло-серый фон для 4+
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Center(
                   child: Text(
                     '#${entry.rank}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 14.sp,
                       color: isTopThree ? Colors.white : Colors.black87, // 👈 ИСПРАВЛЕНО: черный для 4+
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10.w),
               CircleAvatar(
-                radius: 20,
+                radius: 20.r,
                 backgroundImage: entry.avatarUrl != null ? NetworkImage(entry.avatarUrl!) : null,
                 backgroundColor: Colors.grey.shade200,
                 child: entry.avatarUrl == null
@@ -341,7 +342,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 )
                     : null,
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10.w),
 
               // Имя, Титул, Флаг и Полное имя
               Expanded(
@@ -354,15 +355,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       children: [
                         if (entry.title != null && entry.title!.isNotEmpty) ...[
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
                             decoration: BoxDecoration(
                               color: const Color(0xFFB91C1C),
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.circular(3.r),
                             ),
                             child: Text(
                               entry.title!,
-                              style: const TextStyle(
-                                fontSize: 9,
+                              style: TextStyle(
+                                fontSize: 9.sp,
                                 fontWeight: FontWeight.w900,
                                 color: Colors.white,
                                 letterSpacing: 0.3,
@@ -370,34 +371,34 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 5),
+                          SizedBox(width: 5.w),
                         ],
                         Flexible( // 👈 Заменяем Expanded на Flexible
                           child: Text(
                             entry.nickname,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: 13,
+                              fontSize: 13.sp,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (flag.isNotEmpty) ...[
-                          const SizedBox(width: 10), // 👈 Отступ 10
+                          SizedBox(width: 10.w), // 👈 Отступ 10
                           Text(
                             flag,
-                            style: const TextStyle(fontSize: 14),
+                            style: TextStyle(fontSize: 14.sp),
                           ),
                         ],
                       ],
                     ),
                     // 👇 ПОЛНОЕ ИМЯ (FULL NAME) СНИЗУ
                     if (entry.fullName != null && entry.fullName!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2.h),
                       Text(
                         entry.fullName!,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 11.sp,
                           color: Colors.grey.shade600,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -409,16 +410,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
               // Рейтинг
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(6.r),
                 ),
                 child: Text(
                   entry.rating.toStringAsFixed(0),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 13.sp,
                     color: Colors.green.shade700,
                   ),
                 ),

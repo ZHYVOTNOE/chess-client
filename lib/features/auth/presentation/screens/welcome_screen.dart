@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/providers/locale_provider.dart';
@@ -14,8 +15,8 @@ class WelcomeScreen extends StatelessWidget {
       body: Stack(
         children: [
           Positioned(
-            top: 28,
-            right: 8,
+            top: 28.h,
+            right: 8.w,
             child: _LanguageSelector(),
           ),
           Center(child: Image.asset('assets/pictures/logo.png')),
@@ -29,7 +30,7 @@ class WelcomeScreen extends StatelessWidget {
                 _buildButton(context, locale.get('welcome_login'), () {
                   context.push('/login');
                 }),
-                const SizedBox(height: 16),
+                SizedBox(height: 16.h),
                 _buildButton(context, locale.get('welcome_register'), () {
                   context.push('/registration');
                 }),

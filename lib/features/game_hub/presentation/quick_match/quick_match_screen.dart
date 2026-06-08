@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:provider/provider.dart';
@@ -56,23 +57,23 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildSectionTitle(locale.get('quick_time_control')),
             _buildCategoryTabs(),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             _showCustom ? _buildCustomTime() : _buildTimeGrid(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             _buildSectionTitle(locale.get('quick_rating_range')),
             _buildRatingRangeSelector(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             _buildSectionTitle(locale.get('quick_options')),
             _buildOptions(),
-            const SizedBox(height: 32),
+            SizedBox(height: 32.h),
 
             _buildSearchButton(locale),
           ],
@@ -83,11 +84,11 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: 12.h),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 16,
+        style: TextStyle(
+          fontSize: 16.sp,
           fontWeight: FontWeight.bold,
           color: Colors.grey,
         ),
@@ -106,7 +107,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
     ];
 
     return SizedBox(
-      height: 50,
+      height: 50.h,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
@@ -116,11 +117,11 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
           final isCustom = cat['code'] == 'custom';
 
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: EdgeInsets.only(right: 8.w),
             child: ChoiceChip(
               avatar: Icon(
                 cat['icon'] as IconData,
-                size: 18,
+                size: 18.r,
                 color: isSelected ? Colors.white : Colors.grey,
               ),
               label: Text(cat['name'] as String),
@@ -149,11 +150,11 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 2.5,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
+        crossAxisSpacing: 12.w,
+        mainAxisSpacing: 12.h,
       ),
       itemCount: times.length,
       itemBuilder: (context, index) {
@@ -165,7 +166,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
           child: Container(
             decoration: BoxDecoration(
               color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               border: isSelected
                   ? Border.all(color: Theme.of(context).primaryColor, width: 2)
                   : null,
@@ -176,7 +177,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
                 Text(
                   time['display'] as String,
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
                     color: isSelected ? Colors.white : Colors.black,
                   ),
@@ -184,7 +185,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
                 Text(
                   '${time['minutes']}:${(time['seconds'] as int).toString().padLeft(2, '0')} + ${time['increment']}',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 12.sp,
                     color: isSelected ? Colors.white70 : Colors.grey,
                   ),
                 ),
@@ -212,7 +213,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
                     max: 60,
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16.w),
                 Expanded(
                   child: _buildNumberPicker(
                     label: 'Секунды',
@@ -221,7 +222,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
                     max: 59,
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16.w),
                 Expanded(
                   child: _buildNumberPicker(
                     label: 'Добавление',
@@ -232,10 +233,10 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               'Итого: $_customMinutes:${_customSeconds.toString().padLeft(2, '0')} + $_customIncrement',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -251,24 +252,24 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
   }) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        const SizedBox(height: 4),
+        Text(label, style: TextStyle(color: Colors.grey, fontSize: 12.sp)),
+        SizedBox(height: 4.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
               icon: const Icon(Icons.remove),
               onPressed: value > 0 ? () => onChanged(value - 1) : null,
-              iconSize: 20,
+              iconSize: 20.r,
             ),
             Text(
               value.toString(),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
             ),
             IconButton(
               icon: const Icon(Icons.add),
               onPressed: value < max ? () => onChanged(value + 1) : null,
-              iconSize: 20,
+              iconSize: 20.r,
             ),
           ],
         ),
@@ -291,7 +292,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
           title: Text(range['label'] as String),
           subtitle: Text(
             range['desc'] as String,
-            style: const TextStyle(fontSize: 12),
+            style: TextStyle(fontSize: 12.sp),
           ),
           value: range['code'] as String,
           groupValue: _ratingRange,
@@ -312,7 +313,7 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
 
   Widget _buildSearchButton(LocaleProvider locale) {
     return SizedBox(
-      height: 56,
+      height: 56.h,
       child: ElevatedButton(
         onPressed: () {
           /*final timeCode = _showCustom
@@ -324,12 +325,12 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
         },
         style: ElevatedButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12.r),
           ),
         ),
         child: Text(
           locale.get('quick_search'),
-          style: const TextStyle(fontSize: 18),
+          style: TextStyle(fontSize: 18.sp),
         ),
       ),
     );
@@ -345,10 +346,10 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const CircularProgressIndicator(),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(timeCode.replaceAll('|', ' + ')),
             Text('$_ratingRange • Случайный цвет'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(locale.get('cancel')),

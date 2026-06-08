@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/providers/locale_provider.dart';
@@ -53,7 +54,7 @@ class JoinLiveTournamentScreen extends StatelessWidget {
 
     return Scaffold(
       body: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         itemCount: tournaments.length,
         itemBuilder: (context, index) {
           final t = tournaments[index];
@@ -84,7 +85,7 @@ class JoinLiveTournamentScreen extends StatelessWidget {
             Text('${locale.get('time_control')}: ${tournament['timeControl']}'),
             Text('${locale.get('format')}: ${_getFormatName(tournament['format'] as String)}'),
             Text('${locale.get('players')}: ${tournament['players']}/${tournament['maxPlayers']}'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               '${locale.get('starts_in')}: ${tournament['startsIn']}',
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -153,12 +154,12 @@ class _TournamentBlock extends StatelessWidget {
     };
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12.h),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onJoin,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16.r),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -168,44 +169,44 @@ class _TournamentBlock extends StatelessWidget {
                   Expanded(
                     child: Text(
                       name,
-                      style: const TextStyle(
-                        fontSize: 18,
+                      style: TextStyle(
+                        fontSize: 18.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                     decoration: BoxDecoration(
                       color: Colors.green.shade100,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
 
               // Строка 2: Временной формат и контроль
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                     decoration: BoxDecoration(
                       color: (timeFormatColors[timeFormat] ?? Colors.grey).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(4.r),
                     ),
                     child: Text(
                       _getTimeFormatName(timeFormat),
                       style: TextStyle(
                         color: timeFormatColors[timeFormat] ?? Colors.grey,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 12.sp,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.timer, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 8.w),
+                  Icon(Icons.timer, size: 16.r, color: Colors.grey.shade600),
+                  SizedBox(width: 4.w),
                   Text(
                     timeControl,
                     style: TextStyle(
@@ -215,8 +216,8 @@ class _TournamentBlock extends StatelessWidget {
                   ),
                   const Spacer(),
                   // Начало через
-                  Icon(Icons.schedule, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
+                  Icon(Icons.schedule, size: 16.r, color: Colors.grey.shade600),
+                  SizedBox(width: 4.w),
                   Text(
                     'Через $startsIn',
                     style: TextStyle(
@@ -226,17 +227,17 @@ class _TournamentBlock extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
 
               // Строка 3: Тип турнира и участники
               Row(
                 children: [
                   Icon(
                     formatIcons[format] ?? Icons.help,
-                    size: 20,
+                    size: 20.r,
                     color: Theme.of(context).primaryColor,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8.w),
                   Text(
                     _getFormatName(format),
                     style: TextStyle(
@@ -245,8 +246,8 @@ class _TournamentBlock extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  Icon(Icons.people, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
+                  Icon(Icons.people, size: 16.r, color: Colors.grey.shade600),
+                  SizedBox(width: 4.w),
                   Text(
                     '$players / $maxPlayers',
                     style: TextStyle(
@@ -260,7 +261,7 @@ class _TournamentBlock extends StatelessWidget {
               ),
 
               // Индикатор заполненности
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
               LinearProgressIndicator(
                 value: players / maxPlayers,
                 backgroundColor: Colors.grey.shade200,

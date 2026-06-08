@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/providers/locale_provider.dart';
@@ -76,23 +77,23 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Выбор бота
             _buildSectionTitle(locale.get('select_bot')),
             _buildBotSelector(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Выбор цвета
             _buildSectionTitle(locale.get('choose_color')),
             _buildColorSelector(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Рейтинговая игра
             _buildRatedOption(),
-            const SizedBox(height: 32),
+            SizedBox(height: 32.h),
 
             // Кнопка начала игры
             _buildStartButton(locale),
@@ -104,10 +105,10 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: 12.h),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.grey),
       ),
     );
   }
@@ -119,7 +120,7 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
         final isCustom = bot['id'] == 'custom';
 
         return Card(
-          margin: const EdgeInsets.only(bottom: 8),
+          margin: EdgeInsets.only(bottom: 8.h),
           color: isSelected ? (bot['color'] as Color).withOpacity(0.1) : null,
           child: InkWell(
             onTap: () {
@@ -129,7 +130,7 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
               }
             },
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12.r),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -139,7 +140,7 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
                       color: bot['color'] as Color,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,25 +152,25 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
                               style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             if (bot['rating'] != null) ...[
-                              const SizedBox(width: 8),
+                              SizedBox(width: 8.w),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(4.r),
                                 ),
                                 child: Text(
                                   '${bot['rating']}',
-                                  style: const TextStyle(fontSize: 12),
+                                  style: TextStyle(fontSize: 12.sp),
                                 ),
                               ),
                             ],
                           ],
                         ),
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2.h),
                         Text(
                           bot['description'] as String,
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                          style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600),
                         ),
                       ],
                     ),
@@ -177,7 +178,7 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
                   if (isSelected && !isCustom)
                     Icon(Icons.check_circle, color: bot['color'] as Color),
                   if (isCustom && isSelected)
-                    const Icon(Icons.arrow_forward_ios, size: 16),
+                    Icon(Icons.arrow_forward_ios, size: 16.r),
                 ],
               ),
             ),
@@ -209,7 +210,7 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
             // Стиль игры
             const Text('Стиль игры'),
             Wrap(
-              spacing: 8,
+              spacing: 8.w,
               children: [
                 ChoiceChip(label: const Text('Универсальный'), selected: true, onSelected: (_) {}),
                 ChoiceChip(label: const Text('Атакующий'), selected: false, onSelected: (_) {}),
@@ -248,15 +249,15 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
             child: Card(
               color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16.r),
                 child: Column(
                   children: [
                     Icon(
                       color['icon'] as IconData,
                       color: isSelected ? Theme.of(context).primaryColor : Colors.grey,
-                      size: 32,
+                      size: 32.r,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     Text(
                       color['name'] as String,
                       style: TextStyle(
@@ -276,7 +277,7 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
   Widget _buildRatedOption() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         child: Row(
           children: [
             Expanded(
@@ -306,12 +307,12 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
 
   Widget _buildStartButton(LocaleProvider locale) {
     return SizedBox(
-      height: 56,
+      height: 56.h,
       child: ElevatedButton(
         onPressed: _startGame,
         child: Text(
           locale.get('start_game'),
-          style: const TextStyle(fontSize: 18),
+          style: TextStyle(fontSize: 18.sp),
         ),
       ),
     );

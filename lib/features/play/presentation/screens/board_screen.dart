@@ -300,6 +300,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:provider/provider.dart';
@@ -413,10 +414,10 @@ class _BoardView extends StatelessWidget {
 
           if (snapshot.result != null)
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16.r),
               child: Text(
                 snapshot.result!,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
               ),
             ),
 
@@ -458,9 +459,9 @@ class _PlayerCard extends StatelessWidget {
       title: Text(name),
       subtitle: rating != null ? Text('Rating: $rating') : null,
       trailing: isThinking
-          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+          ? SizedBox(width: 20.r, height: 20.r, child: CircularProgressIndicator(strokeWidth: 2))
           : showTime
-          ? Text('$m:${s.toString().padLeft(2, '0')}', style: const TextStyle(fontFamily: 'monospace'))
+          ? Text('$m:${s.toString().padLeft(2, '0')}', style: TextStyle(fontFamily: 'monospace', fontSize: 14.sp))
           : null,
     );
   }

@@ -6,6 +6,7 @@ import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -340,11 +341,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // 🔥 НОВЫЙ МЕТОД: Определяем иконку для поля никнейма
   Widget? _buildNicknameSuffixIcon() {
     if (_isCheckingNickname) {
-      return const Padding(
-        padding: EdgeInsets.all(12),
+      return Padding(
+        padding: EdgeInsets.all(12.r),
         child: SizedBox(
-          width: 20,
-          height: 20,
+          width: 20.r,
+          height: 20.r,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       );
@@ -418,7 +419,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 ((state is ProfileLoaded || state is ProfileUpdated)
                                     ? (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl
                                     : widget.initialProfile.avatarUrl)}'),
-                            radius: 50,
+                            radius: 50.r,
                             backgroundColor: Colors.grey.shade300,
                             backgroundImage: _tempAvatar != null
                                 ? FileImage(_tempAvatar!)
@@ -436,7 +437,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         ((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl == null ||
                                             (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isEmpty))) &&
                                 (widget.initialProfile.avatarUrl == null || widget.initialProfile.avatarUrl!.isEmpty))
-                                ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                ? const Icon(Icons.person, size: 50, color: Colors.grey)
                                 : null,
                           ),
                         ),
@@ -446,7 +447,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: GestureDetector(
                             onTap: _showImageSourceActionSheet,
                             child: CircleAvatar(
-                              radius: 16,
+                              radius: 16.r,
                               backgroundColor: Theme.of(context).primaryColor,
                               child: const Icon(Icons.edit, size: 16, color: Colors.white),
                             ),
@@ -536,7 +537,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           child: InkWell(
                             onTap: _isSaving ? null : _showCountryPicker,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
                               child: Row(
                                 children: [
                                   if (_selectedCountry != null) ...[

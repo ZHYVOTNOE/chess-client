@@ -189,7 +189,7 @@ class RadarPainter extends CustomPainter {
       final paint = Paint()
         ..color = Colors.blue.withOpacity(opacity * 0.3)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.r,
+        ..strokeWidth = 2.r;
 
       canvas.drawCircle(center, circleRadius, paint);
     }

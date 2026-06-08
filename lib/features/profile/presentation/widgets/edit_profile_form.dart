@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
@@ -236,7 +237,7 @@ class _EditProfileFormState extends State<EditProfileForm> {
       key: _formKey,
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16.r),
           child: Column(
             children: [
               // 🔥 Аватар с возможностью редактирования
@@ -245,7 +246,7 @@ class _EditProfileFormState extends State<EditProfileForm> {
                   GestureDetector(
                     onTap: _isSaving ? null : _showImageSourceActionSheet,
                     child: CircleAvatar(
-                      radius: 50,
+                      radius: 50.r,
                       backgroundColor: Colors.grey.shade300,
                       // Приоритет: временный файл → профиль → заглушка
                       backgroundImage: _tempAvatar != null
@@ -258,7 +259,7 @@ class _EditProfileFormState extends State<EditProfileForm> {
                       child: (_tempAvatar == null &&
                           userProvider.avatarFile == null &&
                           widget.profile.avatarUrl == null)
-                          ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                          ? Icon(Icons.person, size: 50.r, color: Colors.grey)
                           : null,
                     ),
                   ),
@@ -268,11 +269,11 @@ class _EditProfileFormState extends State<EditProfileForm> {
                       bottom: 0,
                       right: 0,
                       child: CircleAvatar(
-                        radius: 16,
+                        radius: 16.r,
                         backgroundColor: Theme.of(context).primaryColor,
-                        child: const Icon(
+                        child: Icon(
                           Icons.edit,
-                          size: 16,
+                          size: 16.r,
                           color: Colors.white,
                         ),
                       ),
@@ -280,25 +281,25 @@ class _EditProfileFormState extends State<EditProfileForm> {
                 ],
               ),
 
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
 
               // 🔥 Поле никнейма
               TextFormField(
                 controller: _nicknameController,
                 textAlign: TextAlign.center,
                 enabled: !_isSaving,
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: 24.sp,
                   fontWeight: FontWeight.bold,
                 ),
                 decoration: InputDecoration(
                   border: InputBorder.none,
                   hintText: 'Введите никнейм',
                   suffixIcon: _isSaving
-                      ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                      ? SizedBox(
+                    width: 20.w,
+                    height: 20.h,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
                   )
                       : null,
                 ),
@@ -308,18 +309,18 @@ class _EditProfileFormState extends State<EditProfileForm> {
 
               // 🔥 Сообщения об ошибках
               if (_errorMessage != null) ...[
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   _errorMessage!,
                   style: TextStyle(
                     color: Colors.red.shade700,
-                    fontSize: 12,
+                    fontSize: 12.sp,
                   ),
                   textAlign: TextAlign.center,
                 ),
               ],
 
-              const SizedBox(height: 24),
+              SizedBox(height: 24.h),
 
               // 🔥 Кнопка сохранения
               SizedBox(
@@ -327,31 +328,31 @@ class _EditProfileFormState extends State<EditProfileForm> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _saveAll,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
                   ),
                   child: _isSaving
-                      ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
+                      ? SizedBox(
+                    height: 20.h,
+                    width: 20.w,
+                    child: const CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   )
-                      : const Text(
+                      : Text(
                     'Сохранить изменения',
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 16.sp),
                   ),
                 ),
               ),
 
               // 🔥 Подсказка про аватар
               if (_tempAvatar != null) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 Text(
                   '📷 Новый аватар выбран. Нажмите "Сохранить" для загрузки.',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 12.sp,
                     color: Colors.blue.shade700,
                     fontStyle: FontStyle.italic,
                   ),

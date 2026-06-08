@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -45,7 +46,7 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -58,44 +59,44 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
                 border: const OutlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Тип турнира
             _buildSectionTitle(locale.get('tournament_format')),
             _buildFormatSelector(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Временной контроль
             _buildSectionTitle(locale.get('time_control')),
             _buildTimeControlSelector(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Количество участников
             _buildSectionTitle(locale.get('max_players')),
             _buildPlayerCountSelector(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Диапазон рейтинга
             _buildSectionTitle(locale.get('rating_range')),
             _buildRatingRangeSelector(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Дата и время начала
             _buildSectionTitle(locale.get('start_time')),
             _buildDateTimeSelector(),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
 
             // Начальная позиция
             _buildSectionTitle(locale.get('starting_position')),
             _buildPositionSelector(),
-            const SizedBox(height: 32),
+            SizedBox(height: 32.h),
 
             // Кнопка создания
             SizedBox(
-              height: 56,
+              height: 56.h,
               child: ElevatedButton(
                 onPressed: _createTournament,
-                child: Text(locale.get('create_tournament'), style: const TextStyle(fontSize: 18)),
+                child: Text(locale.get('create_tournament'), style: TextStyle(fontSize: 18.sp)),
               ),
             ),
           ],
@@ -106,10 +107,10 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: 12.h),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+        style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.grey),
       ),
     );
   }
@@ -129,12 +130,12 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
             child: Card(
               color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(12.r),
                 child: Column(
                   children: [
                     Icon(f['icon'] as IconData,
                         color: isSelected ? Theme.of(context).primaryColor : Colors.grey),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     Text(f['name'] as String,
                         style: TextStyle(fontWeight: isSelected ? FontWeight.bold : null)),
                     Text(f['desc'] as String,
@@ -151,8 +152,8 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
 
   Widget _buildTimeControlSelector() {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 8.w,
+      runSpacing: 8.h,
       children: _timeControls.map((time) {
         final isSelected = _timeControl == time;
         return ChoiceChip(
@@ -168,7 +169,7 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
 
   Widget _buildPlayerCountSelector() {
     return Wrap(
-      spacing: 12,
+      spacing: 12.w,
       children: _playerCounts.map((count) {
         final isSelected = _maxPlayers == count;
         return ChoiceChip(
@@ -264,7 +265,7 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
         ),
         if (_startingPosition == 'custom')
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+            padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 16.h),
             child: TextField(
               controller: _customPositionController,
               decoration: const InputDecoration(
@@ -309,19 +310,19 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 64),
-            const SizedBox(height: 16),
+            Icon(Icons.check_circle, color: Colors.green, size: 64.r),
+            SizedBox(height: 16.h),
             Text(tournament['name']),
-            const SizedBox(height: 16),
-            const Text('Код турнира:', style: TextStyle(color: Colors.grey)),
+            SizedBox(height: 16.h),
+            Text('Код турнира:', style: TextStyle(color: Colors.grey)),
             SelectableText(
               code,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 4),
+              style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, letterSpacing: 4),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               'Начало: ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.parse(tournament['startTime']))} ${tournament['timeZone']}',
-              style: const TextStyle(fontSize: 12),
+              style: TextStyle(fontSize: 12.sp),
             ),
           ],
         ),

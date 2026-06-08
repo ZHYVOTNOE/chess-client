@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/providers/locale_provider.dart';
@@ -57,7 +58,7 @@ class JoinDailyTournamentScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         itemCount: tournaments.length,
         itemBuilder: (context, index) {
           final t = tournaments[index];
@@ -99,7 +100,7 @@ class JoinDailyTournamentScreen extends StatelessWidget {
               Text('${locale.get('advancing')}: ${tournament['advancing']} ${locale.get('from_each_group')}'),
             ],
             Text('${locale.get('players')}: ${tournament['players']}/${tournament['maxPlayers']}'),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               startsIn == 0
                   ? locale.get('starts_today')
@@ -184,12 +185,12 @@ class _DailyTournamentBlock extends StatelessWidget {
         : Colors.purple;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12.h),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onJoin,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16.r),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -210,47 +211,47 @@ class _DailyTournamentBlock extends StatelessWidget {
                     child: Icon(
                       formatIcons[format] ?? Icons.help,
                       color: formatColors[format] ?? Colors.grey,
-                      size: 20,
+                      size: 20.r,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
 
               // Строка 2: Время на ход и до старта
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
                     decoration: BoxDecoration(
                       color: timeColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(4.r),
                     ),
                     child: Text(
                       '$timePerMove ${timePerMove == 1 ? 'день' : 'дня'} на ход',
                       style: TextStyle(
                         color: timeColor,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 12.sp,
                       ),
                     ),
                   ),
                   const Spacer(),
-                  Icon(Icons.event, size: 16, color: startsInDays == 0 ? Colors.green : Colors.grey.shade600),
-                  const SizedBox(width: 4),
+                  Icon(Icons.event, size: 16.r, color: startsInDays == 0 ? Colors.green : Colors.grey.shade600),
+                  SizedBox(width: 4.w),
                   Text(
                     startsInDays == 0
                         ? 'Начинается сегодня'
                         : 'Через $startsInDays ${_getDayWord(startsInDays)}',
                     style: TextStyle(
                       color: startsInDays == 0 ? Colors.green : Colors.grey.shade600,
-                      fontSize: 12,
+                      fontSize: 12.sp,
                       fontWeight: startsInDays == 0 ? FontWeight.bold : null,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
 
               // Строка 3: Формат и участники
               Row(
@@ -262,13 +263,13 @@ class _DailyTournamentBlock extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8.w),
                   if (format == 'olympic' && rounds != null)
                     Text(
                       '• $rounds ${_getRoundWord(rounds!)}',
                       style: TextStyle(
                         color: Colors.grey.shade600,
-                        fontSize: 12,
+                        fontSize: 12.sp,
                       ),
                     ),
                   if (format == 'groups' && groups != null) ...[
@@ -276,7 +277,7 @@ class _DailyTournamentBlock extends StatelessWidget {
                       '• $groups ${_getGroupWord(groups!)}',
                       style: TextStyle(
                         color: Colors.grey.shade600,
-                        fontSize: 12,
+                        fontSize: 12.sp,
                       ),
                     ),
                     if (advancing != null)
@@ -284,13 +285,13 @@ class _DailyTournamentBlock extends StatelessWidget {
                         ', $advancing ${_getAdvancingWord(advancing!)}',
                         style: TextStyle(
                           color: Colors.grey.shade600,
-                          fontSize: 12,
+                          fontSize: 12.sp,
                         ),
                       ),
                   ],
                   const Spacer(),
-                  Icon(Icons.people, size: 16, color: Colors.grey.shade600),
-                  const SizedBox(width: 4),
+                  Icon(Icons.people, size: 16.r, color: Colors.grey.shade600),
+                  SizedBox(width: 4.w),
                   Text(
                     '$players / $maxPlayers',
                     style: TextStyle(
@@ -302,7 +303,7 @@ class _DailyTournamentBlock extends StatelessWidget {
               ),
 
               // Индикатор заполненности
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
               LinearProgressIndicator(
                 value: players / maxPlayers,
                 backgroundColor: Colors.grey.shade200,
