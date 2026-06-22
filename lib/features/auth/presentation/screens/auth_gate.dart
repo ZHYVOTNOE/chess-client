@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/user_provider.dart';
 import '../../../../core/providers/locale_provider.dart';
+import '../../../../core/providers/settings_provider.dart';
 import 'welcome_screen.dart';
 
 class AuthGate extends StatefulWidget {
@@ -26,13 +27,19 @@ class _AuthGateState extends State<AuthGate> {
   Future<void> _initialize() async {
     // 🔥 Ждём загрузки профиля (если пользователь авторизован)
     final userProvider = context.read<UserProvider>();
+    debugPrint('🔐 [AuthGate] _initialize called, userId: ${userProvider.userId}');
+    
     if (userProvider.userId != null) {
+      debugPrint('🔐 [AuthGate] User is authenticated, loading profile...');
       await userProvider.loadProfile();
+      
+      // 🔥 Загрузка настроек для авторизованного пользователя
+      final settingsProvider = context.read<SettingsProvider>();
+      debugPrint('🔐 [AuthGate] Loading settings for user: ${userProvider.userId!}');
+      await settingsProvider.loadSettings(userProvider.userId!);
+    } else {
+      debugPrint('🔐 [AuthGate] User is not authenticated');
     }
-
-    // 🔥 Здесь можно добавить другие инициализации:
-    // - Загрузка настроек
-    // - Кэширование рейтингов
 
     if (mounted) {
       setState(() => _isInitialized = true);

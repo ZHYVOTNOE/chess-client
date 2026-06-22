@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/providers/locale_provider.dart';
+import '../../../../core/providers/settings_provider.dart';
 import '../../domain/entities/user_settings.dart';
 import '../../domain/usecases/get_settings_usecase.dart';
 import '../../domain/usecases/save_settings_usecase.dart';
@@ -10,11 +11,13 @@ class SettingsCubit extends Cubit<SettingsState> {
   final GetSettings getSettings;
   final SaveSettings saveSettings;
   final LocaleProvider localeProvider;
+  final SettingsProvider settingsProvider;
 
   SettingsCubit(
     this.getSettings,
     this.saveSettings,
     this.localeProvider,
+    this.settingsProvider,
   ) : super(SettingsInitial());
 
   Future<void> loadSettings(String userId) async {
@@ -72,6 +75,13 @@ class SettingsCubit extends Cubit<SettingsState> {
     );
     emit(SettingsLoaded(updatedSettings));
 
+    // Update SettingsProvider for board screens
+    debugPrint('🎨 [SettingsCubit] Updating boardTheme to: $boardTheme');
+    settingsProvider.setBoardTheme(boardTheme);
+    
+    // Force notify listeners to ensure boards rebuild
+    settingsProvider.notifyListeners();
+
     // Save to database in background
     try {
       await saveSettings(userId, updatedSettings);
@@ -101,6 +111,13 @@ class SettingsCubit extends Cubit<SettingsState> {
       pieceTheme: pieceTheme,
     );
     emit(SettingsLoaded(updatedSettings));
+
+    // Update SettingsProvider for board screens
+    debugPrint('♟️ [SettingsCubit] Updating pieceSet to: $pieceTheme');
+    settingsProvider.setPieceSet(pieceTheme);
+    
+    // Force notify listeners to ensure boards rebuild
+    settingsProvider.notifyListeners();
 
     // Save to database in background
     try {

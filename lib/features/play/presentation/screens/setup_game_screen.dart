@@ -54,6 +54,21 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     bishop.Variant.horde(),
   ];
 
+  final List<String> _variantKeys = [
+    'standard',
+    'chess960',
+    'mini',
+    'micro',
+    'nano',
+    'grand',
+    'capablanca',
+    'crazyhouse',
+    'seirawan',
+    'atomic',
+    'kingOfTheHill',
+    'horde',
+  ];
+
   final Map<String, List<Map<String, dynamic>>> _timeControls = {
     'bullet': [
       {'code': '0:30|0', 'minutes': 0, 'seconds': 30, 'increment': 0, 'display': '0:30'},
@@ -132,7 +147,7 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
       final savedSetup = await _gameSetupRepository.getGameSetup(userId);
       if (savedSetup != null) {
         setState(() {
-          final variantIndex = _variants.indexWhere((v) => v.name == savedSetup.variant);
+          final variantIndex = _variantKeys.indexOf(savedSetup.variant);
           if (variantIndex >= 0) _variant = variantIndex;
           _currentCategory = savedSetup.timeControlCategory;
           _selectedTime = savedSetup.timeControl;
@@ -151,7 +166,7 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
     try {
       final setup = GameSetup(
         userId: userId,
-        variant: _variants[_variant].name,
+        variant: _variantKeys[_variant],
         timeControl: _selectedTime,
         timeControlCategory: _currentCategory,
         ratingRange: _ratingRange,
@@ -752,10 +767,19 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
         }
       }
 
+      print('🎮 [MATCHMAKING] Starting search with params:');
+      print('   variant: ${_variantKeys[_variant]}');
+      print('   timeControlType: $timeControlType');
+      print('   timeControl: $_selectedTime');
+      print('   rating: $userRating');
+      print('   ratingRange: $_ratingRange');
+      print('   userId: $userId');
+      print('   hasToken: ${jwtToken != null}');
+
       context.push('/game/searching', extra: {
         'jwtToken': jwtToken,
         'userId': userId,
-        'variant': _variants[_variant].name,
+        'variant': _variantKeys[_variant],
         'timeControlType': timeControlType,
         'timeControl': _selectedTime,
         'rating': userRating,

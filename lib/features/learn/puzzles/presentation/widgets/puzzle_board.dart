@@ -6,6 +6,7 @@ import 'package:bishop/bishop.dart' as bishop;
 import 'package:client/core/utils/piece_set_loader.dart';
 import 'package:client/core/providers/settings_provider.dart';
 import 'package:client/core/providers/locale_provider.dart';
+import 'package:client/core/providers/user_provider.dart';
 import 'package:client/features/settings/constants/custom_board_themes.dart';
 
 class PuzzleBoard extends StatelessWidget {
@@ -37,6 +38,24 @@ class PuzzleBoard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
+
+    // Load settings if not loaded
+    if (settings.settings == null && !settings.isLoading) {
+      final userId = context.read<UserProvider>().userId;
+      if (userId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<SettingsProvider>().loadSettings(userId);
+        });
+      }
+      // Show loading while settings are being loaded
+      return const Center(child: CircularProgressIndicator());
+    }
+    
+    // Show loading if settings are currently loading
+    if (settings.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    
     final pieceSet = settings.settings?.pieceSet ?? 'merida';
     final boardTheme = CustomBoardThemes.all
         .firstWhere(

@@ -348,6 +348,42 @@ class _BoardView extends StatelessWidget {
     final avatar = context.select<UserProvider, File?>((u) => u.avatarFile);
 
     final settings = context.watch<SettingsProvider>();
+    
+    // Load settings if not loaded
+    if (settings.settings == null && !settings.isLoading) {
+      final userId = context.read<UserProvider>().userId;
+      if (userId != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.read<SettingsProvider>().loadSettings(userId);
+        });
+      }
+      // Show loading while settings are being loaded
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(engine.config.variant.name),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    // Show loading if settings are currently loading
+    if (settings.isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(engine.config.variant.name),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.pop(),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    
     final boardTheme = CustomBoardThemes.all
         .firstWhere((entry) => entry.id == settings.settings?.boardTheme,
         orElse: () => CustomBoardThemes.all[0])

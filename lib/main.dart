@@ -20,7 +20,6 @@ import 'features/auth/domain/auth_provider.dart';
 import 'features/matchmaking/presentation/cubits/matchmaking_cubit.dart';
 import 'features/profile/profile_di.dart';
 import 'features/profile/presentation/cubits/profile_cubit.dart'; // ✅ ДОБАВЛЕНО
-import 'features/settings/data/repositories/settings_repository.dart';
 import 'features/settings/settings_di.dart';
 import 'features/play/game_di.dart';
 import 'features/social/presentation/cubits/social_cubit.dart';
@@ -74,8 +73,7 @@ void main() async {
   userProvider.startBackgroundRefresh();
   unawaited(userProvider.loadProfile());
 
-  final settingsRepo = SettingsRepository(Supabase.instance.client);
-  final settingsProvider = SettingsProvider(settingsRepo);
+  final settingsProvider = sl<SettingsProvider>();
 
   runApp(
     ScreenUtilInit(

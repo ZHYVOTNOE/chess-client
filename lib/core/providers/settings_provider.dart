@@ -21,6 +21,7 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _settings = await _repository.getSettings(userId);
+      debugPrint('✅ [Settings] Loaded: boardTheme=${_settings?.boardTheme}, pieceSet=${_settings?.pieceSet}');
     } catch (e) {
       debugPrint('❌ [Settings] Load error: $e');
       _settings = UserSettingsModel(userId: userId); // Фолбэк
@@ -46,8 +47,14 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   // 🔥 Сеттеры с автосохранением
-  void setBoardTheme(String id) => _update((s) => s.copyWith(boardTheme: id));
-  void setPieceSet(String id) => _update((s) => s.copyWith(pieceSet: id));
+  void setBoardTheme(String id) {
+    debugPrint('🎨 [Settings] Setting boardTheme to: $id');
+    _update((s) => s.copyWith(boardTheme: id));
+  }
+  void setPieceSet(String id) {
+    debugPrint('♟️ [Settings] Setting pieceSet to: $id');
+    _update((s) => s.copyWith(pieceSet: id));
+  }
   void setPieceSize(double size) => _update((s) => s.copyWith(pieceSize: size));
   void setShowCoordinates(bool val) => _update((s) => s.copyWith(showCoordinates: val));
   void setHighlightLastMove(bool val) => _update((s) => s.copyWith(highlightLastMove: val));

@@ -60,6 +60,12 @@ class _SearchingScreenState extends State<SearchingScreen>
 
     // Start search when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🔍 [SearchingScreen] findMatch params:');
+      print('   variant: ${widget.variant}');
+      print('   timeControlType: ${widget.timeControlType}');
+      print('   timeControl: ${widget.timeControl}');
+      print('   rating: ${widget.rating}');
+      print('   ratingRange: ${widget.ratingRange}');
       context.read<MatchmakingCubit>().findMatch(
         variant: widget.variant,
         timeControlType: widget.timeControlType,
@@ -71,12 +77,16 @@ class _SearchingScreenState extends State<SearchingScreen>
   }
 
   int _parseRatingRange(String range) {
-    if (range == 'any') return 0;
-    if (range.startsWith('±')) {
-      final value = int.tryParse(range.substring(1));
-      return value ?? 200;
+    int result;
+    if (range == 'any') {
+      result = 9999;
+    } else if (range.startsWith('±')) {
+      result = int.tryParse(range.substring(1)) ?? 200;
+    } else {
+      result = int.tryParse(range) ?? 200;
     }
-    return 200;
+    print('🎯 [parseRatingRange] "$range" → $result');
+    return result;
   }
 
   @override
