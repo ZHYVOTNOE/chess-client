@@ -3,7 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bishop/bishop.dart' as bishop;
 import '../../../../core/providers/locale_provider.dart';
+import '../../../play/data/datasources/ratings_remote_datasource.dart';
+import '../../../play/data/repositories/rating_repository_impl.dart';
+import '../../../play/domain/entities/engine_config.dart';
+import '../../../play/domain/entities/game_config.dart';
+import '../../../play/domain/entities/player_color.dart';
+import '../../../play/domain/entities/time_control.dart';
+import '../../../play/domain/repositories/rating_repository.dart';
 import '../cubits/matchmaking_cubit.dart';
 
 class SearchingScreen extends StatefulWidget {
@@ -31,6 +40,7 @@ class _SearchingScreenState extends State<SearchingScreen>
   late AnimationController _animationController;
   late Animation<double> _animation;
   String? _jwtToken;
+  late final RatingRepository _ratingRepository;
 
   @override
   void didChangeDependencies() {
@@ -49,6 +59,10 @@ class _SearchingScreenState extends State<SearchingScreen>
   @override
   void initState() {
     super.initState();
+    _ratingRepository = RatingRepositoryImpl(
+      RatingsRemoteDataSource(Supabase.instance.client),
+    );
+    
     _animationController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -89,6 +103,26 @@ class _SearchingScreenState extends State<SearchingScreen>
     return result;
   }
 
+  bishop.Variant _getVariant(String variant) {
+    switch (variant) {
+      case 'standard':
+      case 'Chess':
+        return bishop.Variant.standard();
+      case 'chess960':
+        return bishop.Variant.chess960();
+      case 'crazyhouse':
+        return bishop.Variant.crazyhouse();
+      case 'atomic':
+        return bishop.Variant.atomic();
+      case 'horde':
+        return bishop.Variant.horde();
+      case 'kingOfTheHill':
+        return bishop.Variant.kingOfTheHill();
+      default:
+        return bishop.Variant.standard();
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -100,16 +134,58 @@ class _SearchingScreenState extends State<SearchingScreen>
     return Scaffold(
       backgroundColor: Colors.white,
       body: BlocConsumer<MatchmakingCubit, MatchmakingState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state.gameId != null) {
+            // Load opponent profile data
+            final opponentId = state.yourColor == 'white' ? state.blackId : state.whiteId;
+            if (opponentId == null) {
+              print('❌ [SearchingScreen] Opponent ID is null');
+              return;
+            }
+            
+            String? opponentName;
+            String? opponentAvatarUrl;
+            int? opponentRating;
+
+            try {
+              // Load opponent profile
+              final profileResponse = await Supabase.instance.client
+                  .from('profiles')
+                  .select('nickname, avatar_url')
+                  .eq('id', opponentId)
+                  .maybeSingle();
+
+              if (profileResponse != null) {
+                opponentName = profileResponse['nickname'] as String?;
+                opponentAvatarUrl = profileResponse['avatar_url'] as String?;
+              }
+
+              // Load opponent rating
+              // Map variant name to database format
+              final variantName = widget.variant == 'Chess' ? 'standard' : widget.variant;
+              final rating = await _ratingRepository.getRating(
+                opponentId,
+                variantName,
+                widget.timeControlType,
+              );
+              opponentRating = rating?.rating.toInt();
+            } catch (e) {
+              // Silently handle errors
+            }
+
+            // Create GameConfig with opponent data
+            final config = GameConfig.create(
+              variant: _getVariant(widget.variant),
+              humanPlayer: state.yourColor == 'white' ? PlayerColor.white : PlayerColor.black,
+              opponentType: OpponentType.human,
+              timeControl: TimeControl.parse(widget.timeControl),
+              opponentName: opponentName ?? 'Opponent',
+              opponentRating: opponentRating,
+              opponentAvatarUrl: opponentAvatarUrl,
+            );
+
             // Navigate to game screen
-            context.push('/game/play', extra: {
-              'gameId': state.gameId,
-              'whiteId': state.whiteId,
-              'blackId': state.blackId,
-              'yourColor': state.yourColor,
-              'initialFen': state.initialFen,
-            });
+            context.push('/game/play', extra: config);
           } else if (state.error != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.error!)),

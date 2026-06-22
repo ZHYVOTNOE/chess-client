@@ -32,13 +32,21 @@ class RatingsRemoteDataSource {
           .from('ratings')
           .select()
           .eq('user_id', userId)
-          .eq('variant', variant)
-          .eq('time_control', timeControl)
+          .eq('variant_key', variant)
+          .eq('time_control_type', timeControl)
           .maybeSingle();
 
       if (response == null) return null;
 
-      return RatingModel.fromJson(response);
+      // Map the response to match expected field names
+      final mappedResponse = {
+        'user_id': response['user_id'],
+        'variant': response['variant_key'],
+        'time_control': response['time_control_type'],
+        'rating': response['rating'],
+      };
+
+      return RatingModel.fromJson(mappedResponse);
     } catch (e) {
       throw Exception('Failed to fetch rating: $e');
     }

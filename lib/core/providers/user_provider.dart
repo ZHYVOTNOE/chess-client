@@ -50,7 +50,20 @@ class UserProvider extends ChangeNotifier {
 
   // 🔥 Получение рейтинга для режима
   int? getRating(String mode) {
-    return _ratings[mode]?['standard'] ?? _ratings[mode]?.values.first;
+    // Try to get rating for the specific mode
+    var rating = _ratings[mode]?['standard'] ?? _ratings[mode]?.values.first;
+
+    // Fallback: if no rating for this mode, try to get any available rating
+    if (rating == null && _ratings.isNotEmpty) {
+      for (final modeRatings in _ratings.values) {
+        if (modeRatings.isNotEmpty) {
+          rating = modeRatings.values.first;
+          break;
+        }
+      }
+    }
+
+    return rating;
   }
 
   // 🔥 Обновление профиля с сервера

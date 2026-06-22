@@ -73,4 +73,16 @@ class TimeControl {
   Duration get incrementDuration => Duration(seconds: increment);
 
   bool get isEnabled => enabled;
+
+  // Get game mode based on time control
+  String get gameMode {
+    if (!enabled) return 'blitz'; // Default to blitz if disabled
+    
+    final totalMinutes = minutes + (seconds / 60);
+    
+    if (totalMinutes < 3) return 'bullet';
+    if (totalMinutes < 10) return 'blitz';
+    if (totalMinutes < 60) return 'rapid';
+    return 'classical';
+  }
 }
