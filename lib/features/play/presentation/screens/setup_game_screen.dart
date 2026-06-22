@@ -91,11 +91,16 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
   };
 
   final List<Map<String, dynamic>> _botLevels = [
-    {'id': 'beginner', 'nameKey': 'play_bot_beginner', 'rating': 400},
-    {'id': 'intermediate', 'nameKey': 'play_bot_intermediate', 'rating': 800},
-    {'id': 'advanced', 'nameKey': 'play_bot_advanced', 'rating': 1400},
-    {'id': 'expert', 'nameKey': 'play_bot_expert', 'rating': 2000},
-    {'id': 'master', 'nameKey': 'play_bot_master', 'rating': 2500},
+    {'level': 1, 'nameKey': 'play_bot_level_1', 'rating': 400},
+    {'level': 2, 'nameKey': 'play_bot_level_2', 'rating': 600},
+    {'level': 3, 'nameKey': 'play_bot_level_3', 'rating': 800},
+    {'level': 4, 'nameKey': 'play_bot_level_4', 'rating': 1000},
+    {'level': 5, 'nameKey': 'play_bot_level_5', 'rating': 1200},
+    {'level': 6, 'nameKey': 'play_bot_level_6', 'rating': 1400},
+    {'level': 7, 'nameKey': 'play_bot_level_7', 'rating': 1600},
+    {'level': 8, 'nameKey': 'play_bot_level_8', 'rating': 1800},
+    {'level': 9, 'nameKey': 'play_bot_level_9', 'rating': 2000},
+    {'level': 10, 'nameKey': 'play_bot_level_10', 'rating': 2500},
   ];
 
   List<Map<String, dynamic>> _getCategories(LocaleProvider locale) => [
@@ -125,7 +130,7 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
   String _chosenColor = 'random';
   bool _rated = true;
   bool _botWithTime = false;
-  String _selectedBot = 'intermediate';
+  int _selectedBotLevel = 5; // Stockfish level 1-10
 
   @override
   void initState() {
@@ -706,10 +711,10 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
   Widget _buildBotLevelSelector(LocaleProvider locale) {
     return Column(
       children: _botLevels.map((bot) {
-        return RadioListTile<String>(
-          value: bot['id'] as String,
-          groupValue: _selectedBot,
-          onChanged: (value) => setState(() => _selectedBot = value ?? _selectedBot),
+        return RadioListTile<int>(
+          value: bot['level'] as int,
+          groupValue: _selectedBotLevel,
+          onChanged: (value) => setState(() => _selectedBotLevel = value ?? _selectedBotLevel),
           title: Text(locale.get(bot['nameKey'] as String)),
           subtitle: Text('${locale.get('setup_bot_rating')}: ${bot['rating']}'),
         );
@@ -797,7 +802,7 @@ class _SetupGameScreenState extends State<SetupGameScreen> {
         _SetupMode.random => OpponentType.ai,
       },
       engineConfig: mode == _SetupMode.computer
-          ? EngineConfig.fromBotLevel(_selectedBot)
+          ? EngineConfig.fromBotLevel(_selectedBotLevel)
           : null,
       timeControl: timeControl,
       friendId: mode == _SetupMode.friend ? _selectedFriend : null,

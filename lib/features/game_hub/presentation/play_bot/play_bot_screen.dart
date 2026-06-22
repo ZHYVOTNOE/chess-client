@@ -12,72 +12,92 @@ class PlayBotScreen extends StatefulWidget {
 }
 
 class _PlayBotScreenState extends State<PlayBotScreen> {
-  String _selectedBot = 'intermediate';
+  int _selectedBotLevel = 5; // Stockfish level 1-10
   String _chosenColor = 'random';
   bool _rated = false;
 
-  List<Map<String, dynamic>> _bots(BuildContext context) {
+  List<Map<String, dynamic>> _botLevels(BuildContext context) {
     final locale = context.read<LocaleProvider>();
     return [
       {
-        'id': 'beginner',
-        'nameKey': 'play_bot_beginner',
-        'name': locale.get('play_bot_beginner'),
+        'level': 1,
+        'name': locale.get('play_bot_level_1'),
         'rating': 400,
-        'descriptionKey': 'play_bot_beginner_desc',
-        'description': locale.get('play_bot_beginner_desc'),
-        'color': Colors.green,
+        'description': locale.get('play_bot_level_1_desc'),
+        'color': Colors.green.shade300,
+        'icon': Icons.sentiment_very_satisfied,
+      },
+      {
+        'level': 2,
+        'name': locale.get('play_bot_level_2'),
+        'rating': 600,
+        'description': locale.get('play_bot_level_2_desc'),
+        'color': Colors.green.shade400,
         'icon': Icons.sentiment_satisfied,
       },
       {
-        'id': 'intermediate',
-        'nameKey': 'play_bot_intermediate',
-        'name': locale.get('play_bot_intermediate'),
+        'level': 3,
+        'name': locale.get('play_bot_level_3'),
         'rating': 800,
-        'descriptionKey': 'play_bot_intermediate_desc',
-        'description': locale.get('play_bot_intermediate_desc'),
-        'color': Colors.blue,
+        'description': locale.get('play_bot_level_3_desc'),
+        'color': Colors.green.shade600,
+        'icon': Icons.sentiment_satisfied,
+      },
+      {
+        'level': 4,
+        'name': locale.get('play_bot_level_4'),
+        'rating': 1000,
+        'description': locale.get('play_bot_level_4_desc'),
+        'color': Colors.blue.shade300,
         'icon': Icons.sentiment_neutral,
       },
       {
-        'id': 'advanced',
-        'nameKey': 'play_bot_advanced',
-        'name': locale.get('play_bot_advanced'),
+        'level': 5,
+        'name': locale.get('play_bot_level_5'),
+        'rating': 1200,
+        'description': locale.get('play_bot_level_5_desc'),
+        'color': Colors.blue.shade400,
+        'icon': Icons.sentiment_neutral,
+      },
+      {
+        'level': 6,
+        'name': locale.get('play_bot_level_6'),
         'rating': 1400,
-        'descriptionKey': 'play_bot_advanced_desc',
-        'description': locale.get('play_bot_advanced_desc'),
-        'color': Colors.orange,
+        'description': locale.get('play_bot_level_6_desc'),
+        'color': Colors.blue.shade500,
+        'icon': Icons.sentiment_neutral,
+      },
+      {
+        'level': 7,
+        'name': locale.get('play_bot_level_7'),
+        'rating': 1600,
+        'description': locale.get('play_bot_level_7_desc'),
+        'color': Colors.orange.shade300,
         'icon': Icons.sentiment_dissatisfied,
       },
       {
-        'id': 'expert',
-        'nameKey': 'play_bot_expert',
-        'name': locale.get('play_bot_expert'),
+        'level': 8,
+        'name': locale.get('play_bot_level_8'),
+        'rating': 1800,
+        'description': locale.get('play_bot_level_8_desc'),
+        'color': Colors.orange.shade400,
+        'icon': Icons.sentiment_dissatisfied,
+      },
+      {
+        'level': 9,
+        'name': locale.get('play_bot_level_9'),
         'rating': 2000,
-        'descriptionKey': 'play_bot_expert_desc',
-        'description': locale.get('play_bot_expert_desc'),
-        'color': Colors.purple,
+        'description': locale.get('play_bot_level_9_desc'),
+        'color': Colors.purple.shade400,
         'icon': Icons.sentiment_very_dissatisfied,
       },
       {
-        'id': 'master',
-        'nameKey': 'play_bot_master',
-        'name': locale.get('play_bot_master'),
+        'level': 10,
+        'name': locale.get('play_bot_level_10'),
         'rating': 2500,
-        'descriptionKey': 'play_bot_master_desc',
-        'description': locale.get('play_bot_master_desc'),
-        'color': Colors.red,
+        'description': locale.get('play_bot_level_10_desc'),
+        'color': Colors.red.shade400,
         'icon': Icons.psychology,
-      },
-      {
-        'id': 'custom',
-        'nameKey': 'play_bot_custom',
-        'name': locale.get('play_bot_custom'),
-        'rating': null,
-        'descriptionKey': 'play_bot_custom_desc',
-        'description': locale.get('play_bot_custom_desc'),
-        'color': Colors.grey,
-        'icon': Icons.tune,
       },
     ];
   }
@@ -130,19 +150,15 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
 
   Widget _buildBotSelector() {
     return Column(
-      children: _bots(context).map((bot) {
-        final isSelected = _selectedBot == bot['id'];
-        final isCustom = bot['id'] == 'custom';
+      children: _botLevels(context).map((bot) {
+        final isSelected = _selectedBotLevel == bot['level'];
 
         return Card(
           margin: EdgeInsets.only(bottom: 8.h),
           color: isSelected ? (bot['color'] as Color).withOpacity(0.1) : null,
           child: InkWell(
             onTap: () {
-              setState(() => _selectedBot = bot['id'] as String);
-              if (isCustom) {
-                _showCustomBotDialog();
-              }
+              setState(() => _selectedBotLevel = bot['level'] as int);
             },
             child: Padding(
               padding: EdgeInsets.all(12.r),
@@ -166,20 +182,30 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
                               bot['name'] as String,
                               style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                            if (bot['rating'] != null) ...[
-                              SizedBox(width: 8.w),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(4.r),
-                                ),
-                                child: Text(
-                                  '${bot['rating']}',
-                                  style: TextStyle(fontSize: 12.sp),
-                                ),
+                            SizedBox(width: 8.w),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(4.r),
                               ),
-                            ],
+                              child: Text(
+                                'Lvl ${bot['level']}',
+                                style: TextStyle(fontSize: 12.sp),
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(4.r),
+                              ),
+                              child: Text(
+                                '${bot['rating']}',
+                                style: TextStyle(fontSize: 12.sp),
+                              ),
+                            ),
                           ],
                         ),
                         SizedBox(height: 2.h),
@@ -190,10 +216,8 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
                       ],
                     ),
                   ),
-                  if (isSelected && !isCustom)
+                  if (isSelected)
                     Icon(Icons.check_circle, color: bot['color'] as Color),
-                  if (isCustom && isSelected)
-                    Icon(Icons.arrow_forward_ios, size: 16.r),
                 ],
               ),
             ),
@@ -203,51 +227,6 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
     );
   }
 
-  void _showCustomBotDialog() {
-    final locale = context.read<LocaleProvider>();
-    // TODO: диалог настройки силы и стиля бота
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(locale.get('play_bot_settings_title')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Сила бота (ELO)
-            Text(locale.get('play_bot_strength_label')),
-            Slider(
-              value: 1500,
-              min: 400,
-              max: 2800,
-              divisions: 24,
-              label: '1500',
-              onChanged: (v) {},
-            ),
-            // Стиль игры
-            Text(locale.get('play_bot_style_label')),
-            Wrap(
-              spacing: 8.w,
-              children: [
-                ChoiceChip(label: Text(locale.get('play_bot_style_universal')), selected: true, onSelected: (_) {}),
-                ChoiceChip(label: Text(locale.get('play_bot_style_attacking')), selected: false, onSelected: (_) {}),
-                ChoiceChip(label: Text(locale.get('play_bot_style_positional')), selected: false, onSelected: (_) {}),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(locale.get('cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(locale.get('apply')),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildColorSelector() {
     final locale = context.read<LocaleProvider>();
@@ -336,13 +315,12 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
   }
 
   void _startGame() {
-    final bot = _bots(context).firstWhere((b) => b['id'] == _selectedBot);
-
-    // TODO: API создания игры с ботом
+    final bot = _botLevels(context).firstWhere((b) => b['level'] == _selectedBotLevel);
 
     context.push('/game/play', extra: {
       'opponent': bot['name'],
       'opponentRating': bot['rating'],
+      'botLevel': _selectedBotLevel, // Pass Stockfish level (1-10)
       'color': _chosenColor,
       'rated': _rated,
     });

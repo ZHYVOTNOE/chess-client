@@ -61,11 +61,7 @@ void initGameDI() {
 }
 
 int _mapBotLevel(EngineConfig config) {
-  // Map engine config to bot level (1-10)
-  // This is a simplified mapping - adjust based on your needs
-  if (config.timeLimitMs < 500) return 1;
-  if (config.timeLimitMs < 1000) return 3;
-  if (config.timeLimitMs < 2000) return 5;
-  if (config.timeLimitMs < 5000) return 7;
-  return 10;
+  // Map engine config maxDepth to Stockfish bot level (1-10)
+  // The maxDepth in EngineConfig now directly corresponds to Stockfish level
+  return config.maxDepth ?? 5;
 }
