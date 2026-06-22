@@ -255,19 +255,20 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
   }
 
   Widget _buildDateTimeSelector() {
+    final locale = context.read<LocaleProvider>();
     return Column(
       children: [
         ListTile(
           leading: const Icon(Icons.calendar_today),
           title: Text(DateFormat('dd.MM.yyyy HH:mm').format(_startTime)),
-          subtitle: const Text('Нажмите для изменения'),
+          subtitle: Text(locale.get('tournament_click_to_change')),
           onTap: _pickDateTime,
         ),
         DropdownButtonFormField<String>(
           initialValue: _timeZone,
-          decoration: const InputDecoration(
-            labelText: 'Часовой пояс',
-            prefixIcon: Icon(Icons.public),
+          decoration: InputDecoration(
+            labelText: locale.get('tournament_time_zone'),
+            prefixIcon: const Icon(Icons.public),
           ),
           items: _timeZones.map((tz) {
             return DropdownMenuItem(value: tz, child: Text(tz));
@@ -299,11 +300,12 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
   }
 
   Widget _buildPositionSelector() {
+    final locale = context.read<LocaleProvider>();
     final positions = [
-      {'code': 'standard', 'name': 'Стандартная'},
-      {'code': 'kings_gambit', 'name': 'Королевский гамбит'},
-      {'code': 'sicilian', 'name': 'Сицилианская'},
-      {'code': 'custom', 'name': 'Своя позиция (FEN)'},
+      {'code': 'standard', 'name': locale.get('tournament_position_standard')},
+      {'code': 'kings_gambit', 'name': locale.get('daily_kings_gambit')},
+      {'code': 'sicilian', 'name': locale.get('daily_sicilian')},
+      {'code': 'custom', 'name': locale.get('tournament_position_custom_fen')},
     ];
 
     return Column(
@@ -315,7 +317,7 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
           onChanged: (v) => setState(() => _startingPosition = v!),
         )),
         RadioListTile<String>(
-          title: const Text('Своя позиция'),
+          title: Text(locale.get('tournament_position_custom')),
           value: 'custom',
           groupValue: _startingPosition,
           onChanged: (v) => setState(() => _startingPosition = v!),
@@ -325,9 +327,9 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
             padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 16.h),
             child: TextField(
               controller: _customPositionController,
-              decoration: const InputDecoration(
-                hintText: 'Вставьте FEN',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: locale.get('tournament_paste_fen'),
+                border: const OutlineInputBorder(),
               ),
               maxLines: 2,
             ),
@@ -355,13 +357,14 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
   }
 
   void _showSuccessDialog(Map<String, dynamic> tournament) {
+    final locale = context.read<LocaleProvider>();
     final code = 'DAY' + DateTime.now().millisecondsSinceEpoch.toString().substring(8, 13);
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Турнир создан!'),
+        title: Text(locale.get('tournament_created')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -369,18 +372,18 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
             SizedBox(height: 16.h),
             Text(tournament['name'] as String),
             SizedBox(height: 16.h),
-            Text('Код турнира:', style: TextStyle(color: Colors.grey)),
+            Text(locale.get('tournament_code_label'), style: TextStyle(color: Colors.grey)),
             SelectableText(
               code,
               style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, letterSpacing: 4),
             ),
             SizedBox(height: 8.h),
             Text(
-              'Начало: ${DateFormat('dd.MM.yyyy').format(DateTime.parse(tournament['startTime']))}',
+              '${locale.get('daily_start')}: ${DateFormat('dd.MM.yyyy').format(DateTime.parse(tournament['startTime']))}',
               style: TextStyle(fontSize: 12.sp),
             ),
             Text(
-              '${tournament['daysPerMove']} дня на ход',
+              '${tournament['daysPerMove']} ${locale.get('daily_days_per_move')}',
               style: TextStyle(fontSize: 12.sp, color: Colors.grey),
             ),
           ],
@@ -391,7 +394,7 @@ class _CreateDailyTournamentScreenState extends State<CreateDailyTournamentScree
               Navigator.pop(context);
               context.go('/game/tournament');
             },
-            child: const Text('Готово'),
+            child: Text(locale.get('tournament_done')),
           ),
         ],
       ),

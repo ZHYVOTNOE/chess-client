@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/locale_provider.dart';
 
-
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -19,7 +18,6 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Column(
         children: [
-          // Слайдшоу событий — растягиваем на доступное пространство
           Expanded(
             child: _EventCarousel(locale: locale),
           ),
@@ -29,7 +27,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// Слайдшоу событий дня
 class _EventCarousel extends StatefulWidget {
   final LocaleProvider locale;
 
@@ -44,31 +41,26 @@ class _EventCarouselState extends State<_EventCarousel> {
   int _currentPage = 0;
   Timer? _autoPlayTimer;
 
-  // TODO: загружать с сервера
-  final List<_DailyEvent> _events = [
-    _DailyEvent(
-      title: 'Турнир "Весенний блиц"',
-      description: 'Призовой фонд 1000 рублей',
-      color: Colors.orange,
-      icon: Icons.emoji_events,
-    ),
-    _DailyEvent(
-      title: 'Новый урок: Сицилианская защита',
-      description: 'Изучите популярный дебют',
-      color: Colors.blue,
-      icon: Icons.school,
-    ),
-    _DailyEvent(
-      title: 'Дневная задача',
-      description: 'Решите 5 задач, получите бонус',
-      color: Colors.green,
-      icon: Icons.extension,
-    ),
-  ];
+  // Удалена первая карточка про турнир
+  late final List<_DailyEvent> _events;
 
   @override
   void initState() {
     super.initState();
+    _events = [
+      _DailyEvent(
+        title: widget.locale.get('home_event_lesson'),
+        description: widget.locale.get('home_event_learn_opening'),
+        color: Colors.blue,
+        icon: Icons.school,
+      ),
+      _DailyEvent(
+        title: widget.locale.get('home_event_daily_puzzle'),
+        description: widget.locale.get('home_event_solve_bonus'),
+        color: Colors.green,
+        icon: Icons.extension,
+      ),
+    ];
     _startAutoPlay();
   }
 
@@ -99,7 +91,6 @@ class _EventCarouselState extends State<_EventCarousel> {
     });
   }
 
-  // Остановка автопрокрутки при ручном свайпе
   void _onUserInteraction() {
     _autoPlayTimer?.cancel();
     _startAutoPlay();
@@ -112,8 +103,7 @@ class _EventCarouselState extends State<_EventCarousel> {
         Expanded(
           child: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
-              if (notification is ScrollStartNotification &&
-                  notification.dragDetails != null) {
+              if (notification is ScrollStartNotification && notification.dragDetails != null) {
                 _onUserInteraction();
               }
               return true;
@@ -122,12 +112,11 @@ class _EventCarouselState extends State<_EventCarousel> {
               controller: _controller,
               onPageChanged: _onPageChanged,
               itemCount: _events.length,
-              itemBuilder: (context, index) => _EventCard(event: _events[index]),
+              itemBuilder: (context, index) => _EventCard(event: _events[index], locale: widget.locale),
             ),
           ),
         ),
         SizedBox(height: 16.h),
-        // Индикаторы страниц
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
@@ -138,9 +127,7 @@ class _EventCarouselState extends State<_EventCarousel> {
               margin: EdgeInsets.symmetric(horizontal: 4.w),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _currentPage == index
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey.shade300,
+                color: _currentPage == index ? Theme.of(context).primaryColor : Colors.grey.shade300,
               ),
             ),
           ),
@@ -153,8 +140,9 @@ class _EventCarouselState extends State<_EventCarousel> {
 
 class _EventCard extends StatelessWidget {
   final _DailyEvent event;
+  final LocaleProvider locale;
 
-  const _EventCard({required this.event});
+  const _EventCard({required this.event, required this.locale});
 
   @override
   Widget build(BuildContext context) {
@@ -199,14 +187,12 @@ class _EventCard extends StatelessWidget {
               ),
               SizedBox(height: 32.h),
               FilledButton(
-                onPressed: () {
-                  // TODO: действие по событию
-                },
+                onPressed: () {},
                 style: FilledButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: event.color,
                 ),
-                child: const Text('Участвовать'),
+                child: Text(locale.get('home_event_participate')),
               ),
             ],
           ),

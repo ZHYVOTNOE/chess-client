@@ -198,21 +198,22 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
   }
 
   Widget _buildDateTimeSelector() {
+    final locale = context.read<LocaleProvider>();
     return Column(
       children: [
         // Выбор даты и времени
         ListTile(
           leading: const Icon(Icons.calendar_today),
           title: Text(DateFormat('dd.MM.yyyy HH:mm').format(_startTime)),
-          subtitle: const Text('Нажмите для изменения'),
+          subtitle: Text(locale.get('tournament_click_to_change')),
           onTap: _pickDateTime,
         ),
         // Часовой пояс
         DropdownButtonFormField<String>(
           initialValue: _timeZone,
-          decoration: const InputDecoration(
-            labelText: 'Часовой пояс',
-            prefixIcon: Icon(Icons.public),
+          decoration: InputDecoration(
+            labelText: locale.get('tournament_time_zone'),
+            prefixIcon: const Icon(Icons.public),
           ),
           items: _timeZones.map((tz) {
             return DropdownMenuItem(value: tz, child: Text(tz));
@@ -244,9 +245,10 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
   }
 
   Widget _buildPositionSelector() {
+    final locale = context.read<LocaleProvider>();
     final positions = [
-      {'code': 'standard', 'name': 'Стандартная', 'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'},
-      {'code': 'custom', 'name': 'Своя позиция (FEN)', 'fen': ''},
+      {'code': 'standard', 'name': locale.get('tournament_position_standard'), 'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'},
+      {'code': 'custom', 'name': locale.get('tournament_position_custom_fen'), 'fen': ''},
     ];
 
     return Column(
@@ -258,7 +260,7 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
           onChanged: (v) => setState(() => _startingPosition = v!),
         )),
         RadioListTile<String>(
-          title: const Text('Своя позиция'),
+          title: Text(locale.get('tournament_position_custom')),
           value: 'custom',
           groupValue: _startingPosition,
           onChanged: (v) => setState(() => _startingPosition = v!),
@@ -268,9 +270,9 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
             padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 16.h),
             child: TextField(
               controller: _customPositionController,
-              decoration: const InputDecoration(
-                hintText: 'Вставьте FEN',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                hintText: locale.get('tournament_paste_fen'),
+                border: const OutlineInputBorder(),
               ),
               maxLines: 2,
             ),
@@ -300,13 +302,14 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
   }
 
   void _showSuccessDialog(Map<String, dynamic> tournament) {
+    final locale = context.read<LocaleProvider>();
     final code = 'LIVE' + DateTime.now().millisecondsSinceEpoch.toString().substring(8, 13);
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text('Турнир создан!'),
+        title: Text(locale.get('tournament_created')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -314,14 +317,14 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
             SizedBox(height: 16.h),
             Text(tournament['name']),
             SizedBox(height: 16.h),
-            Text('Код турнира:', style: TextStyle(color: Colors.grey)),
+            Text(locale.get('tournament_code_label'), style: TextStyle(color: Colors.grey)),
             SelectableText(
               code,
               style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold, letterSpacing: 4),
             ),
             SizedBox(height: 8.h),
             Text(
-              'Начало: ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.parse(tournament['startTime']))} ${tournament['timeZone']}',
+              '${locale.get('live_start')}: ${DateFormat('dd.MM.yyyy HH:mm').format(DateTime.parse(tournament['startTime']))} ${tournament['timeZone']}',
               style: TextStyle(fontSize: 12.sp),
             ),
           ],
@@ -332,7 +335,7 @@ class _CreateLiveTournamentScreenState extends State<CreateLiveTournamentScreen>
               Navigator.pop(context);
               context.go('/game/tournament');
             },
-            child: const Text('Готово'),
+            child: Text(locale.get('tournament_done')),
           ),
         ],
       ),

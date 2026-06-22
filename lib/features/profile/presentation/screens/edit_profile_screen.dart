@@ -1,5 +1,4 @@
-// lib/features/profile/presentation/screens/edit_profile_screen.dart
-import 'dart:async'; // 🔥 НОВОЕ: для Timer
+import 'dart:async';
 import 'dart:io';
 
 import 'package:country_picker/country_picker.dart';
@@ -12,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../../core/providers/locale_provider.dart';
 import '../../domain/entities/profile_user.dart';
 import '../cubits/profile_cubit.dart';
 import '../cubits/profile_state.dart';
@@ -38,11 +38,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final RegExp _nicknameRegex = RegExp(r'^[a-zA-Z0-9_]{3,20}$');
   bool _isUpdatingCountry = false;
 
-  // 🔥 НОВЫЕ ПОЛЯ для проверки уникальности никнейма
   Timer? _debounce;
   String? _nicknameAvailabilityMessage;
   bool _isCheckingNickname = false;
-  bool _isSaving = false; // 🔥 Защита от двойного сохранения
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -57,18 +56,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel(); // 🔥 Обязательно отменяем таймер
+    _debounce?.cancel();
     _nicknameController.dispose();
     _fullNameController.dispose();
     _bioController.dispose();
     super.dispose();
   }
 
-  // 🔥 НОВЫЙ МЕТОД: Асинхронная проверка никнейма с debounce
-  void _checkNicknameAvailability(String? value) {
+  void _checkNicknameAvailability(String? value, LocaleProvider locale) {
     _debounce?.cancel();
 
-    // Если ник слишком короткий или невалидный — сбрасываем статус
     if (value == null || value.trim().length < 3 || !_nicknameRegex.hasMatch(value.trim())) {
       if (mounted) {
         setState(() {
@@ -79,7 +76,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    // Если ник не изменился (пользователь не менял свой текущий ник) — не проверяем
     if (value.trim() == widget.initialProfile.nickname) {
       if (mounted) {
         setState(() {
@@ -100,7 +96,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       try {
         final cubit = context.read<ProfileCubit>();
-        // 🔥 Вызываем публичный метод кубита
         final isAvailable = await cubit.checkNicknameAvailability(
           value.trim(),
           userId,
@@ -109,21 +104,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         if (mounted) {
           setState(() {
             _isCheckingNickname = false;
-            _nicknameAvailabilityMessage = isAvailable ? null : 'Этот никнейм уже занят';
+            _nicknameAvailabilityMessage = isAvailable ? null : locale.get('edit_profile_nickname_taken');
           });
         }
       } catch (e) {
         if (mounted) {
           setState(() {
             _isCheckingNickname = false;
-            _nicknameAvailabilityMessage = 'Ошибка проверки доступности';
+            _nicknameAvailabilityMessage = locale.get('edit_profile_checking_availability');
           });
         }
       }
     });
   }
 
-  void _showImageSourceActionSheet() {
+  void _showImageSourceActionSheet(LocaleProvider locale) {
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
@@ -132,18 +127,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Сделать фото'),
+              title: Text(locale.get('edit_profile_take_photo')),
               onTap: () {
                 Navigator.pop(context);
-                _pickImage(ImageSource.camera);
+                _pickImage(ImageSource.camera, locale);
               },
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Выбрать из галереи'),
+              title: Text(locale.get('edit_profile_choose_from_gallery')),
               onTap: () {
                 Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
+                _pickImage(ImageSource.gallery, locale);
               },
             ),
           ],
@@ -152,7 +147,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Future<void> _pickImage(ImageSource source) async {
+  Future<void> _pickImage(ImageSource source, LocaleProvider locale) async {
     if (!mounted) return;
 
     final permission = source == ImageSource.camera
@@ -163,8 +158,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (!status.isGranted) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ Доступ к медиафайлам запрещён'),
+          SnackBar(
+            content: Text('❌ ${locale.get('edit_profile_media_access_denied')}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -184,28 +179,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка выбора фото: $e')),
+          SnackBar(content: Text('${locale.get('edit_profile_photo_error')}$e')),
         );
       }
     }
   }
 
-  Future<void> _saveProfile() async {
+  Future<void> _saveProfile(LocaleProvider locale) async {
     if (_isSaving) return;
     if (!_formKey.currentState!.validate() || !mounted) return;
 
-    // Ждём завершения дебаунс-проверки
     if (_isCheckingNickname) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('⏳ Подождите, проверяем никнейм...')),
+        SnackBar(content: Text('⏳ ${locale.get('edit_profile_wait_checking')}')),
       );
       return;
     }
 
     if (_nicknameAvailabilityMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ Исправьте ошибки перед сохранением'),
+        SnackBar(
+          content: Text('❌ ${locale.get('edit_profile_fix_errors')}'),
           backgroundColor: Colors.red,
         ),
       );
@@ -221,19 +215,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final currentNickname = _nicknameController.text.trim();
 
-      // 🔥 ФИНАЛЬНАЯ серверная проверка перед сохранением
-      // Даже если ник не менялся — пропускаем проверку
       if (currentNickname != widget.initialProfile.nickname) {
         final isAvailable = await cubit.checkNicknameAvailability(currentNickname, userId);
         if (!isAvailable) {
           if (mounted) {
             setState(() {
-              _nicknameAvailabilityMessage = 'Этот никнейм уже занят';
+              _nicknameAvailabilityMessage = locale.get('edit_profile_nickname_taken');
               _isSaving = false;
             });
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('❌ Этот никнейм уже занят'),
+              SnackBar(
+                content: Text('❌ ${locale.get('edit_profile_nickname_taken')}'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -268,8 +260,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Профиль обновлён'),
+          SnackBar(
+            content: Text('✅ ${locale.get('edit_profile_profile_updated')}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -280,7 +272,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Ошибка сохранения: $e'),
+            content: Text('❌ ${locale.get('edit_profile_save_error')}$e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -290,7 +282,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _updateCountryViaGPS() async {
+  Future<void> _updateCountryViaGPS(LocaleProvider locale) async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
 
@@ -298,7 +290,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _isUpdatingCountry = true);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Определение местоположения...')),
+      SnackBar(content: Text(locale.get('edit_profile_detecting_location'))),
     );
 
     try {
@@ -309,19 +301,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _isUpdatingCountry = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Страна обновлена'), backgroundColor: Colors.green),
+          SnackBar(content: Text('✅ ${locale.get('edit_profile_country_updated')}'), backgroundColor: Colors.green),
         );
       } else if (mounted) {
         setState(() => _isUpdatingCountry = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('❌ Не удалось определить страну'), backgroundColor: Colors.red),
+          SnackBar(content: Text('❌ ${locale.get('edit_profile_country_detect_failed')}'), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isUpdatingCountry = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Ошибка: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('❌ ${locale.get('edit_profile_detect_error')}$e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -338,7 +330,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  // 🔥 НОВЫЙ МЕТОД: Определяем иконку для поля никнейма
   Widget? _buildNicknameSuffixIcon() {
     if (_isCheckingNickname) {
       return Padding(
@@ -355,7 +346,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return const Icon(Icons.error, color: Colors.red);
     }
 
-    // Зелёная галочка, только если ник валидный и НЕ равен текущему
     final currentText = _nicknameController.text.trim();
     if (currentText.length >= 3 &&
         _nicknameRegex.hasMatch(currentText) &&
@@ -368,9 +358,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Редактировать профиль'),
+        title: Text(locale.get('edit_profile_title')),
         centerTitle: true,
         actions: [
           IconButton(
@@ -381,11 +373,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             )
                 : const Icon(Icons.check),
-            onPressed: _isSaving ? null : _saveProfile,
+            onPressed: _isSaving ? null : () => _saveProfile(locale),
           ),
         ],
       ),
-      // 🔥 BlocConsumer вместо BlocBuilder для обработки ошибок
       body: BlocConsumer<ProfileCubit, ProfileState>(
         listener: (context, state) {
           if (state is ProfileError) {
@@ -408,24 +399,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  // Avatar
                   Center(
                     child: Stack(
                       children: [
                         GestureDetector(
-                          onTap: _showImageSourceActionSheet,
+                          onTap: () => _showImageSourceActionSheet(locale),
                           child: CircleAvatar(
-                            key: ValueKey('edit_avatar_${_tempAvatar?.path ??
-                                ((state is ProfileLoaded || state is ProfileUpdated)
-                                    ? (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl
-                                    : widget.initialProfile.avatarUrl)}'),
+                            key: ValueKey('edit_avatar_${_tempAvatar?.path ?? ((state is ProfileLoaded || state is ProfileUpdated) ? (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl : widget.initialProfile.avatarUrl)}'),
                             radius: 50.r,
                             backgroundColor: Colors.grey.shade300,
                             backgroundImage: _tempAvatar != null
                                 ? FileImage(_tempAvatar!)
                                 : (state is ProfileLoaded || state is ProfileUpdated)
-                                ? ((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl != null &&
-                                (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isNotEmpty
+                                ? ((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl != null && (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isNotEmpty
                                 ? NetworkImage((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!) as ImageProvider
                                 : null)
                                 : (widget.initialProfile.avatarUrl != null && widget.initialProfile.avatarUrl!.isNotEmpty
@@ -437,7 +423,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         ((state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl == null ||
                                             (state is ProfileLoaded ? state.profile : (state as ProfileUpdated).profile).avatarUrl!.isEmpty))) &&
                                 (widget.initialProfile.avatarUrl == null || widget.initialProfile.avatarUrl!.isEmpty))
-                ? const Icon(Icons.person, size: 50, color: Colors.grey)
+                                ? const Icon(Icons.person, size: 50, color: Colors.grey)
                                 : null,
                           ),
                         ),
@@ -445,7 +431,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           bottom: 0,
                           right: 0,
                           child: GestureDetector(
-                            onTap: _showImageSourceActionSheet,
+                            onTap: () => _showImageSourceActionSheet(locale),
                             child: CircleAvatar(
                               radius: 16.r,
                               backgroundColor: Theme.of(context).primaryColor,
@@ -458,7 +444,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // 🔥 Nickname с асинхронной проверкой
                   TextFormField(
                     controller: _nicknameController,
                     enabled: !_isSaving,
@@ -467,34 +452,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       LengthLimitingTextInputFormatter(20),
                     ],
                     decoration: InputDecoration(
-                      labelText: 'Никнейм',
-                      hintText: 'Введите никнейм',
-                      helperText: '3-20 символов: буквы, цифры, _',
+                      labelText: locale.get('edit_profile_nickname'),
+                      hintText: locale.get('edit_profile_enter_nickname'),
+                      helperText: locale.get('edit_profile_nickname_helper'),
                       border: const OutlineInputBorder(),
-                      suffixIcon: _buildNicknameSuffixIcon(), // 🔥 Динамическая иконка
-                      errorText: _nicknameAvailabilityMessage, // 🔥 Ошибка доступности
+                      suffixIcon: _buildNicknameSuffixIcon(),
+                      errorText: _nicknameAvailabilityMessage,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Никнейм обязателен';
+                        return locale.get('edit_profile_nickname_required');
                       }
                       if (value.trim().length < 3 || value.trim().length > 20) {
-                        return 'Никнейм должен быть 3-20 символов';
+                        return locale.get('edit_profile_nickname_length');
                       }
                       if (!_nicknameRegex.hasMatch(value.trim())) {
-                        return 'Только буквы, цифры и подчеркивание';
+                        return locale.get('edit_profile_nickname_invalid');
                       }
-                      // 🔥 Блокируем валидацию, если ник занят
                       if (_nicknameAvailabilityMessage != null) {
                         return _nicknameAvailabilityMessage;
                       }
                       return null;
                     },
-                    onChanged: _checkNicknameAvailability, // 🔥 Проверка при вводе
+                    onChanged: (value) => _checkNicknameAvailability(value, locale),
                   ),
                   const SizedBox(height: 16),
 
-                  // Full Name
                   TextFormField(
                     controller: _fullNameController,
                     enabled: !_isSaving,
@@ -502,30 +485,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       FilteringTextInputFormatter.allow(RegExp(r'[\p{L}\s\-]', unicode: true)),
                       LengthLimitingTextInputFormatter(50),
                     ],
-                    decoration: const InputDecoration(
-                      labelText: 'Полное имя (необязательно)',
-                      hintText: 'Введите имя и фамилию',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: locale.get('edit_profile_full_name'),
+                      hintText: locale.get('edit_profile_enter_full_name'),
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Bio
                   TextFormField(
                     controller: _bioController,
                     enabled: !_isSaving,
                     maxLines: 4,
                     maxLength: 255,
-                    decoration: const InputDecoration(
-                      labelText: 'О себе',
-                      hintText: 'Расскажите о себе',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: locale.get('edit_profile_bio'),
+                      hintText: locale.get('edit_profile_tell_about_yourself'),
+                      border: const OutlineInputBorder(),
                     ),
                     onChanged: (value) => setState(() {}),
                   ),
                   const SizedBox(height: 16),
 
-                  // Country Selection Row
                   Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
@@ -551,9 +532,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       style: const TextStyle(fontSize: 16),
                                     ),
                                   ] else
-                                    const Text(
-                                      'Страна не выбрана',
-                                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                                    Text(
+                                      locale.get('edit_profile_country_not_selected'),
+                                      style: const TextStyle(fontSize: 16, color: Colors.grey),
                                     ),
                                 ],
                               ),
@@ -569,13 +550,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                               : const Icon(Icons.location_on),
-                          onPressed: (_isUpdatingCountry || _isSaving) ? null : _updateCountryViaGPS,
-                          tooltip: 'Определить по GPS',
+                          onPressed: (_isUpdatingCountry || _isSaving) ? null : () => _updateCountryViaGPS(locale),
+                          tooltip: locale.get('edit_profile_detect_by_gps'),
                         ),
                         IconButton(
                           icon: const Icon(Icons.edit),
                           onPressed: _isSaving ? null : _showCountryPicker,
-                          tooltip: 'Выбрать страну',
+                          tooltip: locale.get('edit_profile_select_country'),
                         ),
                       ],
                     ),

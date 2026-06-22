@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../../../core/providers/locale_provider.dart';
 
 class PuzzleStats extends StatelessWidget {
   final int streak;
@@ -24,6 +26,8 @@ class PuzzleStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Padding(
@@ -34,7 +38,7 @@ class PuzzleStats extends StatelessWidget {
               child: _StatItem(
                 icon: Icons.local_fire_department,
                 value: '$streak',
-                label: 'Серия',
+                label: locale.get('puzzle_streak'),
                 color: Colors.orange,
               ),
             ),
@@ -42,7 +46,7 @@ class PuzzleStats extends StatelessWidget {
               child: _StatItem(
                 icon: Icons.check_circle,
                 value: '$solvedToday',
-                label: 'Сегодня',
+                label: locale.get('puzzle_today_short'),
                 color: Colors.green,
               ),
             ),
@@ -50,13 +54,14 @@ class PuzzleStats extends StatelessWidget {
               child: _RatingItem(
                 rating: userRating,
                 delta: ratingDelta,
+                label: locale.get('puzzle_rating'),
               ),
             ),
             Expanded(
               child: _StatItem(
                 icon: Icons.timer,
                 value: _formatTime(elapsedSeconds),
-                label: 'Время',
+                label: locale.get('puzzle_time'),
                 color: Colors.blue,
               ),
             ),
@@ -70,8 +75,13 @@ class PuzzleStats extends StatelessWidget {
 class _RatingItem extends StatelessWidget {
   final int rating;
   final int? delta;
+  final String label;
 
-  const _RatingItem({required this.rating, this.delta});
+  const _RatingItem({
+    required this.rating,
+    this.delta,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +114,7 @@ class _RatingItem extends StatelessWidget {
           ],
         ),
         Text(
-          'Рейтинг',
+          label,
           style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
         ),
       ],

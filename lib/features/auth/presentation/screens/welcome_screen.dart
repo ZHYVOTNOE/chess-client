@@ -62,8 +62,8 @@ class _LanguageSelector extends StatelessWidget {
       icon: const Icon(Icons.language),
       onSelected: locale.load,
       itemBuilder: (context) => [
-        const PopupMenuItem(value: 'ru', child: Text('Русский')),
-        const PopupMenuItem(value: 'en', child: Text('English')),
+        PopupMenuItem(value: 'ru', child: Text(locale.get('auth_russian'))),
+        PopupMenuItem(value: 'en', child: Text(locale.get('auth_english'))),
       ],
     );
   }

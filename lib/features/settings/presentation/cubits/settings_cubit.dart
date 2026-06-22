@@ -49,8 +49,8 @@ class SettingsCubit extends Cubit<SettingsState> {
       // Show visual confirmation
       if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Настройки сохранены'),
+          SnackBar(
+            content: Text(localeProvider.get('settings_saved')),
             duration: Duration(seconds: 1),
           ),
         );
@@ -79,8 +79,8 @@ class SettingsCubit extends Cubit<SettingsState> {
       // Show visual confirmation
       if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Настройки сохранены'),
+          SnackBar(
+            content: Text(localeProvider.get('settings_saved')),
             duration: Duration(seconds: 1),
           ),
         );
@@ -109,8 +109,8 @@ class SettingsCubit extends Cubit<SettingsState> {
       // Show visual confirmation
       if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Настройки сохранены'),
+          SnackBar(
+            content: Text(localeProvider.get('settings_saved')),
             duration: Duration(seconds: 1),
           ),
         );

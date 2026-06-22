@@ -5,6 +5,7 @@ import 'package:square_bishop/square_bishop.dart';
 import 'package:bishop/bishop.dart' as bishop;
 import 'package:client/core/utils/piece_set_loader.dart';
 import 'package:client/core/providers/settings_provider.dart';
+import 'package:client/core/providers/locale_provider.dart';
 import 'package:client/features/settings/constants/custom_board_themes.dart';
 
 class PuzzleBoard extends StatelessWidget {
@@ -119,13 +120,14 @@ class PuzzleBoard extends StatelessWidget {
         ),
       );
     } catch (e) {
+      final locale = context.read<LocaleProvider>();
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.error_outline, size: 48, color: Colors.red),
             const SizedBox(height: 16),
-            Text('Error loading board: $e'),
+            Text('${locale.get('puzzles_board_error')}$e'),
           ],
         ),
       );

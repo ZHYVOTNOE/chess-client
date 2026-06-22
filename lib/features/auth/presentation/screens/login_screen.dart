@@ -188,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'assets/pictures/google.png',
                   height: 24.h,
                 ),
-                label: const Text('Google'),
+                label: Text(locale.get('auth_google')),
               ),
 
               SizedBox(height: 16.h),

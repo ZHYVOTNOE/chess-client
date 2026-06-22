@@ -1,6 +1,5 @@
-// lib/features/settings/constants/custom_board_themes.dart
 import 'package:flutter/material.dart';
-import 'package:squares/squares.dart' as squares; // ← ЯВНЫЙ ПРЕФИКС
+import 'package:squares/squares.dart' as squares;
 
 /// Твои кастомные темы доски (15+ вариантов)
 class CustomBoardThemes {
@@ -25,10 +24,9 @@ class CustomBoardThemes {
     premove: Color(0x80141E55),
   );
 
-  // 🔥 ИСПРАВЛЕННАЯ "Синяя" тема (настоящие синие цвета)
   static const blue = squares.BoardTheme(
-    lightSquare: Color(0xFFB3E5FC),  // светло-голубой
-    darkSquare: Color(0xFF01579B),   // тёмно-синий
+    lightSquare: Color(0xFFB3E5FC),
+    darkSquare: Color(0xFF01579B),
     check: Color(0xFFEB5160),
     checkmate: Colors.orange,
     previous: Color(0x809CC700),
@@ -36,7 +34,6 @@ class CustomBoardThemes {
     premove: Color(0x80141E55),
   );
 
-  // 🔥 Остальные темы с squares.BoardTheme
   static const wood = squares.BoardTheme(
     lightSquare: Color(0xFFE8C99E),
     darkSquare: Color(0xFF8B6F47),
@@ -157,35 +154,35 @@ class CustomBoardThemes {
     premove: Color(0x80141E55),
   );
 
-  // 🔥 Вспомогательный класс для UI
+  // 🔥 Вспомогательный список для UI (с ключами локализации)
   static const List<BoardThemeEntry> all = [
-    BoardThemeEntry(id: 'classic', label: 'Классика', theme: classic),
-    BoardThemeEntry(id: 'green', label: 'Зелёная', theme: green),
-    BoardThemeEntry(id: 'blue', label: 'Синяя', theme: blue),
-    BoardThemeEntry(id: 'wood', label: 'Дерево', theme: wood),
-    BoardThemeEntry(id: 'marble', label: 'Мрамор', theme: marble),
-    BoardThemeEntry(id: 'pink', label: 'Розовая', theme: pink),
-    BoardThemeEntry(id: 'purple', label: 'Фиолетовая', theme: purple),
-    BoardThemeEntry(id: 'orange', label: 'Оранжевая', theme: orange),
-    BoardThemeEntry(id: 'teal', label: 'Бирюзовая', theme: teal),
-    BoardThemeEntry(id: 'red', label: 'Красная', theme: red),
-    BoardThemeEntry(id: 'yellow', label: 'Жёлтая', theme: yellow),
-    BoardThemeEntry(id: 'grey', label: 'Серая', theme: grey),
-    BoardThemeEntry(id: 'midnight', label: 'Полночь', theme: midnight),
-    BoardThemeEntry(id: 'ocean', label: 'Океан', theme: ocean),
-    BoardThemeEntry(id: 'forest', label: 'Лес', theme: forest),
+    BoardThemeEntry(id: 'classic', labelKey: 'board_theme_classic', theme: classic),
+    BoardThemeEntry(id: 'green', labelKey: 'board_theme_green', theme: green),
+    BoardThemeEntry(id: 'blue', labelKey: 'board_theme_blue', theme: blue),
+    BoardThemeEntry(id: 'wood', labelKey: 'board_theme_wood', theme: wood),
+    BoardThemeEntry(id: 'marble', labelKey: 'board_theme_marble', theme: marble),
+    BoardThemeEntry(id: 'pink', labelKey: 'board_theme_pink', theme: pink),
+    BoardThemeEntry(id: 'purple', labelKey: 'board_theme_purple', theme: purple),
+    BoardThemeEntry(id: 'orange', labelKey: 'board_theme_orange', theme: orange),
+    BoardThemeEntry(id: 'teal', labelKey: 'board_theme_teal', theme: teal),
+    BoardThemeEntry(id: 'red', labelKey: 'board_theme_red', theme: red),
+    BoardThemeEntry(id: 'yellow', labelKey: 'board_theme_yellow', theme: yellow),
+    BoardThemeEntry(id: 'grey', labelKey: 'board_theme_grey', theme: grey),
+    BoardThemeEntry(id: 'midnight', labelKey: 'board_theme_midnight', theme: midnight),
+    BoardThemeEntry(id: 'ocean', labelKey: 'board_theme_ocean', theme: ocean),
+    BoardThemeEntry(id: 'forest', labelKey: 'board_theme_forest', theme: forest),
   ];
 }
 
 /// Вспомогательный класс для выпадающего списка в настройках
 class BoardThemeEntry {
   final String id;
-  final String label;
-  final squares.BoardTheme theme; // ← ЯВНЫЙ ТИП из squares!
+  final String labelKey; // 🔥 Ключ локализации вместо прямого текста
+  final squares.BoardTheme theme;
 
   const BoardThemeEntry({
     required this.id,
-    required this.label,
+    required this.labelKey,
     required this.theme,
   });
 }

@@ -59,13 +59,13 @@ class _RegistrationScreenState
     if (mounted) {
       if (auth.error == 'confirm_email') {
         // 🔥 Показываем диалог вместо редиректа
+        final locale = context.read<LocaleProvider>();
         await showDialog(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('📧 Подтвердите почту'),
+            title: Text(locale.get('auth_confirm_email_title')),
             content: Text(
-              'Ссылка отправлена на ${_emailController.text}.\n\n'
-                  'Проверьте папку "Спам" и перейдите по ссылке.',
+              '${locale.get('auth_confirm_email_message')}${_emailController.text}${locale.get('auth_confirm_email_message2')}',
             ),
             actions: [
               TextButton(
@@ -73,7 +73,7 @@ class _RegistrationScreenState
                   Navigator.pop(context);
                   context.go('/welcome'); // ← только здесь редирект
                 },
-                child: const Text('Понял'),
+                child: Text(locale.get('auth_understood')),
               ),
             ],
           ),

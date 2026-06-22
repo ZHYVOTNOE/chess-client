@@ -14,16 +14,16 @@ class MoreScreen extends StatelessWidget {
 
     final items = [
       {'icon': Icons.settings, 'title': 'more_settings', 'route': '/more/settings'},
-      {'icon': Icons.mail, 'title': 'more_inbox', 'route': '/more/inbox', 'badge': 3},
+      {'icon': Icons.mail, 'title': 'more_inbox', 'route': '/more/inbox'},
       {'icon': Icons.people, 'title': 'more_friends', 'route': '/more/friends'},
       {'icon': Icons.analytics, 'title': 'more_analysis', 'route': '/more/analysis'},
       {'icon': Icons.emoji_events, 'title': 'more_leaderboard', 'route': '/more/leaderboard'},
       {'icon': Icons.folder_open, 'title': 'more_games', 'route': '/more/games'},
-      {'icon': Icons.article, 'title': 'more_news', 'route': '/more/news', 'badge': 1},
+      {'icon': Icons.article, 'title': 'more_news', 'route': '/more/news'},
       {'icon': Icons.shopping_cart, 'title': 'more_shop', 'route': '/more/shop'},
       {'icon': Icons.military_tech, 'title': 'more_achievements', 'route': '/more/achievements'},
-      {'icon': Icons.explore, 'title': 'more_quests', 'route': '/more/quests', 'badge': 5},
-      {'icon': Icons.help_outline, 'title': 'more_help', 'route': '/more/support'},
+      {'icon': Icons.explore, 'title': 'more_quests', 'route': '/more/quests'},
+      {'icon': Icons.support_agent, 'title': 'more_help', 'route': '/more/support'},
       {'icon': Icons.query_stats, 'title': 'more_stats', 'route': '/more/stats'},
     ];
 

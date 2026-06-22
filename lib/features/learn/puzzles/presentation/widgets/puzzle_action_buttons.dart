@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../../core/providers/locale_provider.dart';
 import '../cubits/puzzle_cubit.dart';
 
 class PuzzleActionButtons extends StatelessWidget {
@@ -8,10 +9,12 @@ class PuzzleActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
+
     return BlocBuilder<PuzzleCubit, PuzzleState>(
       builder: (context, state) {
         if (state is PuzzleSolved) {
-          // After solving: Retry + Next Puzzle
+          // После решения: Заново + Дальше
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
@@ -20,7 +23,7 @@ class PuzzleActionButtons extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => context.read<PuzzleCubit>().retryPuzzle(),
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Заново'),
+                    label: Text(locale.get('puzzle_retry')),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -33,7 +36,7 @@ class PuzzleActionButtons extends StatelessWidget {
                       }
                     },
                     icon: const Icon(Icons.skip_next),
-                    label: const Text('Дальше'),
+                    label: Text(locale.get('puzzle_next')),
                   ),
                 ),
               ],
@@ -41,7 +44,7 @@ class PuzzleActionButtons extends StatelessWidget {
           );
         }
 
-        // During puzzle: Hint (1/2 width) + Retry (1/2 width)
+        // Во время решения: Подсказка + Заново
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -50,7 +53,7 @@ class PuzzleActionButtons extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => context.read<PuzzleCubit>().showHint(),
                   icon: const Icon(Icons.lightbulb_outline),
-                  label: const Text('Подсказка'),
+                  label: Text(locale.get('puzzle_hint')),
                 ),
               ),
               const SizedBox(width: 12),
@@ -58,7 +61,7 @@ class PuzzleActionButtons extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: () => context.read<PuzzleCubit>().retryPuzzle(),
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Заново'),
+                  label: Text(locale.get('puzzle_retry')),
                 ),
               ),
             ],

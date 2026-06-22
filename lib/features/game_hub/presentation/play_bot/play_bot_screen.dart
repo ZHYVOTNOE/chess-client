@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/providers/locale_provider.dart';
+import 'package:client/core/providers/locale_provider.dart';
 
 class PlayBotScreen extends StatefulWidget {
   const PlayBotScreen({super.key});
@@ -16,56 +16,71 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
   String _chosenColor = 'random';
   bool _rated = false;
 
-  final List<Map<String, dynamic>> _bots = [
-    {
-      'id': 'beginner',
-      'name': 'Новичок',
-      'rating': 400,
-      'description': 'Только начинает изучать шахматы',
-      'color': Colors.green,
-      'icon': Icons.sentiment_satisfied,
-    },
-    {
-      'id': 'intermediate',
-      'name': 'Любитель',
-      'rating': 800,
-      'description': 'Знает основные правила и простые тактики',
-      'color': Colors.blue,
-      'icon': Icons.sentiment_neutral,
-    },
-    {
-      'id': 'advanced',
-      'name': 'Опытный',
-      'rating': 1400,
-      'description': 'Играет уверенно, знает дебюты',
-      'color': Colors.orange,
-      'icon': Icons.sentiment_dissatisfied,
-    },
-    {
-      'id': 'expert',
-      'name': 'Эксперт',
-      'rating': 2000,
-      'description': 'Сильный игрок, сложные комбинации',
-      'color': Colors.purple,
-      'icon': Icons.sentiment_very_dissatisfied,
-    },
-    {
-      'id': 'master',
-      'name': 'Мастер',
-      'rating': 2500,
-      'description': 'Почти непобедим, глубокий расчёт',
-      'color': Colors.red,
-      'icon': Icons.psychology,
-    },
-    {
-      'id': 'custom',
-      'name': 'Настроить',
-      'rating': null,
-      'description': 'Выбери силу и стиль игры бота',
-      'color': Colors.grey,
-      'icon': Icons.tune,
-    },
-  ];
+  List<Map<String, dynamic>> _bots(BuildContext context) {
+    final locale = context.read<LocaleProvider>();
+    return [
+      {
+        'id': 'beginner',
+        'nameKey': 'play_bot_beginner',
+        'name': locale.get('play_bot_beginner'),
+        'rating': 400,
+        'descriptionKey': 'play_bot_beginner_desc',
+        'description': locale.get('play_bot_beginner_desc'),
+        'color': Colors.green,
+        'icon': Icons.sentiment_satisfied,
+      },
+      {
+        'id': 'intermediate',
+        'nameKey': 'play_bot_intermediate',
+        'name': locale.get('play_bot_intermediate'),
+        'rating': 800,
+        'descriptionKey': 'play_bot_intermediate_desc',
+        'description': locale.get('play_bot_intermediate_desc'),
+        'color': Colors.blue,
+        'icon': Icons.sentiment_neutral,
+      },
+      {
+        'id': 'advanced',
+        'nameKey': 'play_bot_advanced',
+        'name': locale.get('play_bot_advanced'),
+        'rating': 1400,
+        'descriptionKey': 'play_bot_advanced_desc',
+        'description': locale.get('play_bot_advanced_desc'),
+        'color': Colors.orange,
+        'icon': Icons.sentiment_dissatisfied,
+      },
+      {
+        'id': 'expert',
+        'nameKey': 'play_bot_expert',
+        'name': locale.get('play_bot_expert'),
+        'rating': 2000,
+        'descriptionKey': 'play_bot_expert_desc',
+        'description': locale.get('play_bot_expert_desc'),
+        'color': Colors.purple,
+        'icon': Icons.sentiment_very_dissatisfied,
+      },
+      {
+        'id': 'master',
+        'nameKey': 'play_bot_master',
+        'name': locale.get('play_bot_master'),
+        'rating': 2500,
+        'descriptionKey': 'play_bot_master_desc',
+        'description': locale.get('play_bot_master_desc'),
+        'color': Colors.red,
+        'icon': Icons.psychology,
+      },
+      {
+        'id': 'custom',
+        'nameKey': 'play_bot_custom',
+        'name': locale.get('play_bot_custom'),
+        'rating': null,
+        'descriptionKey': 'play_bot_custom_desc',
+        'description': locale.get('play_bot_custom_desc'),
+        'color': Colors.grey,
+        'icon': Icons.tune,
+      },
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +130,7 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
 
   Widget _buildBotSelector() {
     return Column(
-      children: _bots.map((bot) {
+      children: _bots(context).map((bot) {
         final isSelected = _selectedBot == bot['id'];
         final isCustom = bot['id'] == 'custom';
 
@@ -189,16 +204,17 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
   }
 
   void _showCustomBotDialog() {
+    final locale = context.read<LocaleProvider>();
     // TODO: диалог настройки силы и стиля бота
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Настройка бота'),
+        title: Text(locale.get('play_bot_settings_title')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // Сила бота (ELO)
-            const Text('Сила бота'),
+            Text(locale.get('play_bot_strength_label')),
             Slider(
               value: 1500,
               min: 400,
@@ -208,13 +224,13 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
               onChanged: (v) {},
             ),
             // Стиль игры
-            const Text('Стиль игры'),
+            Text(locale.get('play_bot_style_label')),
             Wrap(
               spacing: 8.w,
               children: [
-                ChoiceChip(label: const Text('Универсальный'), selected: true, onSelected: (_) {}),
-                ChoiceChip(label: const Text('Атакующий'), selected: false, onSelected: (_) {}),
-                ChoiceChip(label: const Text('Позиционный'), selected: false, onSelected: (_) {}),
+                ChoiceChip(label: Text(locale.get('play_bot_style_universal')), selected: true, onSelected: (_) {}),
+                ChoiceChip(label: Text(locale.get('play_bot_style_attacking')), selected: false, onSelected: (_) {}),
+                ChoiceChip(label: Text(locale.get('play_bot_style_positional')), selected: false, onSelected: (_) {}),
               ],
             ),
           ],
@@ -222,11 +238,11 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
+            child: Text(locale.get('cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Применить'),
+            child: Text(locale.get('apply')),
           ),
         ],
       ),
@@ -234,10 +250,11 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
   }
 
   Widget _buildColorSelector() {
+    final locale = context.read<LocaleProvider>();
     final colors = [
-      {'code': 'white', 'name': 'Белые', 'icon': Icons.circle_outlined},
-      {'code': 'random', 'name': 'Случайно', 'icon': Icons.shuffle},
-      {'code': 'black', 'name': 'Чёрные', 'icon': Icons.circle},
+      {'code': 'white', 'name': locale.get('play_bot_white'), 'icon': Icons.circle_outlined},
+      {'code': 'random', 'name': locale.get('play_bot_random'), 'icon': Icons.shuffle},
+      {'code': 'black', 'name': locale.get('play_bot_black'), 'icon': Icons.circle},
     ];
 
     return Row(
@@ -319,7 +336,7 @@ class _PlayBotScreenState extends State<PlayBotScreen> {
   }
 
   void _startGame() {
-    final bot = _bots.firstWhere((b) => b['id'] == _selectedBot);
+    final bot = _bots(context).firstWhere((b) => b['id'] == _selectedBot);
 
     // TODO: API создания игры с ботом
 

@@ -12,6 +12,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/registration_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/game_hub/presentation/game_hub_screen.dart';
+import '../../features/game_hub/presentation/play_friend/play_friend_screens.dart';
 import '../../features/game_hub/presentation/tournament/join_daily_tournament_screen.dart';
 import '../../features/game_hub/presentation/tournament/join_live_tournament_screen.dart';
 import '../../features/game_hub/presentation/tournament/tournament_screen.dart';
@@ -34,7 +35,6 @@ import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/cubits/settings_cubit.dart';
-import '../../features/social/domain/entities/friend.dart';
 import '../../features/social/presentation/cubits/social_cubit.dart';
 import '../../features/social/presentation/screens/social_screen.dart';
 import '../../features/leaderboard/presentation/cubits/leaderboard_cubit.dart';
@@ -42,6 +42,7 @@ import '../../features/leaderboard/presentation/screens/leaderboard_screen.dart'
 import '../../features/tech_support/presentation/cubits/support_cubit.dart';
 import '../../features/tech_support/presentation/screens/support_screen.dart';
 import '../../features/more/presentation/screens/shop_screen.dart';
+import '../../features/game_hub/presentation/play_bot/play_bot_screen.dart';
 import '../../features/more/presentation/screens/achievements_screen.dart';
 import '../../features/more/presentation/screens/quests_screen.dart';
 import '../../features/more/presentation/screens/stats_screen.dart';
@@ -193,18 +194,16 @@ GoRouter appRouter(AuthRefreshListenable authRefreshListenable) => GoRouter(
                 GoRoute(
                   path: 'friend',
                   builder: (context, state) {
-                    final extra = state.extra as Map<String, dynamic>?;
-                    final friend = extra?['friend'] as Friend?;
-                    return SetupGameScreen(
-                      initialMode: 'friend',
-                      //initialFriendId: friend?.friendId,
+                    return BlocProvider(  // ← кубит создаётся здесь
+                      create: (_) => sl<SocialCubit>(),  // ← и инициализируется
+                      child: PlayFriendScreen(),
                     );
                   },
                 ),
                 // Игра с ботом
                 GoRoute(
                   path: 'computer',
-                  builder: (context, state) => const SetupGameScreen(initialMode: 'computer'),
+                  builder: (context, state) => const PlayBotScreen(),
                 ),
                 // Локальная игра
                 GoRoute(

@@ -33,8 +33,6 @@ class GameHubScreen extends StatelessWidget {
                       subtitle: locale.get('game_quick_subtitle'),
                       color: Colors.orange,
                       onTap: () {
-                        print(MediaQuery.of(context).size.width);
-                        print(MediaQuery.of(context).size.height);
                         gameProvider.setVsRandom(value: true);
                         gameProvider.setVsFriend(value: false);
                         gameProvider.setVsComputer(value: false);
@@ -43,6 +41,7 @@ class GameHubScreen extends StatelessWidget {
                     ),
                   ),
                   SizedBox(width: 16.w),
+                  // 🔥 Игра с другом → PlayFriendScreen
                   // Игра с другом
                   Expanded(
                     child: _GameModeCard(
@@ -54,7 +53,7 @@ class GameHubScreen extends StatelessWidget {
                         gameProvider.setVsRandom(value: false);
                         gameProvider.setVsFriend(value: true);
                         gameProvider.setVsComputer(value: false);
-                        context.push('/game/setup/friend');
+                        context.push('/game/setup/friend'); // ← Возвращаем обратно
                       },
                     ),
                   ),
@@ -85,14 +84,14 @@ class GameHubScreen extends StatelessWidget {
                   Expanded(
                     child: _GameModeCard(
                       icon: Icons.devices,
-                      title: 'Local Play',
-                      subtitle: 'Two players on one device',
+                      title: locale.get('game_local_play'),
+                      subtitle: locale.get('game_local_play_subtitle'),
                       color: Colors.purple,
                       onTap: () {
-                        gameProvider.setVsRandom(value: false);
-                        gameProvider.setVsFriend(value: false);
-                        gameProvider.setVsComputer(value: false);
-                        context.push('/game/setup/local');
+                        // gameProvider.setVsRandom(value: false);
+                        // gameProvider.setVsFriend(value: false);
+                        // gameProvider.setVsComputer(value: false);
+                        // context.push('/game/setup/local');
                       },
                     ),
                   ),
@@ -144,11 +143,7 @@ class _GameModeCard extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  icon,
-                  size: 48.r,
-                  color: Colors.white,
-                ),
+                Icon(icon, size: 48.r, color: Colors.white),
                 SizedBox(height: 12.h),
                 Text(
                   title,

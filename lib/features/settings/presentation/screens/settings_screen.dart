@@ -1,9 +1,9 @@
-// lib/features/settings/presentation/screens/settings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:squares/squares.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/utils/piece_set_loader.dart';
 import '../../constants/custom_board_themes.dart';
 import '../../constants/custom_piece_sets.dart';
@@ -31,9 +31,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Настройки'),
+        title: Text(locale.get('settings_title')),
         centerTitle: true,
       ),
       body: BlocBuilder<SettingsCubit, SettingsState>(
@@ -43,7 +45,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           }
 
           if (state is SettingsError) {
-            return Center(child: Text('Ошибка: ${state.message}'));
+            return Center(
+              child: Text('${locale.get('error_loading')}${state.message}'),
+            );
           }
 
           if (state is SettingsLoaded) {
@@ -53,13 +57,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 // 🔹 Язык
-                _buildCardTitle('🌐 Язык'),
+                _buildCardTitle(locale.get('settings_language')),
                 _buildDropdown(
-                  title: 'Язык интерфейса',
+                  title: locale.get('settings_interface_language'),
                   value: s.language,
-                  items: const [
-                    DropdownMenuItem(value: 'ru', child: Text('Русский')),
-                    DropdownMenuItem(value: 'en', child: Text('English')),
+                  items: [
+                    DropdownMenuItem(
+                      value: 'ru',
+                      child: Text(locale.get('settings_russian')),
+                    ),
+                    DropdownMenuItem(
+                      value: 'en',
+                      child: Text(locale.get('settings_english')),
+                    ),
                   ],
                   onChanged: (val) {
                     final userId = Supabase.instance.client.auth.currentUser?.id;
@@ -71,14 +81,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                 SizedBox(height: 24.h),
 
-                _buildCardTitle('🎨 Доска'),
-
+                // 🔹 Доска
+                _buildCardTitle(locale.get('settings_board')),
                 _buildDropdown(
-                  title: 'Тема доски',
+                  title: locale.get('settings_board_theme'),
                   value: s.boardTheme,
-                  items: CustomBoardThemes.all.map((entry) =>
-                      DropdownMenuItem(value: entry.id, child: Text(entry.label))
-                  ).toList(),
+                  items: CustomBoardThemes.all
+                      .map((entry) => DropdownMenuItem(
+                    value: entry.id,
+                    child: Text(locale.get(entry.labelKey)),
+                  ))
+                      .toList(),
                   onChanged: (val) {
                     final userId = Supabase.instance.client.auth.currentUser?.id;
                     if (userId != null && val != null) {
@@ -96,7 +109,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Предпросмотр:',
+                              locale.get('settings_preview'),
                               style: TextStyle(
                                 fontSize: 14.sp,
                                 color: Colors.grey.shade600,
@@ -104,10 +117,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             SizedBox(height: 4.h),
                             Text(
-                              CustomBoardThemes.all
-                                  .firstWhere((e) => e.id == s.boardTheme,
-                                  orElse: () => CustomBoardThemes.all[0])
-                                  .label,
+                              locale.get(
+                                CustomBoardThemes.all
+                                    .firstWhere(
+                                      (e) => e.id == s.boardTheme,
+                                  orElse: () => CustomBoardThemes.all[0],
+                                )
+                                    .labelKey,
+                              ),
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -128,10 +145,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           playState: PlayState.finished,
                           pieceSet: PieceSet.merida(),
                           theme: CustomBoardThemes.all
-                              .firstWhere((e) => e.id == s.boardTheme,
-                              orElse: () => CustomBoardThemes.all[0])
+                              .firstWhere(
+                                (e) => e.id == s.boardTheme,
+                            orElse: () => CustomBoardThemes.all[0],
+                          )
                               .theme,
-
                           size: const BoardSize(2, 2),
                           draggable: false,
                           labelConfig: LabelConfig.disabled,
@@ -144,13 +162,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SizedBox(height: 24.h),
 
                 // 🔹 Фигуры
-                _buildCardTitle('♟️ Фигуры'),
+                _buildCardTitle(locale.get('settings_pieces')),
                 _buildDropdown(
-                  title: 'Набор фигур',
+                  title: locale.get('settings_piece_set'),
                   value: s.pieceTheme,
-                  items: CustomPieceSets.all.map((entry) =>
-                      DropdownMenuItem(value: entry.id, child: Text(entry.label))
-                  ).toList(),
+                  items: CustomPieceSets.all
+                      .map((entry) => DropdownMenuItem(
+                    value: entry.id,
+                    child: Text(locale.get(entry.labelKey)),
+                  ))
+                      .toList(),
                   onChanged: (val) {
                     final userId = Supabase.instance.client.auth.currentUser?.id;
                     if (userId != null && val != null) {
@@ -160,6 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
 
                 // 🔥 Превью: белые + чёрные фигуры в два ряда
+                // В секции "Фигуры" - превью белых и чёрных фигур
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Center(
@@ -177,7 +199,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 child: SizedBox(
                                   width: 28,
                                   height: 28,
-                                  child: PieceSetLoader.load(s.pieceTheme).piece(context, symbol.toUpperCase()),
+                                  child: PieceSetLoader.load(s.pieceTheme)
+                                      .piece(context, symbol.toUpperCase()),
                                 ),
                               );
                             }).toList(),
@@ -195,7 +218,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 child: SizedBox(
                                   width: 28,
                                   height: 28,
-                                  child: PieceSetLoader.load(s.pieceTheme).piece(context, symbol.toLowerCase()),
+                                  child: PieceSetLoader.load(s.pieceTheme)
+                                      .piece(context, symbol.toLowerCase()),
                                 ),
                               );
                             }).toList(),
@@ -207,35 +231,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
 
                 SizedBox(height: 24.h),
-
-                // 🔹 Звуки (commented out for future)
-                // _buildCardTitle('🔊 Звуки'),
-                // _buildSwitch('Включить звуки', s.soundEnabled, settings.setSoundEnabled),
-                // if (s.soundEnabled)
-                //   _buildDropdown(
-                //     title: 'Набор звуков',
-                //     value: s.soundSet,
-                //     items: const [
-                //       DropdownMenuItem(value: 'default', child: Text('Стандартные')),
-                //       DropdownMenuItem(value: 'soft', child: Text('Мягкие')),
-                //     ],
-                //     onChanged: (val) => settings.setSoundSet(val!),
-                //   ),
-
-                // const SizedBox(height: 16),
-
-                // 🔹 Вибрация (commented out for future)
-                // _buildCardTitle('📳 Вибрация'),
-                // _buildSwitch('Включить вибрацию', s.vibrationEnabled, settings.setVibrationEnabled),
-                // if (s.vibrationEnabled)
-                //   _buildDropdown(
-                //     title: 'Интенсивность',
-                //     value: s.vibrationIntensity,
-                //     items: VibrationIntensity.values.map((v) =>
-                //         DropdownMenuItem(value: v.name, child: Text(v.label))
-                //     ).toList(),
-                //     onChanged: (val) => settings.setVibrationIntensity(val!),
-                //   ),
               ],
             );
           }
@@ -250,7 +245,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     padding: const EdgeInsets.only(bottom: 8, top: 8),
     child: Text(
       text,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Colors.blueGrey,
+      ),
     ),
   );
 
@@ -263,7 +262,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Card(
       child: ListTile(
         title: Text(title),
-        trailing: DropdownButton<String>(value: value, items: items, onChanged: onChanged),
+        trailing: DropdownButton<String>(
+          value: value,
+          items: items,
+          onChanged: onChanged,
+        ),
       ),
     );
   }

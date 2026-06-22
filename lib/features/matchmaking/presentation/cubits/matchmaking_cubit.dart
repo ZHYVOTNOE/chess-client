@@ -53,6 +53,8 @@ class MatchmakingState {
 class MatchmakingCubit extends Cubit<MatchmakingState> {
   final MatchmakingWebSocketService _webSocketService;
   StreamSubscription? _messageSubscription;
+  
+  Map<String, dynamic>? _pendingFindMatch;
 
   MatchmakingCubit(this._webSocketService) : super(const MatchmakingState()) {
     _messageSubscription = _webSocketService.messageStream.listen(_handleMessage);
@@ -70,11 +72,18 @@ class MatchmakingCubit extends Cubit<MatchmakingState> {
     required int rating,
     required int ratingRange,
   }) async {
-    emit(state.copyWith(
-      isSearching: true,
-      error: null,
-      gameId: null,
-    ));
+    emit(state.copyWith(isSearching: true, error: null, gameId: null));
+
+    if (!state.isAuthenticated) {
+      _pendingFindMatch = {
+        'variant': variant,
+        'timeControlType': timeControlType,
+        'timeControl': timeControl,
+        'rating': rating,
+        'ratingRange': ratingRange,
+      };
+      return;
+    }
 
     await _webSocketService.findMatch(
       variant: variant,
@@ -86,11 +95,9 @@ class MatchmakingCubit extends Cubit<MatchmakingState> {
   }
 
   void cancelSearch() {
+    _pendingFindMatch = null;
     _webSocketService.cancelSearch();
-    emit(state.copyWith(
-      isSearching: false,
-      gameId: null,
-    ));
+    emit(state.copyWith(isSearching: false, gameId: null));
   }
 
   void _handleMessage(Map<String, dynamic> data) {
@@ -99,6 +106,20 @@ class MatchmakingCubit extends Cubit<MatchmakingState> {
         isAuthenticated: data['authenticated'] == true,
         isConnected: true,
       ));
+
+      // ✅ Отправляем отложенный find_match сразу после аутентификации
+      if (data['authenticated'] == true && _pendingFindMatch != null) {
+        final pending = _pendingFindMatch!;
+        _pendingFindMatch = null;
+        _webSocketService.findMatch(
+          variant: pending['variant'],
+          timeControlType: pending['timeControlType'],
+          timeControl: pending['timeControl'],
+          rating: pending['rating'],
+          ratingRange: pending['ratingRange'],
+        );
+      }
+
     } else if (data.containsKey('match_found')) {
       if (data['match_found'] == true) {
         emit(state.copyWith(
@@ -111,17 +132,13 @@ class MatchmakingCubit extends Cubit<MatchmakingState> {
         ));
       }
     } else if (data.containsKey('error')) {
-      emit(state.copyWith(
-        isSearching: false,
-        error: data['error'],
-      ));
-    } else if (data.containsKey('game_over')) {
-      // Handle game over
+      emit(state.copyWith(isSearching: false, error: data['error']));
     }
   }
 
   @override
   Future<void> close() {
+    _pendingFindMatch = null;
     _messageSubscription?.cancel();
     _webSocketService.disconnect();
     return super.close();

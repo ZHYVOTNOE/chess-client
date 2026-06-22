@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/providers/locale_provider.dart';
-import '../../../social/data/repositories/friend_repository_impl.dart';
-import '../../../social/data/services/friend_service.dart';
+import '../../../../core/services/presence_service.dart';
 import '../../../social/domain/entities/friend.dart';
-import '../../../social/domain/repositories/friend_repository.dart';
+import '../../../social/presentation/cubits/social_cubit.dart';
 
 class PlayFriendScreen extends StatefulWidget {
   final Friend? preselectedFriend;
@@ -22,21 +21,7 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
   bool _rated = true;
   String _chosenColor = 'random';
   bool _showAllFriends = false;
-
-  late final FriendRepository _friendRepository;
-  late final FriendService _friendService;
-  List<Map<String, dynamic>> _friends = [];
-  bool _isLoadingFriends = true;
-
-  final List<Map<String, dynamic>> _timeControls = [
-    {'code': '1|0', 'name': 'Bullet', 'minutes': 1, 'increment': 0},
-    {'code': '3|0', 'name': 'Blitz', 'minutes': 3, 'increment': 0},
-    {'code': '3|2', 'name': 'Blitz+', 'minutes': 3, 'increment': 2},
-    {'code': '5|0', 'name': '5 мин', 'minutes': 5, 'increment': 0},
-    {'code': '10|0', 'name': 'Rapid', 'minutes': 10, 'increment': 0},
-    {'code': '15|10', 'name': 'Rapid+', 'minutes': 15, 'increment': 10},
-    {'code': '30|0', 'name': 'Classical', 'minutes': 30, 'increment': 0},
-  ];
+  bool _isSendingInvite = false;
 
   @override
   void initState() {
@@ -44,42 +29,37 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
     if (widget.preselectedFriend != null) {
       _selectedFriend = widget.preselectedFriend!.friendId;
     }
-    _friendRepository = FriendRepositoryImpl(Supabase.instance.client);
-    _friendService = FriendService(_friendRepository, Supabase.instance.client);
-    _loadFriends();
   }
 
-  Future<void> _loadFriends() async {
-    try {
-      final userId = Supabase.instance.client.auth.currentUser?.id;
-      if (userId == null) {
-        debugPrint('PlayFriend: userId is null');
-        return;
-      }
+  /// Генерируем список тайм-контролов динамически с учётом локали
+  List<Map<String, dynamic>> _buildTimeControls(LocaleProvider locale) => [
+    {'code': '1|0', 'name': locale.get('setup_category_bullet'), 'minutes': 1, 'increment': 0},
+    {'code': '3|0', 'name': locale.get('setup_category_blitz'), 'minutes': 3, 'increment': 0},
+    {'code': '3|2', 'name': '${locale.get('setup_category_blitz')}+', 'minutes': 3, 'increment': 2},
+    {'code': '5|0', 'name': locale.get('setup_category_5_min'), 'minutes': 5, 'increment': 0},
+    {'code': '10|0', 'name': locale.get('setup_category_rapid'), 'minutes': 10, 'increment': 0},
+    {'code': '15|10', 'name': '${locale.get('setup_category_rapid')}+', 'minutes': 15, 'increment': 10},
+    {'code': '30|0', 'name': locale.get('setup_category_classical'), 'minutes': 30, 'increment': 0},
+  ];
 
-      debugPrint('PlayFriend: loading friends for $userId');
-      final friends = await _friendRepository.getFriends(userId);
-      debugPrint('PlayFriend: got ${friends.length} friends');
+  /// Сортировка друзей: сначала онлайн, потом по последнему входу (новые первыми)
+  List<Friend> _sortFriends(List<Friend> friends) {
+    final sorted = [...friends]
+      ..sort((a, b) {
+        final aOnline = PresenceService.isOnline(a.lastSeenAt);
+        final bOnline = PresenceService.isOnline(b.lastSeenAt);
 
-      setState(() {
-        _friends = friends.map((friend) => {
-          'id': friend.friendId,
-          'name': friend.friendNickname,
-          //'online': friend.isOnline,
-        }).toList();
-        _isLoadingFriends = false;
+        // Онлайн всегда первыми
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+
+        // Оба онлайн или оба офлайн — сортируем по lastSeenAt (недавние первыми)
+        if (a.lastSeenAt == null && b.lastSeenAt == null) return 0;
+        if (a.lastSeenAt == null) return 1;
+        if (b.lastSeenAt == null) return -1;
+        return b.lastSeenAt!.compareTo(a.lastSeenAt!);
       });
-
-      debugPrint('PlayFriend: _friends = $_friends');
-    } catch (e) {
-      debugPrint('PlayFriend ERROR: $e');
-      setState(() => _isLoadingFriends = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load friends: $e')),
-        );
-      }
-    }
+    return sorted;
   }
 
   @override
@@ -91,34 +71,33 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
         title: Text(locale.get('play_friend_title')),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Выбор друга
-            _buildSectionTitle(locale.get('select_friend')),
-            _buildFriendSelector(),
-            const SizedBox(height: 24),
+      body: BlocBuilder<SocialCubit, SocialState>(
+        builder: (context, state) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildSectionTitle(locale.get('select_friend')),
+                _buildFriendSelector(state.friends, locale),
+                const SizedBox(height: 24),
 
-            // Временной контроль
-            _buildSectionTitle(locale.get('time_control')),
-            _buildTimeSelector(),
-            const SizedBox(height: 24),
+                _buildSectionTitle(locale.get('time_control')),
+                _buildTimeSelector(locale),
+                const SizedBox(height: 24),
 
-            // Выбор цвета
-            _buildSectionTitle(locale.get('choose_color')),
-            _buildColorSelector(),
-            const SizedBox(height: 24),
+                _buildSectionTitle(locale.get('choose_color')),
+                _buildColorSelector(locale),
+                const SizedBox(height: 24),
 
-            // Рейтинговая игра
-            _buildRatedOption(),
-            const SizedBox(height: 32),
+                _buildRatedOption(locale),
+                const SizedBox(height: 32),
 
-            // Кнопка приглашения
-            _buildInviteButton(locale),
-          ],
-        ),
+                _buildInviteButton(locale),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -133,12 +112,8 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
     );
   }
 
-  Widget _buildFriendSelector() {
-    if (_isLoadingFriends) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_friends.isEmpty) {
+  Widget _buildFriendSelector(List<Friend> friends, LocaleProvider locale) {
+    if (friends.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -146,12 +121,15 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
             children: [
               const Icon(Icons.people_outline, size: 48, color: Colors.grey),
               const SizedBox(height: 16),
-              const Text('Добавьте друзей для игры',
-                  style: TextStyle(color: Colors.grey)),
+              Text(
+                locale.get('play_friend_add_friends'),
+                style: const TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 16),
               OutlinedButton(
                 onPressed: () => context.push('/more/friends'),
-                child: const Text('Найти друзей'),
+                child: Text(locale.get('play_friend_find_friends')),
               ),
             ],
           ),
@@ -159,35 +137,46 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
       );
     }
 
-    // Сортируем: онлайн первыми
-    final sorted = [..._friends]
-      ..sort((a, b) => (b['online'] as bool) ? 1 : -1);
-
-    final showAll = _showAllFriends; // bool в стейте
+    // Сортируем друзей
+    final sorted = _sortFriends(friends);
+    final showAll = _showAllFriends;
     final displayed = showAll ? sorted : sorted.take(3).toList();
 
     return Column(
       children: [
         ...displayed.map((friend) {
-          final isSelected = _selectedFriend == friend['id'];
-          final isOnline = friend['online'] as bool;
+          final isSelected = _selectedFriend == friend.friendId;
+          final isOnline = PresenceService.isOnline(friend.lastSeenAt);
+          final statusText = PresenceService.formatLastSeen(friend.lastSeenAt);
+
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             color: isSelected
                 ? Theme.of(context).primaryColor.withOpacity(0.1)
                 : null,
             child: ListTile(
-              onTap: () => setState(() => _selectedFriend = friend['id'] as String),
+              onTap: () => setState(() => _selectedFriend = friend.friendId),
               leading: Stack(
                 children: [
                   CircleAvatar(
                     backgroundColor: Colors.grey.shade300,
-                    child: Text((friend['name'] as String)[0]),
+                    backgroundImage: friend.friendAvatarUrl != null && friend.friendAvatarUrl!.isNotEmpty
+                        ? NetworkImage(friend.friendAvatarUrl!)
+                        : null,
+                    child: friend.friendAvatarUrl == null || friend.friendAvatarUrl!.isEmpty
+                        ? Text(
+                      friend.friendNickname.isNotEmpty
+                          ? friend.friendNickname[0].toUpperCase()
+                          : '?',
+                    )
+                        : null,
                   ),
                   Positioned(
-                    bottom: 0, right: 0,
+                    bottom: 0,
+                    right: 0,
                     child: Container(
-                      width: 12, height: 12,
+                      width: 12,
+                      height: 12,
                       decoration: BoxDecoration(
                         color: isOnline ? Colors.green : Colors.grey,
                         shape: BoxShape.circle,
@@ -197,8 +186,19 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
                   ),
                 ],
               ),
-              title: Text(friend['name'] as String),
-              subtitle: Text(isOnline ? 'онлайн' : 'офлайн'),
+              title: Text(
+                friend.friendNickname,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+              subtitle: Text(
+                isOnline
+                    ? locale.get('play_friend_online')
+                    : statusText,
+                style: TextStyle(
+                  color: isOnline ? Colors.green : Colors.grey.shade600,
+                  fontSize: 12,
+                ),
+              ),
               trailing: isSelected
                   ? const Icon(Icons.check_circle, color: Colors.green)
                   : null,
@@ -208,20 +208,26 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
         if (sorted.length > 3)
           TextButton(
             onPressed: () => setState(() => _showAllFriends = !_showAllFriends),
-            child: Text(showAll ? 'Скрыть' : 'Все друзья (${sorted.length})'),
+            child: Text(
+              showAll
+                  ? locale.get('play_friend_hide')
+                  : '${locale.get('play_friend_all_friends')}${sorted.length})',
+            ),
           ),
       ],
     );
   }
 
-  Widget _buildTimeSelector() {
+  Widget _buildTimeSelector(LocaleProvider locale) {
+    final timeControls = _buildTimeControls(locale);
+
     return SizedBox(
       height: 100,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _timeControls.length,
+        itemCount: timeControls.length,
         itemBuilder: (context, index) {
-          final time = _timeControls[index];
+          final time = timeControls[index];
           final isSelected = _selectedTime == time['code'];
 
           return GestureDetector(
@@ -268,11 +274,23 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
     );
   }
 
-  Widget _buildColorSelector() {
+  Widget _buildColorSelector(LocaleProvider locale) {
     final colors = [
-      {'code': 'white', 'name': 'Белые', 'icon': Icons.circle_outlined},
-      {'code': 'random', 'name': 'Случайно', 'icon': Icons.shuffle},
-      {'code': 'black', 'name': 'Чёрные', 'icon': Icons.circle},
+      {
+        'code': 'white',
+        'name': locale.get('play_friend_white'),
+        'icon': Icons.circle_outlined,
+      },
+      {
+        'code': 'random',
+        'name': locale.get('play_friend_random'),
+        'icon': Icons.shuffle,
+      },
+      {
+        'code': 'black',
+        'name': locale.get('play_friend_black'),
+        'icon': Icons.circle,
+      },
     ];
 
     return Row(
@@ -309,7 +327,7 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
     );
   }
 
-  Widget _buildRatedOption() {
+  Widget _buildRatedOption(LocaleProvider locale) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -319,12 +337,12 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Рейтинговая игра',
-                    style: TextStyle(fontWeight: FontWeight.w500),
+                  Text(
+                    locale.get('play_friend_rated_game'),
+                    style: const TextStyle(fontWeight: FontWeight.w500),
                   ),
                   Text(
-                    'Результат повлияет на рейтинг',
+                    locale.get('play_friend_rated_desc'),
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
@@ -341,16 +359,25 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
   }
 
   Widget _buildInviteButton(LocaleProvider locale) {
-    final canInvite = _selectedFriend.isNotEmpty;
+    final canInvite = _selectedFriend.isNotEmpty && !_isSendingInvite;
 
     return SizedBox(
       height: 56,
       child: ElevatedButton(
-        onPressed: canInvite ? _sendInvite : null,
+        onPressed: canInvite ? () => _sendInvite(locale) : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: canInvite ? null : Colors.grey,
         ),
-        child: Text(
+        child: _isSendingInvite
+            ? const SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white,
+          ),
+        )
+            : Text(
           locale.get('send_invite'),
           style: const TextStyle(fontSize: 18),
         ),
@@ -358,11 +385,18 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
     );
   }
 
-  void _sendInvite() async {
-    final friend = _friends.firstWhere((f) => f['id'] == _selectedFriend);
+  void _sendInvite(LocaleProvider locale) async {
+    if (_isSendingInvite) return;
+
+    setState(() => _isSendingInvite = true);
+
+    final friend = context
+        .read<SocialCubit>()
+        .state
+        .friends
+        .firstWhere((f) => f.friendId == _selectedFriend);
 
     try {
-      // Parse time control
       final timeParts = _selectedTime.split('|');
       final minutes = int.parse(timeParts[0]);
       final increment = int.parse(timeParts[1]);
@@ -377,18 +411,25 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
         'color': _chosenColor,
       };
 
-      await _friendService.sendGameInvite(_selectedFriend, gameConfig);
+      await context.read<SocialCubit>().sendGameInvite(_selectedFriend, gameConfig);
 
       if (mounted) {
+        setState(() => _isSendingInvite = false);
+
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Приглашение отправлено'),
-            content: Text('Ожидаем ответа от ${friend['name']}...'),
+            title: Text(locale.get('play_friend_invite_sent')),
+            content: Text(
+              '${locale.get('play_friend_waiting_response')}${friend.friendNickname}...',
+            ),
             actions: [
               FilledButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('ОК'),
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.pop(); // Возвращаемся назад
+                },
+                child: Text(locale.get('play_friend_ok')),
               ),
             ],
           ),
@@ -396,8 +437,12 @@ class _PlayFriendScreenState extends State<PlayFriendScreen> {
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isSendingInvite = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send invite: $e')),
+          SnackBar(
+            content: Text('${locale.get('play_friend_invite_error')}$e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }

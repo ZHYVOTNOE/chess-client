@@ -84,7 +84,7 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                           _puzzleCubit.loadPuzzle(userId, isFirst: true);
                         }
                       },
-                      child: const Text('Попробовать снова'),
+                      child: Text(locale.get('puzzles_try_again')),
                     ),
                   ],
                 ),
@@ -116,7 +116,6 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                       },
                     ),
                   ),
-                  // Фидбек сообщение
                   if (state.feedbackMessage == 'wrong')
                     Container(
                       padding: EdgeInsets.symmetric(vertical: 8.h),
@@ -126,7 +125,7 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                           Icon(Icons.close, size: 24.r, color: Colors.red),
                           SizedBox(width: 8.w),
                           Text(
-                            'Неверный ход',
+                            locale.get('puzzles_wrong_move'),
                             style: TextStyle(
                               color: Colors.red,
                               fontWeight: FontWeight.bold,
@@ -171,7 +170,7 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                         Icon(Icons.check_circle, size: 24.r, color: Colors.green),
                         SizedBox(width: 8.w),
                         Text(
-                          'Задача решена!',
+                          locale.get('puzzles_solved'),
                           style: TextStyle(
                             color: Colors.green,
                             fontWeight: FontWeight.bold,
@@ -185,7 +184,7 @@ class _PuzzlesScreenState extends State<PuzzlesScreen> {
                 ],
               );
             }
-            return const Center(child: Text('Загрузка задач...'));
+            return Center(child: Text(locale.get('puzzles_loading')));
           },
         ),
       ),

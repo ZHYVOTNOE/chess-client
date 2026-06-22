@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/providers/locale_provider.dart';
 import '../cubits/leaderboard_cubit.dart';
 import '../../domain/entities/leaderboard_entry.dart';
 import '../cubits/leaderboard_state.dart';
@@ -82,6 +83,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
     return BlocBuilder<LeaderboardCubit, LeaderboardState>(
       builder: (context, state) {
         return Scaffold(
@@ -90,7 +92,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               icon: const Icon(Icons.arrow_back),
               onPressed: () => context.pop(),
             ),
-            title: const Text('Leaderboard'),
+            title: Text(locale.get('leaderboard_title')),
           ),
           body: Column(
             children: [
@@ -132,7 +134,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             child: _buildDropdown(
               label: 'Scope',
               value: _selectedScope ?? state.selectedScope,
-              items: _getScopeItems(),
+              items: _getScopeItems(context),
               onChanged: (value) {
                 setState(() => _selectedScope = value);
                 context.read<LeaderboardCubit>().changeScope(value!);
@@ -144,7 +146,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             child: _buildDropdown(
               label: 'Category',
               value: _selectedCategory ?? state.selectedCategory,
-              items: _getCategoryItems(),
+              items: _getCategoryItems(context),
               onChanged: (value) {
                 setState(() => _selectedCategory = value);
                 context.read<LeaderboardCubit>().changeCategory(value!);
@@ -186,31 +188,33 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  List<DropdownMenuItem<String>> _getCategoryItems() {
-    return const [
-      DropdownMenuItem(value: 'bullet', child: Text('Bullet')),
-      DropdownMenuItem(value: 'blitz', child: Text('Blitz')),
-      DropdownMenuItem(value: 'rapid', child: Text('Rapid')),
-      DropdownMenuItem(value: 'puzzles', child: Text('Puzzles')),
-      DropdownMenuItem(value: 'chess960', child: Text('Chess960')),
-      DropdownMenuItem(value: 'mini', child: Text('Mini')),
-      DropdownMenuItem(value: 'micro', child: Text('Micro')),
-      DropdownMenuItem(value: 'nano', child: Text('Nano')),
-      DropdownMenuItem(value: 'grand', child: Text('Grand')),
-      DropdownMenuItem(value: 'capablanca', child: Text('Capablanca')),
-      DropdownMenuItem(value: 'crazyhouse', child: Text('Crazyhouse')),
-      DropdownMenuItem(value: 'seirawan', child: Text('Seirawan')),
-      DropdownMenuItem(value: 'atomic', child: Text('Atomic')),
-      DropdownMenuItem(value: 'kingOfTheHill', child: Text('King of the Hill')),
-      DropdownMenuItem(value: 'horde', child: Text('Horde')),
+  List<DropdownMenuItem<String>> _getCategoryItems(BuildContext context) {
+    final locale = context.read<LocaleProvider>();
+    return [
+      DropdownMenuItem(value: 'bullet', child: Text(locale.get('leaderboard_bullet'))),
+      DropdownMenuItem(value: 'blitz', child: Text(locale.get('leaderboard_blitz'))),
+      DropdownMenuItem(value: 'rapid', child: Text(locale.get('leaderboard_rapid'))),
+      DropdownMenuItem(value: 'puzzles', child: Text(locale.get('leaderboard_puzzles'))),
+      DropdownMenuItem(value: 'chess960', child: Text(locale.get('leaderboard_chess960'))),
+      DropdownMenuItem(value: 'mini', child: Text(locale.get('leaderboard_mini'))),
+      DropdownMenuItem(value: 'micro', child: Text(locale.get('leaderboard_micro'))),
+      DropdownMenuItem(value: 'nano', child: Text(locale.get('leaderboard_nano'))),
+      DropdownMenuItem(value: 'grand', child: Text(locale.get('leaderboard_grand'))),
+      DropdownMenuItem(value: 'capablanca', child: Text(locale.get('leaderboard_capablanca'))),
+      DropdownMenuItem(value: 'crazyhouse', child: Text(locale.get('leaderboard_crazyhouse'))),
+      DropdownMenuItem(value: 'seirawan', child: Text(locale.get('leaderboard_seirawan'))),
+      DropdownMenuItem(value: 'atomic', child: Text(locale.get('leaderboard_atomic'))),
+      DropdownMenuItem(value: 'kingOfTheHill', child: Text(locale.get('leaderboard_king_of_the_hill'))),
+      DropdownMenuItem(value: 'horde', child: Text(locale.get('leaderboard_horde'))),
     ];
   }
 
-  List<DropdownMenuItem<String>> _getScopeItems() {
-    return const [
-      DropdownMenuItem(value: 'global', child: Text('Global')),
-      DropdownMenuItem(value: 'country', child: Text('Country')),
-      DropdownMenuItem(value: 'friends', child: Text('Friends')),
+  List<DropdownMenuItem<String>> _getScopeItems(BuildContext context) {
+    final locale = context.read<LocaleProvider>();
+    return [
+      DropdownMenuItem(value: 'global', child: Text(locale.get('leaderboard_global'))),
+      DropdownMenuItem(value: 'country', child: Text(locale.get('leaderboard_country'))),
+      DropdownMenuItem(value: 'friends', child: Text(locale.get('leaderboard_friends'))),
     ];
   }
 
@@ -220,14 +224,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
 
     if (state.error != null && state.leaderboardEntries.isEmpty) {
+      final locale = context.read<LocaleProvider>();
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Error: ${state.error}'),
+            Text('${locale.get('leaderboard_error')}${state.error}'),
             ElevatedButton(
               onPressed: () => context.read<LeaderboardCubit>().loadLeaderboard(),
-              child: const Text('Retry'),
+              child: Text(locale.get('leaderboard_retry')),
             ),
           ],
         ),
@@ -235,7 +240,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
 
     if (state.leaderboardEntries.isEmpty) {
-      return const Center(child: Text('No entries found'));
+      final locale = context.read<LocaleProvider>();
+      return Center(child: Text(locale.get('leaderboard_no_entries')));
     }
 
     return NotificationListener<ScrollNotification>(

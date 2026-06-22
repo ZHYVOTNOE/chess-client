@@ -303,9 +303,10 @@ class _QuickMatchScreenState extends State<QuickMatchScreen> {
   }
 
   Widget _buildOptions() {
+    final locale = context.read<LocaleProvider>();
     return SwitchListTile(
-      title: const Text('Рейтинговая игра'),
-      subtitle: const Text('Результат повлияет на ваш рейтинг'),
+      title: Text(locale.get('quick_rated_game')),
+      subtitle: Text(locale.get('quick_rated_desc')),
       value: _rated,
       onChanged: (value) => setState(() => _rated = value),
     );

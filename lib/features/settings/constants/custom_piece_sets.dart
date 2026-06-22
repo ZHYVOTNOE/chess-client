@@ -1,12 +1,12 @@
 class PieceSetEntry {
   final String id;
-  final String label;
+  final String labelKey; // 🔥 Ключ локализации
   final String license;
   final String sourceUrl;
 
   const PieceSetEntry({
     required this.id,
-    required this.label,
+    required this.labelKey,
     required this.license,
     this.sourceUrl = 'https://github.com/lichess-org/lila/tree/master/public/piece',
   });
@@ -15,31 +15,31 @@ class PieceSetEntry {
 class CustomPieceSets {
   static const merida = PieceSetEntry(
     id: 'merida',
-    label: 'Merida',
+    labelKey: 'piece_set_merida',
     license: 'CC0 1.0',
   );
 
   static const staunty = PieceSetEntry(
     id: 'staunty',
-    label: 'Staunton',
+    labelKey: 'piece_set_staunty',
     license: 'CC0 1.0',
   );
 
   static const alpha = PieceSetEntry(
     id: 'alpha',
-    label: 'Alpha',
+    labelKey: 'piece_set_alpha',
     license: 'CC0 1.0',
   );
 
   static const pixel = PieceSetEntry(
     id: 'pixel',
-    label: 'Pixel',
+    labelKey: 'piece_set_pixel',
     license: 'CC0 1.0',
   );
 
   static const letter = PieceSetEntry(
     id: 'letter',
-    label: 'Буквы',
+    labelKey: 'piece_set_letter',
     license: 'CC0 1.0',
   );
 

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/services/presence_service.dart';
 import '../../../play/domain/entities/player_color.dart';
 import '../cubits/social_cubit.dart';
@@ -50,6 +51,26 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     final firstLetter = code.codeUnitAt(0) - 0x41 + 0x1F1E6;
     final secondLetter = code.codeUnitAt(1) - 0x41 + 0x1F1E6;
     return String.fromCharCode(firstLetter) + String.fromCharCode(secondLetter);
+  }
+
+  /// Сортировка друзей: сначала онлайн, потом по последнему входу (новые первыми)
+  List<Friend> _sortFriends(List<Friend> friends) {
+    final sorted = [...friends]
+      ..sort((a, b) {
+        final aOnline = PresenceService.isOnline(a.lastSeenAt);
+        final bOnline = PresenceService.isOnline(b.lastSeenAt);
+
+        // Онлайн всегда первыми
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+
+        // Оба онлайн или оба офлайн — сортируем по lastSeenAt (недавние первыми)
+        if (a.lastSeenAt == null && b.lastSeenAt == null) return 0;
+        if (a.lastSeenAt == null) return 1;
+        if (b.lastSeenAt == null) return -1;
+        return b.lastSeenAt!.compareTo(a.lastSeenAt!);
+      });
+    return sorted;
   }
 
   Widget _buildAvatarWithStatus({
@@ -119,10 +140,10 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildBioText(String? bio) {
+  Widget _buildBioText(String? bio, LocaleProvider locale) {
     if (bio == null || bio.isEmpty) {
       return Text(
-        'Нет описания',
+        locale.get('social_no_description'),
         style: TextStyle(
           fontSize: 12,
           color: Colors.grey.shade400,
@@ -144,31 +165,33 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
+
     return BlocBuilder<SocialCubit, SocialState>(
       builder: (context, state) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Social'),
+            title: Text(locale.get('social_title')),
             bottom: TabBar(
               controller: _tabController,
-              tabs: const [
-                Tab(text: 'Friends'),
-                Tab(text: 'Search'),
-                Tab(text: 'Requests'),
+              tabs: [
+                Tab(text: locale.get('social_friends')),
+                Tab(text: locale.get('social_search')),
+                Tab(text: locale.get('social_requests')),
               ],
             ),
           ),
           body: TabBarView(
             controller: _tabController,
             children: [
-              _buildFriendsList(state.friends),
-              _buildSearchTab(state),
-              _buildRequestsList(state.friendRequests, state.sentRequests),
+              _buildFriendsList(state.friends, locale),
+              _buildSearchTab(state, locale),
+              _buildRequestsList(state.friendRequests, state.sentRequests, locale),
             ],
           ),
           floatingActionButton: _selectedTab == 0 && state.gameInvites.isNotEmpty
               ? FloatingActionButton(
-            onPressed: () => _showInvitationDialog(context, state.gameInvites.first),
+            onPressed: () => _showInvitationDialog(context, state.gameInvites.first, locale),
             child: const Icon(Icons.mail),
           )
               : null,
@@ -177,16 +200,31 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildFriendsList(List<Friend> friends) {
+  Widget _buildFriendsList(List<Friend> friends, LocaleProvider locale) {
     if (friends.isEmpty) {
-      return const Center(child: Text('No friends yet'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+            SizedBox(height: 16.h),
+            Text(
+              locale.get('social_no_friends'),
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+      );
     }
 
+    // 🔥 СОРТИРОВКА: онлайн первыми, потом по последнему входу
+    final sortedFriends = _sortFriends(friends);
+
     return ListView.separated(
-      itemCount: friends.length,
+      itemCount: sortedFriends.length,
       separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
-        final friend = friends[index];
+        final friend = sortedFriends[index];
         final isOnline = PresenceService.isOnline(friend.lastSeenAt);
         final statusText = PresenceService.formatLastSeen(friend.lastSeenAt);
         final flag = _getCountryFlag(friend.countryCode);
@@ -206,7 +244,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                 SizedBox(width: 12.w),
                 Expanded(
                   child: Column(
-                    mainAxisSize: MainAxisSize.min, // 👈 ДОБАВЛЕНО
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildNameRow(
@@ -218,7 +256,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                       Row(
                         children: [
                           if (friend.friendFullName != null) ...[
-                            Flexible( // Этот Flexible можно оставить, так как он внутри горизонтального Row
+                            Flexible(
                               child: Text(
                                 friend.friendFullName!,
                                 style: TextStyle(
@@ -248,27 +286,30 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                     if (value == 'play') {
                       context.go('/game/friend', extra: {'friend': friend});
                     } else if (value == 'remove') {
-                      _removeFriend(friend);
+                      _removeFriend(friend, locale);
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'play',
                       child: Row(
                         children: [
-                          Icon(Icons.play_arrow),
-                          SizedBox(width: 8),
-                          Text('Играть'),
+                          const Icon(Icons.play_arrow),
+                          const SizedBox(width: 8),
+                          Text(locale.get('social_play')),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'remove',
                       child: Row(
                         children: [
-                          Icon(Icons.delete, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('Удалить', style: TextStyle(color: Colors.red)),
+                          const Icon(Icons.delete, color: Colors.red),
+                          const SizedBox(width: 8),
+                          Text(
+                            locale.get('social_remove'),
+                            style: const TextStyle(color: Colors.red),
+                          ),
                         ],
                       ),
                     ),
@@ -282,7 +323,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildSearchTab(SocialState state) {
+  Widget _buildSearchTab(SocialState state, LocaleProvider locale) {
     return Column(
       children: [
         Padding(
@@ -290,7 +331,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search users (ID or nickname)',
+              hintText: locale.get('social_search_hint'),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: state.isSearching
                   ? const Padding(
@@ -318,7 +359,12 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
           child: state.isSearching
               ? const Center(child: CircularProgressIndicator())
               : state.searchResults.isEmpty
-              ? const Center(child: Text('No users found'))
+              ? Center(
+            child: Text(
+              locale.get('social_no_users_found'),
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          )
               : ListView.separated(
             itemCount: state.searchResults.length,
             separatorBuilder: (context, index) => const Divider(height: 1),
@@ -351,11 +397,11 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                               flag: flag,
                             ),
                             SizedBox(height: 2.0.h),
-                            _buildBioText(user.friendBio),
+                            _buildBioText(user.friendBio, locale),
                           ],
                         ),
                       ),
-                      _buildSearchAction(state, user),
+                      _buildSearchAction(state, user, locale),
                     ],
                   ),
                 ),
@@ -367,7 +413,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildSearchAction(SocialState state, Friend user) {
+  Widget _buildSearchAction(SocialState state, Friend user, LocaleProvider locale) {
     final isFriend = state.friends.any((f) => f.friendId == user.friendId);
     final isSent = state.sentRequests.any((r) => r.friendId == user.friendId);
     final isBanned = state.bannedUserIds.contains(user.friendId);
@@ -375,7 +421,6 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Кнопка добавления в друзья (для всех)
         if (isFriend)
           const Padding(
             padding: EdgeInsets.all(8.0),
@@ -389,52 +434,51 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
         else
           IconButton(
             icon: const Icon(Icons.person_add),
-            onPressed: () => _sendFriendRequest(user),
+            onPressed: () => _sendFriendRequest(user, locale),
           ),
 
         if (state.isAdmin && !user.isAdmin)
           isBanned
               ? IconButton(
             icon: const Icon(Icons.lock_open, color: Colors.green),
-            tooltip: 'Разбанить',
-            onPressed: () => _showUnbanDialog(user),
+            tooltip: locale.get('social_unban'),
+            onPressed: () => _showUnbanDialog(user, locale),
           )
               : IconButton(
             icon: const Icon(Icons.block, color: Colors.red),
-            tooltip: 'Заблокировать',
-            onPressed: () => _showBanDialog(user),
+            tooltip: locale.get('social_ban'),
+            onPressed: () => _showBanDialog(user, locale),
           ),
       ],
     );
   }
 
-  void _showBanDialog(Friend user) {
-    // Пресеты срока бана
-    const presets = [
-      ('1 час', Duration(hours: 1)),
-      ('24 часа', Duration(hours: 24)),
-      ('7 дней', Duration(days: 7)),
-      ('30 дней', Duration(days: 30)),
-      ('1 год', Duration(days: 365)),
-      ('Навсегда', null),
+  void _showBanDialog(Friend user, LocaleProvider locale) {
+    final presets = [
+      (locale.get('social_1_hour'), const Duration(hours: 1)),
+      (locale.get('social_24_hours'), const Duration(hours: 24)),
+      (locale.get('social_7_days'), const Duration(days: 7)),
+      (locale.get('social_30_days'), const Duration(days: 30)),
+      (locale.get('social_1_year'), const Duration(days: 365)),
+      (locale.get('social_forever'), null),
     ];
 
-    int selectedPreset = 1; // 24 часа по умолчанию
+    int selectedPreset = 1;
     final reasonController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Заблокировать ${user.friendNickname}'),
+          title: Text('${locale.get('social_ban_title')}${user.friendNickname}'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Срок блокировки',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  locale.get('social_ban_duration'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 ...List.generate(presets.length, (i) {
@@ -449,17 +493,17 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                   );
                 }),
                 const SizedBox(height: 12),
-                const Text(
-                  'Причина',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  locale.get('social_reason'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 6),
                 TextField(
                   controller: reasonController,
                   maxLines: 2,
-                  decoration: const InputDecoration(
-                    hintText: 'Укажите причину блокировки',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: locale.get('social_ban_reason_hint'),
+                    border: const OutlineInputBorder(),
                   ),
                 ),
               ],
@@ -468,7 +512,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Отмена'),
+              child: Text(locale.get('cancel')),
             ),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -476,15 +520,13 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                 final reason = reasonController.text.trim();
                 if (reason.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Укажите причину блокировки')),
+                    SnackBar(content: Text(locale.get('social_ban_reason_required'))),
                   );
                   return;
                 }
 
                 final (_, duration) = presets[selectedPreset];
-                final bannedUntil = duration != null
-                    ? DateTime.now().add(duration)
-                    : null; // null = навсегда
+                final bannedUntil = duration != null ? DateTime.now().add(duration) : null;
 
                 Navigator.pop(context);
 
@@ -497,12 +539,12 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('${user.friendNickname} заблокирован'),
+                      content: Text('${user.friendNickname}${locale.get('social_banned')}'),
                     ),
                   );
                 }
               },
-              child: const Text('Заблокировать'),
+              child: Text(locale.get('social_ban')),
             ),
           ],
         ),
@@ -510,16 +552,16 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  void _showUnbanDialog(Friend user) {
+  void _showUnbanDialog(Friend user, LocaleProvider locale) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Разблокировать ${user.friendNickname}?'),
-        content: const Text('Пользователь снова получит полный доступ к приложению.'),
+        title: Text('${locale.get('social_unban_title')}${user.friendNickname}?'),
+        content: Text(locale.get('social_unban_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
+            child: Text(locale.get('cancel')),
           ),
           TextButton(
             onPressed: () async {
@@ -527,36 +569,45 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
               await context.read<SocialCubit>().unbanUser(user.friendId);
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${user.friendNickname} разблокирован')),
+                  SnackBar(content: Text('${user.friendNickname}${locale.get('social_unbanned')}')),
                 );
               }
             },
-            child: const Text('Разблокировать'),
+            child: Text(locale.get('social_unban')),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRequestsList(List<Friend> incomingRequests, List<Friend> sentRequests) {
+  Widget _buildRequestsList(
+      List<Friend> incomingRequests,
+      List<Friend> sentRequests,
+      LocaleProvider locale,
+      ) {
     if (incomingRequests.isEmpty && sentRequests.isEmpty) {
-      return const Center(child: Text('No pending requests'));
+      return Center(
+        child: Text(
+          locale.get('social_no_pending_requests'),
+          style: TextStyle(color: Colors.grey.shade600),
+        ),
+      );
     }
 
     return ListView(
       children: [
         if (incomingRequests.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Text(
-              'Входящие запросы',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              locale.get('social_incoming_requests'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
           ...List.generate(incomingRequests.length, (index) {
             return Column(
               children: [
-                _buildIncomingRequestTile(incomingRequests[index]),
+                _buildIncomingRequestTile(incomingRequests[index], locale),
                 if (index < incomingRequests.length - 1) const Divider(height: 1),
               ],
             );
@@ -564,17 +615,17 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
           const Divider(height: 32),
         ],
         if (sentRequests.isNotEmpty) ...[
-          const Padding(
-            padding: EdgeInsets.all(16),
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Text(
-              'Исходящие запросы',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              locale.get('social_outgoing_requests'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
           ...List.generate(sentRequests.length, (index) {
             return Column(
               children: [
-                _buildSentRequestTile(sentRequests[index]),
+                _buildSentRequestTile(sentRequests[index], locale),
                 if (index < sentRequests.length - 1) const Divider(height: 1),
               ],
             );
@@ -584,7 +635,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildIncomingRequestTile(Friend request) {
+  Widget _buildIncomingRequestTile(Friend request, LocaleProvider locale) {
     final isOnline = PresenceService.isOnline(request.lastSeenAt);
     final flag = _getCountryFlag(request.countryCode);
 
@@ -612,7 +663,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                     flag: flag,
                   ),
                   const SizedBox(height: 2),
-                  _buildBioText(request.friendBio),
+                  _buildBioText(request.friendBio, locale),
                 ],
               ),
             ),
@@ -622,12 +673,12 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                 IconButton(
                   icon: const Icon(Icons.check, color: Colors.green),
                   onPressed: () => _acceptFriendRequest(request),
-                  tooltip: 'Accept',
+                  tooltip: locale.get('social_accept'),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.red),
                   onPressed: () => _declineFriendRequest(request),
-                  tooltip: 'Decline',
+                  tooltip: locale.get('social_decline'),
                 ),
               ],
             ),
@@ -637,7 +688,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildSentRequestTile(Friend request) {
+  Widget _buildSentRequestTile(Friend request, LocaleProvider locale) {
     final isOnline = PresenceService.isOnline(request.lastSeenAt);
     final flag = _getCountryFlag(request.countryCode);
 
@@ -665,14 +716,14 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                     flag: flag,
                   ),
                   const SizedBox(height: 2),
-                  _buildBioText(request.friendBio),
+                  _buildBioText(request.friendBio, locale),
                 ],
               ),
             ),
             IconButton(
               icon: const Icon(Icons.close, color: Colors.red),
               onPressed: () => _cancelSentRequest(request),
-              tooltip: 'Cancel',
+              tooltip: locale.get('social_cancel'),
             ),
           ],
         ),
@@ -680,7 +731,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  void _inviteToGame(Friend friend) {
+  void _inviteToGame(Friend friend, LocaleProvider locale) {
     _selectedTime = '10|0';
     _rated = true;
     _chosenColor = 'random';
@@ -689,44 +740,78 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text('Invite ${friend.friendNickname}'),
+          title: Text('${locale.get('social_invite_title')}${friend.friendNickname}'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Time Control', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  locale.get('social_time_control'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   children: [
-                    _TimeOption(code: '1|0', name: '1+0', isSelected: _selectedTime == '1|0',
-                        onTap: () => setDialogState(() => _selectedTime = '1|0')),
-                    _TimeOption(code: '3|0', name: '3+0', isSelected: _selectedTime == '3|0',
-                        onTap: () => setDialogState(() => _selectedTime = '3|0')),
-                    _TimeOption(code: '5|0', name: '5+0', isSelected: _selectedTime == '5|0',
-                        onTap: () => setDialogState(() => _selectedTime = '5|0')),
-                    _TimeOption(code: '10|0', name: '10+0', isSelected: _selectedTime == '10|0',
-                        onTap: () => setDialogState(() => _selectedTime = '10|0')),
+                    _TimeOption(
+                      code: '1|0',
+                      name: '1+0',
+                      isSelected: _selectedTime == '1|0',
+                      onTap: () => setDialogState(() => _selectedTime = '1|0'),
+                    ),
+                    _TimeOption(
+                      code: '3|0',
+                      name: '3+0',
+                      isSelected: _selectedTime == '3|0',
+                      onTap: () => setDialogState(() => _selectedTime = '3|0'),
+                    ),
+                    _TimeOption(
+                      code: '5|0',
+                      name: '5+0',
+                      isSelected: _selectedTime == '5|0',
+                      onTap: () => setDialogState(() => _selectedTime = '5|0'),
+                    ),
+                    _TimeOption(
+                      code: '10|0',
+                      name: '10+0',
+                      isSelected: _selectedTime == '10|0',
+                      onTap: () => setDialogState(() => _selectedTime = '10|0'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text('Color', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  locale.get('social_color'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _ColorOption(code: 'white', name: 'White', isSelected: _chosenColor == 'white',
-                        onTap: () => setDialogState(() => _chosenColor = 'white')),
-                    _ColorOption(code: 'random', name: 'Random', isSelected: _chosenColor == 'random',
-                        onTap: () => setDialogState(() => _chosenColor = 'random')),
-                    _ColorOption(code: 'black', name: 'Black', isSelected: _chosenColor == 'black',
-                        onTap: () => setDialogState(() => _chosenColor = 'black')),
+                    _ColorOption(
+                      code: 'white',
+                      name: locale.get('openings_white'),
+                      isSelected: _chosenColor == 'white',
+                      onTap: () => setDialogState(() => _chosenColor = 'white'),
+                    ),
+                    _ColorOption(
+                      code: 'random',
+                      name: locale.get('quick_random_color'),
+                      isSelected: _chosenColor == 'random',
+                      onTap: () => setDialogState(() => _chosenColor = 'random'),
+                    ),
+                    _ColorOption(
+                      code: 'black',
+                      name: locale.get('openings_black'),
+                      isSelected: _chosenColor == 'black',
+                      onTap: () => setDialogState(() => _chosenColor = 'black'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 SwitchListTile(
-                  title: const Text('Rated game'),
-                  subtitle: const Text('Affects your rating'),
+                  title: Text(locale.get('social_rated_game')),
+                  subtitle: Text(locale.get('social_affects_rating')),
                   value: _rated,
                   onChanged: (v) => setDialogState(() => _rated = v),
                 ),
@@ -734,7 +819,10 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(locale.get('cancel')),
+            ),
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
@@ -754,18 +842,22 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                   await context.read<SocialCubit>().sendGameInvite(friend.friendId, gameConfig);
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Invitation sent to ${friend.friendNickname}')),
+                      SnackBar(
+                        content: Text(
+                          '${locale.get('social_invitation_sent')}${friend.friendNickname}',
+                        ),
+                      ),
                     );
                   }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to send invite: $e')),
+                      SnackBar(content: Text('${locale.get('social_invite_failed')}$e')),
                     );
                   }
                 }
               },
-              child: const Text('Send'),
+              child: Text(locale.get('social_send')),
             ),
           ],
         ),
@@ -773,30 +865,37 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     );
   }
 
-  void _removeFriend(Friend friend) {
+  void _removeFriend(Friend friend, LocaleProvider locale) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove friend'),
-        content: Text('Are you sure you want to remove ${friend.friendNickname}?'),
+        title: Text(locale.get('social_remove_friend_title')),
+        content: Text(
+          '${locale.get('social_remove_friend_confirm')}${friend.friendNickname}?',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(locale.get('cancel')),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               context.read<SocialCubit>().removeFriend(friend.id);
             },
-            child: const Text('Remove'),
+            child: Text(locale.get('social_remove')),
           ),
         ],
       ),
     );
   }
 
-  void _sendFriendRequest(Friend user) {
+  void _sendFriendRequest(Friend user, LocaleProvider locale) {
     context.read<SocialCubit>().sendFriendRequest(user.friendId, knownProfile: user);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Friend request sent to ${user.friendNickname}')),
+      SnackBar(
+        content: Text('${locale.get('social_request_sent')}${user.friendNickname}'),
+      ),
     );
   }
 
@@ -819,7 +918,7 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
     });
   }
 
-  void _showInvitationDialog(BuildContext context, Map<String, dynamic> invite) {
+  void _showInvitationDialog(BuildContext context, Map<String, dynamic> invite, LocaleProvider locale) {
     final profile = invite['profiles'] as Map<String, dynamic>?;
     final nickname = profile?['nickname'] ?? 'Unknown';
 
@@ -827,15 +926,15 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text('Game invitation from $nickname'),
-        content: const Text('Do you want to accept this game invitation?'),
+        title: Text('${locale.get('social_game_invitation')}$nickname'),
+        content: Text(locale.get('social_accept_invitation')),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               context.read<SocialCubit>().declineGameInvite(invite['id']);
             },
-            child: const Text('Decline'),
+            child: Text(locale.get('social_decline')),
           ),
           TextButton(
             onPressed: () async {
@@ -866,7 +965,6 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
 
                     final config = GameConfig.create(
                       variant: bishop.Variant.standard(),
-                      //gameId: gameId,
                       humanPlayer: whiteId == currentUserId ? PlayerColor.white : PlayerColor.black,
                       opponentType: OpponentType.human,
                     );
@@ -886,13 +984,13 @@ class _SocialScreenState extends State<SocialScreen> with SingleTickerProviderSt
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to start game: $e')),
+                      SnackBar(content: Text('${locale.get('social_game_start_failed')}$e')),
                     );
                   }
                 }
               }
             },
-            child: const Text('Accept'),
+            child: Text(locale.get('social_accept')),
           ),
         ],
       ),

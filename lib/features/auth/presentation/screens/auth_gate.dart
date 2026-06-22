@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/user_provider.dart';
+import '../../../../core/providers/locale_provider.dart';
 import 'welcome_screen.dart';
 
 class AuthGate extends StatefulWidget {
@@ -40,16 +41,17 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
     // 🔥 Пока инициализация — показываем сплэш
     if (!_isInitialized) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Загрузка профиля...'),
+              Text(locale.get('auth_loading_profile')),
             ],
           ),
         ),

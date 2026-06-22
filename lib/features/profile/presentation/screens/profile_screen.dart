@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -33,7 +32,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserver {
   final ImagePicker _picker = ImagePicker();
   Timer? _uiRefreshTimer;
-
   bool _hasLoadedOnce = false;
 
   @override
@@ -54,7 +52,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   @override
   void didUpdateWidget(covariant ProfileScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    print('🔄 [ProfileScreen] didUpdateWidget - reloading profile');
     _loadProfile();
   }
 
@@ -62,7 +59,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
-        print('🔄 [ProfileScreen] App resumed - reloading profile');
         _loadProfile();
         _startUiRefreshTimer();
         break;
@@ -79,9 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   void _loadProfile() {
     final userId = widget.userId ?? Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) {
-      print('🔄 [ProfileScreen] Loading profile for $userId');
       context.read<ProfileCubit>().loadProfile(userId);
-
       if (!widget.isReadOnly) {
         _startUiRefreshTimer();
       }
@@ -90,7 +84,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
   void _startUiRefreshTimer() {
     _uiRefreshTimer?.cancel();
-    // Обновляет UI, чтобы текст "был X мин назад" актуализировался
     _uiRefreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) {
         setState(() {});
@@ -119,20 +112,18 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     return '${date.day}.${date.month}.${date.year}';
   }
 
-  void _showLogoutConfirmation() {
+  void _showLogoutConfirmation(LocaleProvider locale) {
     if (!mounted) return;
-
-    final locale = context.read<LocaleProvider>();
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(locale.get('logout_title') ?? 'Выход'),
-        content: Text(locale.get('logout_confirm') ?? 'Вы действительно хотите выйти?'),
+        title: Text(locale.get('logout_title')),
+        content: Text(locale.get('logout_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(locale.get('cancel') ?? 'Отмена'),
+            child: Text(locale.get('cancel')),
           ),
           FilledButton(
             onPressed: () async {
@@ -147,7 +138,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               backgroundColor: Colors.red.shade100,
               foregroundColor: Colors.red,
             ),
-            child: Text(locale.get('logout') ?? 'Выйти'),
+            child: Text(locale.get('logout')),
           ),
         ],
       ),
@@ -163,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(locale.get('profile_title') ?? 'Профиль'),
+        title: Text(locale.get('profile_title')),
         centerTitle: true,
         actions: widget.isReadOnly
             ? []
@@ -193,11 +184,11 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Ошибка: ${state.message}'),
+                  Text('${locale.get('error_loading')}${state.message}'),
                   SizedBox(height: 16.h),
                   ElevatedButton(
                     onPressed: () => _loadProfile(),
-                    child: const Text('Повторить'),
+                    child: Text(locale.get('profile_retry')),
                   ),
                 ],
               ),
@@ -208,8 +199,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
             final profile = state is ProfileLoaded
                 ? state.profile
                 : (state as ProfileUpdated).profile;
-
-            print('🔍 [ProfileScreen] Building with avatarUrl: ${profile.avatarUrl}');
 
             return SingleChildScrollView(
               child: Column(
@@ -237,10 +226,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   }
 
   Widget _buildProfileHeader(LocaleProvider locale, dynamic profile) {
-    // 👇 Определяем, чей это профиль
     final isOwnProfile = !widget.isReadOnly;
-
-    // 👇 Вычисляем статус ТОЛЬКО для чужих профилей
     final isOnline = isOwnProfile ? false : PresenceService.isOnline(profile.lastSeenAt);
     final statusText = isOwnProfile ? '' : PresenceService.formatLastSeen(profile.lastSeenAt);
 
@@ -262,7 +248,6 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                       ? const Icon(Icons.person, size: 50, color: Colors.white)
                       : null,
                 ),
-                // 👇 Индикатор онлайн ТОЛЬКО для чужих профилей
                 if (!isOwnProfile)
                   Positioned(
                     bottom: 2,
@@ -314,12 +299,11 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               ),
             ],
             const SizedBox(height: 16),
-            // 👇 Блок с Game ID, датой регистрации и статусом
             Column(
               children: [
                 if (profile.displayId != null)
-                  _buildInfoRow('Game ID', profile.displayId.toString()),
-                _buildInfoRow('Рег. дата', _formatDate(profile.joinedAt)),
+                  _buildInfoRow(locale.get('profile_game_id_label'), profile.displayId.toString()),
+                _buildInfoRow(locale.get('profile_reg_date_label'), _formatDate(profile.joinedAt)),
                 if (!isOwnProfile) ...[
                   if (isOnline)
                     Padding(
@@ -334,7 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                       ),
                     )
                   else
-                    _buildInfoRow('В сети', statusText),
+                    _buildInfoRow(locale.get('profile_online_status'), statusText),
                 ],
               ],
             ),
@@ -352,7 +336,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'О себе',
+                      locale.get('profile_about_section'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -394,7 +378,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: valueColor, // 👈 НОВЫЙ ПАРАМЕТР: цвет значения
+              color: valueColor,
             ),
           ),
         ],
@@ -409,10 +393,10 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
         : (currentState is ProfileUpdated ? currentState.profile : null);
 
     final ratingModes = [
-      {'key': 'standard_bullet', 'name': 'Пуля', 'icon': MdiIcons.bullet},
-      {'key': 'standard_blitz', 'name': 'Блиц', 'icon': Icons.flash_on},
-      {'key': 'standard_rapid', 'name': 'Рапид', 'icon': Icons.timer},
-      {'key': 'puzzles', 'name': 'Задачи', 'icon': MdiIcons.puzzle},
+      {'key': 'standard_bullet', 'name': locale.get('profile_bullet'), 'icon': MdiIcons.bullet},
+      {'key': 'standard_blitz', 'name': locale.get('profile_blitz'), 'icon': Icons.flash_on},
+      {'key': 'standard_rapid', 'name': locale.get('profile_rapid'), 'icon': Icons.timer},
+      {'key': 'puzzles', 'name': locale.get('profile_puzzles'), 'icon': MdiIcons.puzzle},
     ];
 
     return Card(
@@ -423,7 +407,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              locale.get('profile_ratings') ?? 'Рейтинги',
+              locale.get('profile_ratings'),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
@@ -480,12 +464,12 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
   Widget _buildRadarChart(LocaleProvider locale) {
     final data = [0.8, 0.7, 0.6, 0.75, 0.85, 0.9];
     final titles = [
-      locale.get('stat_tactics') ?? 'Тактика',
-      locale.get('stat_strategy') ?? 'Стратегия',
-      locale.get('stat_endgame') ?? 'Эндшпиль',
-      locale.get('stat_opening') ?? 'Дебюты',
-      locale.get('stat_calculation') ?? 'Расчёт',
-      locale.get('stat_speed') ?? 'Скорость',
+      locale.get('stat_tactics'),
+      locale.get('stat_strategy'),
+      locale.get('stat_endgame'),
+      locale.get('stat_opening'),
+      locale.get('stat_calculation'),
+      locale.get('stat_speed'),
     ];
 
     return Card(
@@ -496,7 +480,7 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              locale.get('profile_stats') ?? 'Статистика',
+              locale.get('profile_stats'),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -544,17 +528,17 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  locale.get('profile_history') ?? 'История',
+                  locale.get('profile_history'),
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 TextButton(
                   onPressed: () {},
-                  child: Text(locale.get('view_all') ?? 'Все'),
+                  child: Text(locale.get('view_all')),
                 ),
               ],
             ),
           ),
-          ...games.map((g) => _GameHistoryTile(game: g)),
+          ...games.map((g) => _GameHistoryTile(game: g, locale: locale)),
         ],
       ),
     );
@@ -564,10 +548,10 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ElevatedButton.icon(
-        onPressed: _showLogoutConfirmation,
+        onPressed: () => _showLogoutConfirmation(locale),
         icon: const Icon(Icons.logout, color: Colors.red),
         label: Text(
-          locale.get('logout') ?? 'Выйти',
+          locale.get('logout'),
           style: const TextStyle(color: Colors.red),
         ),
         style: ElevatedButton.styleFrom(
@@ -592,7 +576,9 @@ class _ProfileScreenState extends State<ProfileScreen> with WidgetsBindingObserv
 
 class _GameHistoryTile extends StatelessWidget {
   final Map<String, dynamic> game;
-  const _GameHistoryTile({required this.game});
+  final LocaleProvider locale;
+
+  const _GameHistoryTile({required this.game, required this.locale});
 
   @override
   Widget build(BuildContext context) {
@@ -607,9 +593,9 @@ class _GameHistoryTile extends StatelessWidget {
       'draw': Icons.drag_handle,
     };
     final resultTexts = {
-      'win': 'Победа',
-      'loss': 'Поражение',
-      'draw': 'Ничья',
+      'win': locale.get('profile_win'),
+      'loss': locale.get('profile_loss'),
+      'draw': locale.get('profile_draw'),
     };
 
     return ListTile(
@@ -621,7 +607,7 @@ class _GameHistoryTile extends StatelessWidget {
         ),
       ),
       title: Text('${game['opponent']} (${game['rating']})'),
-      subtitle: Text('${game['mode']} • ${game['moves']} ходов'),
+      subtitle: Text('${game['mode']} • ${game['moves']} ${locale.get('profile_moves')}'),
       trailing: Text(
         resultTexts[game['result']] ?? '',
         style: TextStyle(

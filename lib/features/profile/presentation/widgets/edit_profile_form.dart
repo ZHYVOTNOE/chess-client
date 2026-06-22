@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../../core/providers/user_provider.dart';
+import '../../../../../core/providers/locale_provider.dart';
 import '../../domain/entities/profile_user.dart';
 import '../cubits/profile_cubit.dart';
 import '../validators/profile_form_validator.dart';
@@ -48,6 +49,7 @@ class _EditProfileFormState extends State<EditProfileForm> {
 
   // 🔥 Показ выбора: камера или галерея
   void _showImageSourceActionSheet() {
+    final locale = context.read<LocaleProvider>();
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
@@ -55,7 +57,7 @@ class _EditProfileFormState extends State<EditProfileForm> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Сделать фото'),
+              title: Text(locale.get('edit_profile_take_photo')),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.camera);
@@ -63,7 +65,7 @@ class _EditProfileFormState extends State<EditProfileForm> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Выбрать из галереи'),
+              title: Text(locale.get('edit_profile_choose_from_gallery')),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.gallery);

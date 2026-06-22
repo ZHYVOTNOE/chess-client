@@ -34,7 +34,6 @@ class _SupportScreenState extends State<SupportScreen> {
     super.dispose();
   }
 
-  /// Принимает только ключ, context берём из State
   String _getLocalized(String key) {
     final locale = context.read<LocaleProvider>();
     return locale.get(key) ?? key;
@@ -54,8 +53,6 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = context.watch<LocaleProvider>();
-
     return BlocConsumer<SupportCubit, SupportState>(
       listener: (context, state) {
         if (state is SupportTicketOpen || state is SupportAdminTicketOpen) {
@@ -80,7 +77,6 @@ class _SupportScreenState extends State<SupportScreen> {
 
         if (state is SupportTicketOpen) {
           return _buildChatScreen(
-            locale: locale,
             ticket: state.ticket,
             messages: state.messages,
             isSending: state.isSending,
@@ -89,12 +85,11 @@ class _SupportScreenState extends State<SupportScreen> {
         }
 
         if (state is SupportAdminList) {
-          return _buildAdminList(locale, state.tickets);
+          return _buildAdminList(state.tickets);
         }
 
         if (state is SupportAdminTicketOpen) {
           return _buildChatScreen(
-            locale: locale,
             ticket: state.ticket,
             messages: state.messages,
             isSending: state.isSending,
@@ -140,7 +135,7 @@ class _SupportScreenState extends State<SupportScreen> {
     );
   }
 
-  Widget _buildAdminList(LocaleProvider locale, List<SupportTicket> tickets) {
+  Widget _buildAdminList(List<SupportTicket> tickets) {
     return Scaffold(
       appBar: AppBar(title: Text(_getLocalized('support_admin_list_title'))),
       body: tickets.isEmpty
@@ -156,7 +151,6 @@ class _SupportScreenState extends State<SupportScreen> {
         itemBuilder: (context, index) {
           final ticket = tickets[index];
           return _AdminTicketTile(
-            locale: locale,
             ticket: ticket,
             onTap: () => context.read<SupportCubit>().openAdminTicket(ticket),
           );
@@ -166,7 +160,6 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   Widget _buildChatScreen({
-    required LocaleProvider locale,
     required SupportTicket ticket,
     required List<SupportMessage> messages,
     required bool isSending,
@@ -187,11 +180,9 @@ class _SupportScreenState extends State<SupportScreen> {
             ? Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(ticket.userNickname ?? locale.get('support_user')),
+            Text(ticket.userNickname ?? _getLocalized(context, 'support_user')),
             Text(
-              isClosed
-                  ? locale.get('support_closed')
-                  : locale.get('support_open'),
+              isClosed ? _getLocalized(context, 'support_closed') : _getLocalized(context, 'support_open'),
               style: TextStyle(
                 fontSize: 12,
                 color: isClosed ? Colors.red : Colors.green,
@@ -199,21 +190,18 @@ class _SupportScreenState extends State<SupportScreen> {
             ),
           ],
         )
-            : Text(locale.get('support_title')),
+            : Text(_getLocalized(context, 'support_title')),
         actions: [
           if (isAdmin && !isClosed)
             TextButton(
               onPressed: () => _showCloseConfirm(ticket.id),
-              child: Text(
-                locale.get('close'),
-                style: const TextStyle(color: Colors.red),
-              ),
+              child: Text(_getLocalized(context, 'close'), style: const TextStyle(color: Colors.red)),
             ),
           if (isClosed)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Chip(
-                label: Text(locale.get('closed')),
+                label: Text(_getLocalized('closed')),
                 backgroundColor: Colors.red,
                 labelStyle: const TextStyle(color: Colors.white, fontSize: 11),
               ),
@@ -227,21 +215,19 @@ class _SupportScreenState extends State<SupportScreen> {
                 ? Center(
               child: Text(
                 isAdmin
-                    ? locale.get('support_user_not_written')
-                    : locale.get('support_describe_problem'),
+                    ? _getLocalized('support_user_not_written')
+                    : _getLocalized('support_describe_problem'),
                 style: const TextStyle(color: Colors.grey),
               ),
             )
                 : ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final msg = messages[index];
                 final isMe = msg.senderId == currentUserId;
                 return _ChatBubble(
-                  locale: locale,
                   message: msg,
                   isMe: isMe,
                 );
@@ -251,7 +237,6 @@ class _SupportScreenState extends State<SupportScreen> {
 
           if (!isClosed)
             _MessageInputBar(
-              locale: locale,
               controller: _messageController,
               isSending: isSending,
               onSend: () {
@@ -268,7 +253,7 @@ class _SupportScreenState extends State<SupportScreen> {
               padding: const EdgeInsets.all(12),
               color: Colors.grey.shade100,
               child: Text(
-                locale.get('support_ticket_closed'),
+                _getLocalized(context, 'support_ticket_closed'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.grey),
               ),
@@ -279,16 +264,15 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 
   void _showCloseConfirm(String ticketId) {
-    final locale = context.read<LocaleProvider>();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(locale.get('close_confirm_title')),
-        content: Text(locale.get('close_confirm_message')),
+        title: Text(_getLocalized(context, 'close_confirm_title')),
+        content: Text(_getLocalized(context, 'close_confirm_message')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(locale.get('cancel')),
+            child: Text(_getLocalized(context, 'cancel')),
           ),
           TextButton(
             onPressed: () {
@@ -296,7 +280,7 @@ class _SupportScreenState extends State<SupportScreen> {
               context.read<SupportCubit>().closeTicket(ticketId);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(locale.get('close')),
+            child: Text(_getLocalized(context, 'close')),
           ),
         ],
       ),
@@ -304,26 +288,17 @@ class _SupportScreenState extends State<SupportScreen> {
   }
 }
 
-// ── ВИДЖЕТЫ ────────────────────────────────────────────────────
-
 class _AdminTicketTile extends StatelessWidget {
-  final LocaleProvider locale;
   final SupportTicket ticket;
   final VoidCallback onTap;
 
-  const _AdminTicketTile({
-    required this.locale,
-    required this.ticket,
-    required this.onTap,
-  });
+  const _AdminTicketTile({required this.ticket, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundImage: ticket.userAvatarUrl != null
-            ? NetworkImage(ticket.userAvatarUrl!)
-            : null,
+        backgroundImage: ticket.userAvatarUrl != null ? NetworkImage(ticket.userAvatarUrl!) : null,
         child: ticket.userAvatarUrl == null
             ? Text(
           (ticket.userNickname ?? '?')[0].toUpperCase(),
@@ -332,7 +307,7 @@ class _AdminTicketTile extends StatelessWidget {
             : null,
       ),
       title: Text(
-        ticket.userNickname ?? locale.get('support_user'),
+        ticket.userNickname ?? _getLocalized(context, 'support_user'),
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
@@ -353,34 +328,27 @@ class _AdminTicketTile extends StatelessWidget {
 }
 
 class _ChatBubble extends StatelessWidget {
-  final LocaleProvider locale;
   final SupportMessage message;
   final bool isMe;
 
-  const _ChatBubble({
-    required this.locale,
-    required this.message,
-    required this.isMe,
-  });
+  const _ChatBubble({required this.message, required this.isMe});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final time = DateFormat('HH:mm').format(message.createdAt.toLocal());
+    final locale = context.read<LocaleProvider>();
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment:
-        isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
             CircleAvatar(
               radius: 16,
-              backgroundImage: message.senderAvatarUrl != null
-                  ? NetworkImage(message.senderAvatarUrl!)
-                  : null,
+              backgroundImage: message.senderAvatarUrl != null ? NetworkImage(message.senderAvatarUrl!) : null,
               child: message.senderAvatarUrl == null
                   ? Text(
                 (message.senderNickname ?? '?')[0].toUpperCase(),
@@ -392,12 +360,9 @@ class _ChatBubble extends StatelessWidget {
           ],
           Flexible(
             child: Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: isMe
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.surfaceContainerHighest,
+                color: isMe ? theme.colorScheme.primary : theme.colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -420,9 +385,7 @@ class _ChatBubble extends StatelessWidget {
                   Text(
                     message.body,
                     style: TextStyle(
-                      color: isMe
-                          ? theme.colorScheme.onPrimary
-                          : theme.colorScheme.onSurface,
+                      color: isMe ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -430,9 +393,7 @@ class _ChatBubble extends StatelessWidget {
                     time,
                     style: TextStyle(
                       fontSize: 10,
-                      color: isMe
-                          ? theme.colorScheme.onPrimary.withValues(alpha: 0.7)
-                          : Colors.grey,
+                      color: isMe ? theme.colorScheme.onPrimary.withValues(alpha: 0.7) : Colors.grey,
                     ),
                   ),
                 ],
@@ -446,13 +407,11 @@ class _ChatBubble extends StatelessWidget {
 }
 
 class _MessageInputBar extends StatelessWidget {
-  final LocaleProvider locale;
   final TextEditingController controller;
   final bool isSending;
   final VoidCallback onSend;
 
   const _MessageInputBar({
-    required this.locale,
     required this.controller,
     required this.isSending,
     required this.onSend,
@@ -460,6 +419,8 @@ class _MessageInputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.read<LocaleProvider>();
+
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -482,8 +443,7 @@ class _MessageInputBar extends StatelessWidget {
                   ),
                   filled: true,
                   fillColor: Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
                 onSubmitted: (_) => onSend(),
               ),
@@ -503,8 +463,7 @@ class _MessageInputBar extends StatelessWidget {
               icon: const Icon(Icons.send),
               style: IconButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor:
-                Theme.of(context).colorScheme.onPrimary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
           ],

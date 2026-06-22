@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/providers/locale_provider.dart';
 import '../cubits/matchmaking_cubit.dart';
 
 class SearchingScreen extends StatefulWidget {
@@ -38,8 +39,9 @@ class _SearchingScreenState extends State<SearchingScreen>
     final params = state.extra as Map<String, dynamic>?;
     _jwtToken = params?['jwtToken'] as String?;
     final userId = params?['userId'] as String?;
-
+    print('🔑 [DEBUG] JWT Token: $_jwtToken');
     if (_jwtToken != null) {
+      // ✅ Только connect — findMatch вызывается из initState после
       context.read<MatchmakingCubit>().connect(_jwtToken!, userId: userId);
     }
   }
@@ -105,6 +107,7 @@ class _SearchingScreenState extends State<SearchingScreen>
           }
         },
         builder: (context, state) {
+          final locale = context.read<LocaleProvider>();
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -125,7 +128,7 @@ class _SearchingScreenState extends State<SearchingScreen>
                 ),
                 SizedBox(height: 40.h),
                 Text(
-                  'Поиск соперника...',
+                  locale.get('searching_opponent'),
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 24.sp,
@@ -147,7 +150,7 @@ class _SearchingScreenState extends State<SearchingScreen>
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
                         ),
-                        child: const Text('Отмена'),
+                        child: Text(locale.get('searching_cancel')),
                       ),
                     ],
                   )
@@ -160,7 +163,7 @@ class _SearchingScreenState extends State<SearchingScreen>
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
                     ),
-                    child: const Text('Назад'),
+                    child: Text(locale.get('searching_back')),
                   ),
               ],
             ),

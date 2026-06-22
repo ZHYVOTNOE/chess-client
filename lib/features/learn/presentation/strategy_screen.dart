@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/providers/locale_provider.dart';
+import 'package:client/core/providers/locale_provider.dart';
 
 class StrategyScreen extends StatelessWidget {
   const StrategyScreen({super.key});

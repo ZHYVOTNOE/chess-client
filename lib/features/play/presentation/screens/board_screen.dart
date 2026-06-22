@@ -306,6 +306,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:provider/provider.dart';
 import 'package:squares/squares.dart' hide BoardController;
 
+import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/providers/settings_provider.dart';
 import '../../../../core/providers/user_provider.dart';
 import '../../../../core/utils/piece_set_loader.dart';
@@ -335,6 +336,7 @@ class _BoardView extends StatelessWidget {
     final engine = context.watch<GameEngine>();
     final snapshot = engine.snapshot;
     final state = snapshot.squaresState;
+    final locale = context.watch<LocaleProvider>();
 
     final boardAspectRatio = state.size.aspectRatio;
     final hasTimeControl = engine.config.timeControl.isEnabled;
@@ -447,6 +449,7 @@ class _PlayerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = context.watch<LocaleProvider>();
     final m = time.inMinutes.remainder(60);
     final s = time.inSeconds.remainder(60);
 
@@ -457,7 +460,7 @@ class _PlayerCard extends StatelessWidget {
         child: avatar == null ? Icon(Icons.person, color: Colors.grey.shade600) : null,
       ),
       title: Text(name),
-      subtitle: rating != null ? Text('Rating: $rating') : null,
+      subtitle: rating != null ? Text('${locale.get('board_rating')} $rating') : null,
       trailing: isThinking
           ? SizedBox(width: 20.r, height: 20.r, child: CircularProgressIndicator(strokeWidth: 2))
           : showTime

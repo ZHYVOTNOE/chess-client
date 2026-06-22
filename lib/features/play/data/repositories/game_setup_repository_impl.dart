@@ -17,8 +17,6 @@ class GameSetupRepositoryImpl implements GameSetupRepository {
           .eq('user_id', userId)
           .single();
 
-      if (response == null) return null;
-
       return GameSetup.fromMap(response);
     } catch (e) {
       return null;
