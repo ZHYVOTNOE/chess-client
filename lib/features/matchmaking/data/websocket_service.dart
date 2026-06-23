@@ -10,30 +10,39 @@ class MatchmakingWebSocketService {
   MatchmakingWebSocketService({required this.serverUrl});
 
   final _messageController = StreamController<Map<String, dynamic>>.broadcast();
-
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
 
   Future<void> connect(String jwtToken, {String? userId}) async {
+    // Защита от повторного подключения
+    if (_channel != null) {
+      print('⚠️ [WS] Already connected. Ignoring duplicate request.');
+      return;
+    }
+
     try {
       print('🔌 [WS] Connecting to $serverUrl...');
       _channel = WebSocketChannel.connect(Uri.parse(serverUrl));
-
-      // ✅ Ждём реального установления соединения
       await _channel!.ready;
       print('✅ [WS] Connected successfully');
 
       _subscription = _channel!.stream.listen(
-        (message) {
+            (message) {
           print('📨 [WS] Received: $message');
           final data = jsonDecode(message as String) as Map<String, dynamic>;
+
+          // Игнорируем пинги
+          if (data['action'] == 'ping') return;
+
           _messageController.add(data);
         },
         onError: (error) {
           print('❌ [WS] Stream error: $error');
+          _channel = null;
           _messageController.add({'error': 'WebSocket error: $error'});
         },
         onDone: () {
-          print('🔌 [WS] Connection closed. Code: ${_channel?.closeCode}, Reason: ${_channel?.closeReason}');
+          print('🔌 [WS] Connection closed');
+          _channel = null;
           _messageController.add({'error': 'WebSocket connection closed'});
         },
       );
@@ -47,6 +56,7 @@ class MatchmakingWebSocketService {
 
     } catch (e) {
       print('❌ [WS] Connection failed: $e');
+      _channel = null;
       _messageController.add({'error': 'Failed to connect: $e'});
     }
   }
@@ -78,6 +88,41 @@ class MatchmakingWebSocketService {
   void cancelSearch() {
     print('🚫 [WS] Cancelling search');
     _channel?.sink.add(jsonEncode({'action': 'cancel_match'}));
+  }
+
+  // ✅ НОВЫЕ МЕТОДЫ ДЛЯ ИГРЫ
+
+  void sendMove({
+    required String gameId,
+    required String move,
+    required int whiteTime,
+    required int blackTime,
+  }) {
+    if (_channel == null) {
+      print('❌ [WS] sendMove called but channel is null');
+      return;
+    }
+
+    _channel!.sink.add(jsonEncode({
+      'action': 'make_move',
+      'game_id': gameId,
+      'move': move,
+      'white_time': whiteTime,
+      'black_time': blackTime,
+    }));
+
+    print('📤 [WS] Sent move: $move for game $gameId');
+  }
+
+  void resign({required String gameId}) {
+    if (_channel == null) return;
+
+    _channel!.sink.add(jsonEncode({
+      'action': 'resign',
+      'game_id': gameId,
+    }));
+
+    print('🏳️ [WS] Resigned game $gameId');
   }
 
   void disconnect() {

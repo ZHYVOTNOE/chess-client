@@ -610,6 +610,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 
 import 'package:provider/provider.dart';
 
+import 'package:bishop/bishop.dart' as bishop;
 import 'package:squares/squares.dart' hide BoardController;
 
 
@@ -659,287 +660,168 @@ class BoardScreen extends StatelessWidget {
 
 
 class _BoardView extends StatelessWidget {
-
   const _BoardView();
 
-
-
   @override
-
   Widget build(BuildContext context) {
-
     final engine = context.watch<GameEngine>();
-
     final snapshot = engine.snapshot;
-
     final state = snapshot.squaresState;
 
-
-
     final boardAspectRatio = state.size.aspectRatio;
-
     final hasTimeControl = engine.config.timeControl.isEnabled;
-
     final isWhite = engine.config.humanPlayer.isWhite;
-
     final topTime = isWhite ? snapshot.blackTime : snapshot.whiteTime;
-
     final bottomTime = isWhite ? snapshot.whiteTime : snapshot.blackTime;
 
-
-
     final nickname = context.select<UserProvider, String>((u) => u.nickname);
-
     final avatar = context.select<UserProvider, File?>((u) => u.avatarFile);
     final avatarUrl = context.select<UserProvider, String?>((u) => u.avatarUrl);
     final gameMode = engine.config.timeControl.gameMode;
     final playerRating = context.select<UserProvider, int?>((u) => u.getRating(gameMode));
 
-
-
     final settings = context.watch<SettingsProvider>();
 
-    
-
-    // Load settings if not loaded
-
     if (settings.settings == null && !settings.isLoading) {
-
       final userId = context.read<UserProvider>().userId;
-
       if (userId != null) {
-
         WidgetsBinding.instance.addPostFrameCallback((_) {
-
           context.read<SettingsProvider>().loadSettings(userId);
-
         });
-
       }
-
-      // Show loading while settings are being loaded
-
-      return Scaffold(
-
-        appBar: AppBar(
-
-          title: Text(engine.config.variant.name),
-
-          leading: IconButton(
-
-            icon: const Icon(Icons.arrow_back),
-
-            onPressed: () => context.pop(),
-
-          ),
-
-        ),
-
-        body: const Center(child: CircularProgressIndicator()),
-
-      );
-
+      return _loadingScaffold(engine);
     }
 
-    
-
-    // Show loading if settings are currently loading
-
-    if (settings.isLoading) {
-
-      return Scaffold(
-
-        appBar: AppBar(
-
-          title: Text(engine.config.variant.name),
-
-          leading: IconButton(
-
-            icon: const Icon(Icons.arrow_back),
-
-            onPressed: () => context.pop(),
-
-          ),
-
-        ),
-
-        body: const Center(child: CircularProgressIndicator()),
-
-      );
-
-    }
-
-    
+    if (settings.isLoading) return _loadingScaffold(engine);
 
     final boardTheme = CustomBoardThemes.all
-
         .firstWhere((entry) => entry.id == settings.settings?.boardTheme,
-
         orElse: () => CustomBoardThemes.all[0])
-
         .theme;
 
-
-
     return Scaffold(
-
       appBar: AppBar(
-
         title: Text(engine.config.variant.name),
-
         leading: IconButton(
-
           icon: const Icon(Icons.arrow_back),
-
           onPressed: () => context.pop(),
-
         ),
-
       ),
-
       body: Column(
-
-        mainAxisAlignment: MainAxisAlignment.center,
-
         children: [
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Высота под карточки игроков и отступы
+                const playerCardHeight = 72.0;
+                const resultHeight = 40.0;
+                final availableForBoard = constraints.maxHeight
+                    - playerCardHeight * 2
+                    - resultHeight;
 
-          _PlayerCard(
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _PlayerCard(
+                      name: engine.config.opponentName ??
+                          (engine.config.isVsBot ? 'Stockfish' : 'Opponent'),
+                      rating: engine.config.opponentRating,
+                      avatarUrl: engine.config.opponentAvatarUrl,
+                      time: topTime,
+                      isThinking: snapshot.isBotThinking,
+                      showTime: hasTimeControl,
+                    ),
 
-            name: engine.config.opponentName ?? (engine.config.isVsBot ? 'Stockfish' : 'Opponent'),
-            rating: engine.config.opponentRating,
-            avatarUrl: engine.config.opponentAvatarUrl,
-
-            time: topTime,
-
-            isThinking: snapshot.isBotThinking,
-
-            showTime: hasTimeControl,
-
-          ),
-
-
-
-          Flexible(
-
-            fit: FlexFit.loose,
-
-            child: Center(
-
-              child: AspectRatio(
-
-                aspectRatio: boardAspectRatio,
-
-                // 🔥 Пересборка при изменении очереди премувов
-
-                child: ValueListenableBuilder<List<Move>>(
-
-                  valueListenable: ValueNotifier(engine.premoveQueue),
-
-                  builder: (context, premoves, child) {
-
-                    return BoardController(
-
-                      key: ValueKey('board-${premoves.length}-${DateTime.now().millisecondsSinceEpoch ~/ 1000}'),
-
-                      state: state.board,
-
-                      playState: snapshot.isGameOver ? PlayState.finished : state.state,
-
-                      size: state.size,
-
-                      pieceSet: PieceSetLoader.load(settings.settings?.pieceSet ?? 'merida'),
-
-                      theme: boardTheme,
-
-                      moves: state.moves,
-
-                      onMove: engine.makeMove,
-
-                      onAddPremove: engine.addPremove,
-
-                      onClearPremove: engine.clearPremove,
-
-                      premoves: premoves,
-
-                      markerTheme: MarkerTheme(
-
-                        empty: MarkerTheme.dot,
-
-                        piece: MarkerTheme.corners(),
-
+                    // Доска ограничена доступным местом
+                    SizedBox(
+                      height: availableForBoard.clamp(100.0, constraints.maxWidth / boardAspectRatio),
+                      child: AspectRatio(
+                        aspectRatio: boardAspectRatio,
+                        child: ValueListenableBuilder<List<Move>>(
+                          valueListenable: ValueNotifier(engine.premoveQueue),
+                          builder: (context, premoves, child) {
+                            return BoardController(
+                              key: ValueKey('board-${premoves.length}'),
+                              state: state.board,
+                              playState: snapshot.isGameOver
+                                  ? PlayState.finished
+                                  : state.state,
+                              size: state.size,
+                              pieceSet: _requiresExtendedPieces(engine.config.variant)
+                                  ? PieceSet.merida()
+                                  : PieceSetLoader.load(settings.settings?.pieceSet ?? 'merida'),
+                              theme: boardTheme,
+                              moves: state.moves,
+                              onMove: engine.makeMove,
+                              onAddPremove: engine.addPremove,
+                              onClearPremove: engine.clearPremove,
+                              premoves: premoves,
+                              markerTheme: MarkerTheme(
+                                empty: MarkerTheme.dot,
+                                piece: MarkerTheme.corners(),
+                              ),
+                              promotionBehaviour: PromotionBehaviour.autoPremove,
+                            );
+                          },
+                        ),
                       ),
+                    ),
 
-                      promotionBehaviour: PromotionBehaviour.autoPremove,
+                    _PlayerCard(
+                      name: nickname,
+                      rating: playerRating,
+                      time: bottomTime,
+                      isThinking: false,
+                      avatar: avatar,
+                      avatarUrl: avatarUrl,
+                      showTime: hasTimeControl,
+                    ),
 
-                    );
-
-                  },
-
-                ),
-
-              ),
-
+                    if (snapshot.result != null)
+                      Padding(
+                        padding: EdgeInsets.only(top: 4.r),
+                        child: Text(
+                          snapshot.result!,
+                          style: TextStyle(
+                              fontSize: 20.sp, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
-
           ),
 
-
-
-          _PlayerCard(
-
-            name: nickname,
-
-            rating: playerRating,
-
-            time: bottomTime,
-
-            isThinking: false,
-
-            avatar: avatar,
-            avatarUrl: avatarUrl,
-
-            showTime: hasTimeControl,
-
-          ),
-
-
-
-          if (snapshot.result != null)
-
-            Padding(
-
-              padding: EdgeInsets.all(16.r),
-
-              child: Text(
-
-                snapshot.result!,
-
-                style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
-
-              ),
-
+          // ✅ Кнопки посередине между профилем и низом экрана
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.h),
+            child: _GameControls(
+              onFlip: engine.flipBoard,
+              onResign: engine.resign,
+              onDrawOffer: () {},
             ),
-
-
-
-          _GameControls(
-
-            onFlip: engine.flipBoard,
-
-            onResign: engine.resign,
-
-            onDrawOffer: () {},
-
           ),
-
         ],
-
       ),
-
     );
-
   }
 
+  Widget _loadingScaffold(GameEngine engine) {
+    return Scaffold(
+      appBar: AppBar(title: Text(engine.config.variant.name)),
+      body: const Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  bool _requiresExtendedPieces(bishop.Variant variant) {
+    const standardPieces = {'P', 'N', 'B', 'R', 'Q', 'K'};
+
+    const meridaExtended = {'A', 'C', 'H', 'E', 'S', 'X'};
+
+    return variant.pieceTypes.keys.any(
+          (symbol) => meridaExtended.contains(symbol),
+    );
+  }
 }
 
 

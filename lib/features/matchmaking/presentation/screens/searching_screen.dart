@@ -41,6 +41,7 @@ class _SearchingScreenState extends State<SearchingScreen>
   late Animation<double> _animation;
   String? _jwtToken;
   late final RatingRepository _ratingRepository;
+  bool _hasNavigated = false;
 
   @override
   void didChangeDependencies() {
@@ -182,10 +183,15 @@ class _SearchingScreenState extends State<SearchingScreen>
               opponentName: opponentName ?? 'Opponent',
               opponentRating: opponentRating,
               opponentAvatarUrl: opponentAvatarUrl,
+              // ✅ ПЕРЕДАЕМ ДАННЫЕ ОНЛАЙН-ИГРЫ
+              gameId: state.gameId,
+              whiteId: state.whiteId,
+              blackId: state.blackId,
+              initialFen: state.initialFen,
             );
 
             // Navigate to game screen
-            context.push('/game/play', extra: config);
+            context.go('/game/play', extra: config);
           } else if (state.error != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.error!)),

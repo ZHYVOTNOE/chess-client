@@ -15,10 +15,13 @@ class MainShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = context.watch<LocaleProvider>();
+    final routerState = GoRouterState.of(context);
+    final location = routerState.uri.path;
+    final isGameScreen = location.startsWith('/game/play');
 
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: isGameScreen ? null : NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: navigationShell.goBranch,
         destinations: [

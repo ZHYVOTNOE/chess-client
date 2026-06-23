@@ -234,7 +234,10 @@ class GameConfig {
   final String? opponentName;
   final int? opponentRating;
   final String? opponentAvatarUrl;
-
+  final String? gameId;
+  final String? whiteId;
+  final String? blackId;
+  final String? initialFen;
 
 
   GameConfig._({
@@ -259,7 +262,10 @@ class GameConfig {
     this.opponentName,
     this.opponentRating,
     this.opponentAvatarUrl,
-
+    this.gameId,      // ✅ ДОБАВЛЕНО
+    this.whiteId,     // ✅ ДОБАВЛЕНО
+    this.blackId,     // ✅ ДОБАВЛЕНО
+    this.initialFen,  // ✅ ДОБАВЛЕНО
   });
 
 
@@ -284,7 +290,10 @@ class GameConfig {
     String? opponentName,
     int? opponentRating,
     String? opponentAvatarUrl,
-
+    String? gameId,      // ✅ ДОБАВЛЕНО
+    String? whiteId,     // ✅ ДОБАВЛЕНО
+    String? blackId,     // ✅ ДОБАВЛЕНО
+    String? initialFen,
   }) {
 
     final resolvedOpponent = opponentType ?? OpponentType.ai;
@@ -321,7 +330,10 @@ class GameConfig {
       opponentName: opponentName,
       opponentRating: opponentRating,
       opponentAvatarUrl: opponentAvatarUrl,
-
+      gameId: gameId,          // ✅ ДОБАВЛЕНО
+      whiteId: whiteId,        // ✅ ДОБАВЛЕНО
+      blackId: blackId,        // ✅ ДОБАВЛЕНО
+      initialFen: initialFen,
     );
 
   }
@@ -350,6 +362,7 @@ class GameConfig {
 
   bool get hasTimeControl => timeControl.enabled;
 
+  bool get isOnline => gameId != null;
 
 
 //GameConfig copyWith({...}) => ...;

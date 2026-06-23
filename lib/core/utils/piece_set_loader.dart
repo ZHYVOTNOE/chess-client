@@ -7,9 +7,13 @@ class PieceSetLoader {
       return PieceSet.merida();
     }
 
-    return CustomPieceSet.fromSvgAssets(
-      folder: 'assets/pieces/$setId/',
-      symbols: PieceSet.defaultSymbols,
-    );
+    try {
+      return CustomPieceSet.fromSvgAssets(
+        folder: 'assets/pieces/$setId/',
+        symbols: PieceSet.defaultSymbols,
+      );
+    } catch (e) {
+      return PieceSet.merida();
+    }
   }
 }
